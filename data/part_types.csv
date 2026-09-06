@@ -1,0 +1,18 @@
+part_type_id,part_type_name,family_id,family_name,member_part_count
+PT-HOSE-FUEL,Fuel Hose / Flexible Fuel Line,FAM-FLEX-ROUTING,Flexible Fluid Routing,3
+PT-HOSE-REFRIG,Refrigerant Hose Assembly,FAM-FLEX-ROUTING,Flexible Fluid Routing,2
+PT-HOSE-HYD,Hydraulic Hose Assembly,FAM-FLEX-ROUTING,Flexible Fluid Routing,4
+PT-HOSE-COOLANT,Coolant / Heat Exchanger Hose,FAM-FLEX-ROUTING,Flexible Fluid Routing,5
+PT-HOSE-HOTGAS,Hot Compressed Gas Hose,FAM-FLEX-ROUTING,Flexible Fluid Routing,1
+PT-TUBE-RIGID,Rigid Tube / Hard Line,FAM-RIGID-ROUTING,Rigid Tube & Line Routing,5
+PT-TUBE-PNEUMATIC,Pneumatic Control & Brake Tubing,FAM-RIGID-ROUTING,Rigid Tube & Line Routing,2
+PT-CLAMP,Hose Clamp / Retaining Clamp,FAM-JOINT,"Joints, Clamps & Connections",4
+PT-COUPLING,Quick Connect Coupling,FAM-JOINT,"Joints, Clamps & Connections",2
+PT-FITTING,Threaded Fitting / Adapter / Port,FAM-JOINT,"Joints, Clamps & Connections",2
+PT-BRACKET,Structural Bracket / Mounting Plate,FAM-STRUCTURE,Structural Mounting,7
+PT-SEAL,Static Seal / Boot / Grommet,FAM-SEALING,Static Sealing,3
+PT-VALVE-MECH,Mechanical Valve Assembly,FAM-FLOW-CONTROL,Flow Control Devices,5
+PT-VALVE-SOLENOID,Solenoid / Electro-Hydraulic Valve,FAM-FLOW-CONTROL,Flow Control Devices,1
+PT-CONDUIT-ELEC,Electrical Protective Conduit,FAM-PROTECTION,Routing Protection & Control Cables,1
+PT-CABLE-MECH,Mechanical Control Cable Assembly,FAM-PROTECTION,Routing Protection & Control Cables,1
+PT-FILTER-SEP,Filtration & Separation Device,FAM-FLUID-COND,Fluid Conditioning,2

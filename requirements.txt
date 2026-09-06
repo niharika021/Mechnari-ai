@@ -3,3 +3,4 @@ google-genai
 google-cloud-bigquery
 streamlit
 python-dotenv
+pandas

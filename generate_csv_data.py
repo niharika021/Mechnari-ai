@@ -869,60 +869,338 @@ PARTS_MASTER = [
 
 
 # =====================================================================
-# DATA FILE 1: bom_package_hierarchy.csv
+# NORMALIZED DATA MODEL EMITTER
 # =====================================================================
-bom_file = "data/bom_package_hierarchy.csv"
-with open(bom_file, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(["part_id", "system_package", "item_reference", "elementary_function", "material_type"])
-    for row in PARTS_MASTER:
-        writer.writerow([
-            row["part_id"],
-            row["system_package"],
-            row["item_reference"],
-            row["elementary_function"],
-            row["material_type"]
-        ])
+# PARTS_MASTER above stays the single authoring source for the 50 active
+# parts. Everything below reshapes it into the normalized tables the
+# platform actually runs on:
+#
+#   part_types.csv          - the family / type taxonomy every part belongs to
+#   failure_effects.csv     - one severity per effect, org wide
+#   failure_mode_catalog.csv- failure modes keyed by TYPE or FAMILY, with provenance
+#   field_issues.csv        - many warranty records per part (not 1:1)
+#   dfmea_worksheet.csv     - the DFMEA actually on file today (incomplete
+#                             on purpose - this is what gap detection diffs
+#                             the catalog against)
+#
+# The three v1 files are still emitted unchanged so the existing app keeps
+# working while the new layer is wired in.
 
-print(f"[OK] Generated File 1: {bom_file} (50 parts)")
+import random
+from datetime import date, timedelta
+
+from taxonomy import (
+    PART_FAMILIES,
+    PART_TYPES,
+    FAILURE_EFFECTS,
+    PART_ASSIGNMENTS,
+    PRIOR_PROGRAM_MODES,
+    family_of,
+    scope_level,
+    scopes_for_part,
+)
+
+SEED = 20260907
+DATA_DIR = "data"
+
+# AIAG-style occurrence anchor: score -> incidents per 1000 units in service.
+OCCURRENCE_RATE_PER_1000 = {
+    10: 120.0, 9: 55.0, 8: 22.0, 7: 11.0, 6: 5.0,
+    5: 2.0, 4: 1.0, 3: 0.5, 2: 0.1, 1: 0.01,
+}
+
+# Detection score -> where the failure was actually caught. A mode only
+# escapes to the field when the design control is weak, so the stage and
+# the detection score have to agree or the data is not credible.
+DETECTION_STAGE = [
+    (8, "FIELD_CUSTOMER"),
+    (6, "DEALER_SERVICE"),
+    (4, "END_OF_LINE_TEST"),
+    (0, "VALIDATION_TEST"),
+]
+
+# Parts whose DFMEA on file scores an effect below the organization
+# standard - seeded deliberately so the severity consistency check has
+# something real to find.
+SEVERITY_DRIFT_PARTS = {
+    "TR-FL-003": -2,
+    "TR-HYD-021": -2,
+    "TR-ELE-041": -3,
+    "TR-AC-020": -2,
+    "TR-ENG-037": -1,
+    "TR-ELE-043": -2,
+}
+
+WORKSHOP_TEAMS = [
+    "DFMEA Workshop Team A",
+    "DFMEA Workshop Team B",
+    "DFMEA Workshop Team C",
+]
 
 
-# =====================================================================
-# DATA FILE 2: material_master.csv
-# =====================================================================
-mat_file = "data/material_master.csv"
-with open(mat_file, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(["part_id", "material_id_part_name", "yield_strength_mpa", "max_temp_limit_c", "elastomeric_rating", "drawing_spec_ref"])
-    for row in PARTS_MASTER:
-        writer.writerow([
-            row["part_id"],
-            row["item_reference"],
-            row["yield_strength_mpa"],
-            row["max_temp_limit_c"],
-            row["elastomeric_rating"],
-            row["drawing_spec_ref"]
-        ])
-
-print(f"[OK] Generated File 2: {mat_file} (50 parts)")
+def _scope_suffix(scope_id):
+    return scope_id.replace("PT-", "").replace("FAM-", "")
 
 
-# =====================================================================
-# DATA FILE 3: historical_field_issues.csv
-# =====================================================================
-rag_file = "data/historical_field_issues.csv"
-with open(rag_file, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(["part_id", "failure_mode", "potential_cause", "historical_severity", "historical_occurrence", "historical_detection", "recommended_action"])
-    for row in PARTS_MASTER:
-        writer.writerow([
-            row["part_id"],
-            row["failure_mode"],
-            row["potential_cause"],
-            row["historical_severity"],
-            row["historical_occurrence"],
-            row["historical_detection"],
-            row["recommended_action"]
-        ])
+def _detection_stage(detection):
+    for threshold, stage in DETECTION_STAGE:
+        if detection >= threshold:
+            return stage
+    return "VALIDATION_TEST"
 
-print(f"[OK] Generated File 3: {rag_file} (50 parts)")
+
+def build_catalog():
+    """
+    Failure modes keyed by the SCOPE they generalize to, from current and
+    prior programs. A mode proven on one part attaches to that part's type;
+    a lesson that holds across a whole family attaches to the family.
+    """
+    catalog = []
+    counters = {}
+
+    # 1. Every active part contributes its proven failure mode to its type.
+    for part in PARTS_MASTER:
+        pid = part["part_id"]
+        part_type_id, effect_id = PART_ASSIGNMENTS[pid]
+        counters[part_type_id] = counters.get(part_type_id, 0) + 1
+        catalog.append({
+            "mode_id": "FM-%s-%02d" % (_scope_suffix(part_type_id), counters[part_type_id]),
+            "scope_id": part_type_id,
+            "scope_level": "TYPE",
+            "failure_mode": part["failure_mode"],
+            "potential_cause": part["potential_cause"],
+            "effect_id": effect_id,
+            "typical_control": "Design review and validation test plan",
+            "baseline_detection": part["historical_detection"],
+            "recommended_action": part["recommended_action"],
+            "origin": "CURRENT_PROGRAM",
+            "origin_part_id": pid,
+            "origin_part_name": part["item_reference"],
+        })
+
+    # 2. Prior programs contribute modes whose parts have left the BOM.
+    for mode in PRIOR_PROGRAM_MODES:
+        scope_id = mode["scope_id"]
+        counters[scope_id] = counters.get(scope_id, 0) + 1
+        catalog.append({
+            "mode_id": "FM-%s-%02d" % (_scope_suffix(scope_id), counters[scope_id]),
+            "scope_id": scope_id,
+            "scope_level": scope_level(scope_id),
+            "failure_mode": mode["failure_mode"],
+            "potential_cause": mode["potential_cause"],
+            "effect_id": mode["effect_id"],
+            "typical_control": mode["typical_control"],
+            "baseline_detection": mode["baseline_detection"],
+            "recommended_action": mode["recommended_action"],
+            "origin": "PRIOR_PROGRAM",
+            "origin_part_id": mode["legacy_part_id"],
+            "origin_part_name": mode["legacy_part_name"],
+        })
+
+    return catalog
+
+
+def build_field_issues(catalog, rng):
+    """Many warranty records per part, with the volumes Occurrence derives from."""
+    issues = []
+    part_by_id = {p["part_id"]: p for p in PARTS_MASTER}
+    prior_by_mode = {m["failure_mode"]: m for m in PRIOR_PROGRAM_MODES}
+
+    for entry in catalog:
+        mode_id = entry["mode_id"]
+        origin_part = entry["origin_part_id"]
+        effect = FAILURE_EFFECTS[entry["effect_id"]]
+
+        if entry["origin"] == "CURRENT_PROGRAM":
+            part = part_by_id[origin_part]
+            occurrence_anchor = part["historical_occurrence"]
+            part_name = part["item_reference"]
+        else:
+            occurrence_anchor = rng.randint(4, 7)
+            part_name = prior_by_mode[entry["failure_mode"]]["legacy_part_name"]
+
+        # More recurrent modes produce more separate warranty records.
+        record_count = 1 + min(3, occurrence_anchor // 3)
+        rate = OCCURRENCE_RATE_PER_1000[occurrence_anchor]
+
+        for _ in range(record_count):
+            report_date = date(2021, 1, 1) + timedelta(days=rng.randint(0, 1750))
+            units = rng.randrange(1200, 9200, 100)
+            claims = max(1, int(round(rate * units / 1000.0)))
+            issues.append({
+                "issue_id": None,
+                "part_id": origin_part,
+                "scope_id": entry["scope_id"],
+                "mode_id": mode_id,
+                "report_date": report_date.isoformat(),
+                "units_in_service": units,
+                "claim_count": claims,
+                "median_machine_hours": rng.randrange(200, 3800, 50),
+                "detection_stage": _detection_stage(entry["baseline_detection"]),
+                "observed_effect_id": entry["effect_id"],
+                "observed_severity": effect["standard_severity"],
+                "description": "%s observed on %s. Root cause: %s" % (
+                    entry["failure_mode"], part_name, entry["potential_cause"]),
+            })
+
+    # Number the 8D reports chronologically, the way a real register runs.
+    issues.sort(key=lambda r: (r["report_date"], r["part_id"], r["mode_id"]))
+    seq = {}
+    for record in issues:
+        year = int(record["report_date"][:4])
+        seq[year] = seq.get(year, 0) + 1
+        record["issue_id"] = "8D-%d-%04d" % (year, seq[year])
+    return issues
+
+
+def build_worksheet(catalog, rng):
+    """The DFMEA on file today - deliberately covering only part of the catalog."""
+    by_scope = {}
+    for entry in catalog:
+        by_scope.setdefault(entry["scope_id"], []).append(entry)
+
+    rows = []
+    for idx, part in enumerate(PARTS_MASTER):
+        pid = part["part_id"]
+        # A part inherits from its own type and from its family.
+        applicable = [e for scope in scopes_for_part(pid) for e in by_scope.get(scope, [])]
+        own_mode = next(e for e in applicable if e["origin_part_id"] == pid)
+        others = [e for e in applicable if e["mode_id"] != own_mode["mode_id"]]
+
+        # The workshop always analyses the mode this exact part is known for,
+        # then a subset of what the rest of the type has taught the company.
+        chosen = [own_mode]
+        for entry in others:
+            if rng.random() < 0.45:
+                chosen.append(entry)
+        # Guarantee at least one unanalysed mode wherever the type has more
+        # than one - a DFMEA with nothing missing is not a realistic baseline.
+        while others and len(chosen) > len(others):
+            chosen.pop()
+
+        team = WORKSHOP_TEAMS[idx % len(WORKSHOP_TEAMS)]
+        analysis_date = (date(2025, 1, 6) + timedelta(days=(idx % 40) * 7)).isoformat()
+        drift = SEVERITY_DRIFT_PARTS.get(pid, 0)
+
+        for entry in chosen:
+            standard_s = FAILURE_EFFECTS[entry["effect_id"]]["standard_severity"]
+            severity = standard_s
+            if drift and entry["mode_id"] == own_mode["mode_id"]:
+                severity = max(1, standard_s + drift)
+
+            if entry["mode_id"] == own_mode["mode_id"]:
+                occurrence = part["historical_occurrence"]
+                detection = part["historical_detection"]
+            else:
+                # Inherited modes get a workshop estimate, not field evidence.
+                occurrence = rng.randint(2, 5)
+                detection = max(1, min(10, entry["baseline_detection"] + rng.randint(-1, 1)))
+
+            rows.append({
+                "part_id": pid,
+                "mode_id": entry["mode_id"],
+                "severity": severity,
+                "occurrence": occurrence,
+                "detection": detection,
+                "current_design_control": entry["typical_control"],
+                "analyzed_by": team,
+                "analysis_date": analysis_date,
+                "revision": "Rev A",
+            })
+
+    return rows
+
+
+def write_csv(path, header, rows):
+    with open(path, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=header, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    print("[OK] %-42s %d rows" % (path, len(rows)))
+
+
+def main():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    rng = random.Random(SEED)
+
+    # ---- v1 tables (unchanged consumers keep working) ----------------
+    write_csv(
+        os.path.join(DATA_DIR, "bom_package_hierarchy.csv"),
+        ["part_id", "system_package", "item_reference", "elementary_function",
+         "material_type", "part_type_id"],
+        [dict(p, part_type_id=PART_ASSIGNMENTS[p["part_id"]][0]) for p in PARTS_MASTER],
+    )
+
+    write_csv(
+        os.path.join(DATA_DIR, "material_master.csv"),
+        ["part_id", "material_id_part_name", "yield_strength_mpa",
+         "max_temp_limit_c", "elastomeric_rating", "drawing_spec_ref"],
+        [dict(p, material_id_part_name=p["item_reference"]) for p in PARTS_MASTER],
+    )
+
+    write_csv(
+        os.path.join(DATA_DIR, "historical_field_issues.csv"),
+        ["part_id", "failure_mode", "potential_cause", "historical_severity",
+         "historical_occurrence", "historical_detection", "recommended_action"],
+        PARTS_MASTER,
+    )
+
+    # ---- normalized tables -------------------------------------------
+    write_csv(
+        os.path.join(DATA_DIR, "part_types.csv"),
+        ["part_type_id", "part_type_name", "family_id", "family_name",
+         "member_part_count"],
+        [
+            {
+                "part_type_id": tid,
+                "part_type_name": meta["name"],
+                "family_id": meta["family"],
+                "family_name": PART_FAMILIES[meta["family"]],
+                "member_part_count": sum(
+                    1 for v in PART_ASSIGNMENTS.values() if v[0] == tid),
+            }
+            for tid, meta in PART_TYPES.items()
+        ],
+    )
+
+    write_csv(
+        os.path.join(DATA_DIR, "failure_effects.csv"),
+        ["effect_id", "effect_description", "system_level", "standard_severity"],
+        [
+            {
+                "effect_id": eid,
+                "effect_description": meta["description"],
+                "system_level": meta["system_level"],
+                "standard_severity": meta["standard_severity"],
+            }
+            for eid, meta in FAILURE_EFFECTS.items()
+        ],
+    )
+
+    catalog = build_catalog()
+    write_csv(
+        os.path.join(DATA_DIR, "failure_mode_catalog.csv"),
+        ["mode_id", "scope_id", "scope_level", "failure_mode", "potential_cause",
+         "effect_id", "typical_control", "baseline_detection", "recommended_action",
+         "origin", "origin_part_id", "origin_part_name"],
+        catalog,
+    )
+
+    write_csv(
+        os.path.join(DATA_DIR, "field_issues.csv"),
+        ["issue_id", "part_id", "scope_id", "mode_id", "report_date",
+         "units_in_service", "claim_count", "median_machine_hours",
+         "detection_stage", "observed_effect_id", "observed_severity", "description"],
+        build_field_issues(catalog, rng),
+    )
+
+    write_csv(
+        os.path.join(DATA_DIR, "dfmea_worksheet.csv"),
+        ["part_id", "mode_id", "severity", "occurrence", "detection",
+         "current_design_control", "analyzed_by", "analysis_date", "revision"],
+        build_worksheet(catalog, rng),
+    )
+
+
+if __name__ == "__main__":
+    main()

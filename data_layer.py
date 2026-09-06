@@ -1,0 +1,172 @@
+"""
+Mechnari.ai - Normalized Data Layer
+====================================
+One place that knows how the DFMEA knowledge base is stored, so the agents
+and the UI never touch file paths or CSV parsing.
+
+Tables
+------
+part_types            family / type taxonomy every part belongs to
+failure_effects       one standard severity per effect, organization wide
+parts                 active BOM joined to material master and part type
+failure_mode_catalog  failure modes keyed by TYPE or FAMILY, with provenance
+field_issues          warranty / 8D records, many per part
+dfmea_worksheet       the DFMEA on file today (part_id + mode_id + S/O/D)
+
+The CSVs are a stand-in for the Postgres tables in the target architecture.
+Every loader returns a DataFrame, so swapping the source for a real query
+later is a change inside this module only.
+"""
+
+import os
+from functools import lru_cache
+
+import pandas as pd
+
+# Resolve data/ relative to this file so the app works from any cwd.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(_HERE, "data")
+
+TABLES = {
+    "part_types": "part_types.csv",
+    "failure_effects": "failure_effects.csv",
+    "bom": "bom_package_hierarchy.csv",
+    "material_master": "material_master.csv",
+    "failure_mode_catalog": "failure_mode_catalog.csv",
+    "field_issues": "field_issues.csv",
+    "dfmea_worksheet": "dfmea_worksheet.csv",
+}
+
+
+class DatasetError(RuntimeError):
+    """Raised when the knowledge base is missing or unreadable."""
+
+
+def _path(table: str) -> str:
+    return os.path.join(DATA_DIR, TABLES[table])
+
+
+def missing_tables():
+    """Tables the knowledge base needs but does not have."""
+    return [name for name in TABLES if not os.path.exists(_path(name))]
+
+
+@lru_cache(maxsize=None)
+def _read(table: str) -> pd.DataFrame:
+    path = _path(table)
+    if not os.path.exists(path):
+        raise DatasetError(
+            "Missing %s. Run: python generate_csv_data.py" % os.path.relpath(path, _HERE)
+        )
+    df = pd.read_csv(path)
+    if df.empty:
+        raise DatasetError("%s is empty." % os.path.relpath(path, _HERE))
+    return df
+
+
+def reload():
+    """Drop cached tables - call after regenerating the CSVs."""
+    _read.cache_clear()
+
+
+def part_types() -> pd.DataFrame:
+    return _read("part_types").copy()
+
+
+def failure_effects() -> pd.DataFrame:
+    return _read("failure_effects").copy()
+
+
+def parts() -> pd.DataFrame:
+    """Active BOM joined to material specs and the part type taxonomy."""
+    bom = _read("bom")
+    material = _read("material_master").drop(columns=["material_id_part_name"])
+    types = _read("part_types")
+
+    df = bom.merge(material, on="part_id", how="left", validate="one_to_one")
+    unmatched = int(df["drawing_spec_ref"].isna().sum())
+    if unmatched:
+        # Surfaced rather than silently dropped: a part with no material
+        # record is a data problem the engineer needs to know about.
+        df["drawing_spec_ref"] = df["drawing_spec_ref"].fillna("NO MATERIAL RECORD")
+
+    df = df.merge(types, on="part_type_id", how="left", validate="many_to_one")
+    df.attrs["parts_without_material_record"] = unmatched
+    return df
+
+
+def failure_mode_catalog() -> pd.DataFrame:
+    """Failure modes keyed by part type, with the effect and its severity."""
+    catalog = _read("failure_mode_catalog")
+    effects = _read("failure_effects")
+    return catalog.merge(effects, on="effect_id", how="left", validate="many_to_one")
+
+
+def field_issues() -> pd.DataFrame:
+    """Warranty / 8D records. Many rows per part - this is the evidence base."""
+    df = _read("field_issues").copy()
+    df["report_date"] = pd.to_datetime(df["report_date"], errors="coerce")
+    df["claims_per_1000"] = (
+        df["claim_count"] / df["units_in_service"].replace(0, pd.NA) * 1000
+    ).astype(float)
+    return df
+
+
+def dfmea_worksheet() -> pd.DataFrame:
+    """The DFMEA currently on file: which modes each part has actually analysed."""
+    return _read("dfmea_worksheet").copy()
+
+
+def analysed_modes() -> dict:
+    """part_id -> set of mode_ids already covered by the DFMEA on file."""
+    worksheet = _read("dfmea_worksheet")
+    return {
+        part_id: set(group["mode_id"])
+        for part_id, group in worksheet.groupby("part_id", sort=False)
+    }
+
+
+PART_COLUMNS = [
+    "part_id", "item_reference", "system_package", "material_type",
+    "part_type_id", "part_type_name", "family_id", "family_name",
+]
+
+
+def applicable_modes() -> pd.DataFrame:
+    """
+    Every (part, failure mode) pair the knowledge base considers applicable.
+
+    A part inherits modes attached to its own type and modes attached to its
+    family. Scope ids are disjoint by prefix (PT- vs FAM-), so the two joins
+    cannot produce the same pair twice.
+    """
+    part_rows = parts()[PART_COLUMNS]
+    catalog = failure_mode_catalog()
+
+    by_type = part_rows.merge(
+        catalog, left_on="part_type_id", right_on="scope_id", how="inner")
+    by_family = part_rows.merge(
+        catalog, left_on="family_id", right_on="scope_id", how="inner")
+    return pd.concat([by_type, by_family], ignore_index=True)
+
+
+def coverage_summary() -> pd.DataFrame:
+    """Per part: how much of the failure history applicable to it it has analysed."""
+    part_rows = parts()[["part_id", "item_reference", "system_package",
+                         "part_type_id", "part_type_name"]]
+    applicable_counts = (
+        applicable_modes().groupby("part_id").size().rename("modes_applicable")
+    )
+    analysed_counts = (
+        dfmea_worksheet().groupby("part_id").size().rename("modes_analysed")
+    )
+
+    df = part_rows.merge(applicable_counts, on="part_id", how="left")
+    df = df.merge(analysed_counts, on="part_id", how="left")
+    df["modes_analysed"] = df["modes_analysed"].fillna(0).astype(int)
+    df["modes_applicable"] = df["modes_applicable"].fillna(0).astype(int)
+    df["modes_not_analysed"] = df["modes_applicable"] - df["modes_analysed"]
+    df["coverage_pct"] = (
+        df["modes_analysed"] / df["modes_applicable"].replace(0, pd.NA) * 100
+    ).round(0)
+    return df

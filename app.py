@@ -16,6 +16,9 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
+import data_layer
+import gap_detection
+
 # Load Environment Variables
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
@@ -138,6 +141,25 @@ def load_and_merge_dfmea_data() -> pd.DataFrame:
     except Exception as e:
         st.error(f"Error merging CSV dataset files: {e}")
         return pd.DataFrame()
+
+
+# =====================================================================
+# GAP DETECTION AGENT (deterministic - cached per session)
+# =====================================================================
+
+@st.cache_data
+def cached_gaps() -> pd.DataFrame:
+    return gap_detection.detect_gaps()
+
+
+@st.cache_data
+def cached_gap_metrics() -> dict:
+    return gap_detection.headline_metrics()
+
+
+@st.cache_data
+def cached_severity_drift() -> pd.DataFrame:
+    return gap_detection.severity_consistency_findings()
 
 
 # =====================================================================
@@ -335,6 +357,132 @@ if not df_master.empty:
                         st.session_state.approval_states[pid] = "✅ Executive Approved"
                         st.success(f"Approved {pid}")
                         st.rerun()
+
+    st.markdown("---")
+
+    # =====================================================================
+    # GAP DETECTION: KNOWN FAILURE MODES THIS DFMEA NEVER CHECKED
+    # =====================================================================
+    st.subheader("\U0001F573\uFE0F Gap Detection - What This DFMEA Never Checked")
+    st.caption(
+        "Every failure mode this company has already proven on this kind of part, "
+        "minus the modes the DFMEA on file actually analysed. A deterministic set "
+        "difference - no model output, and every finding carries the 8D record it came from."
+    )
+
+    try:
+        gap_metrics = cached_gap_metrics()
+        gaps_all = cached_gaps()
+        drift_all = cached_severity_drift()
+    except data_layer.DatasetError as exc:
+        st.warning("Knowledge base not ready: %s" % exc)
+        gap_metrics, gaps_all, drift_all = {}, pd.DataFrame(), pd.DataFrame()
+
+    if gaps_all.empty:
+        st.success("No unanalysed failure modes for the current knowledge base.")
+    else:
+        if selected_package != "All System Packages":
+            gaps_view = gaps_all[gaps_all["system_package"] == selected_package]
+            drift_view = drift_all[drift_all["system_package"] == selected_package]
+        else:
+            gaps_view, drift_view = gaps_all, drift_all
+
+        safety_gaps = int((gaps_view["standard_severity"] >= 9).sum())
+
+        g1, g2, g3, g4 = st.columns(4)
+        with g1:
+            st.metric("Known Modes Not Analysed", len(gaps_view))
+        with g2:
+            st.metric(
+                "\U0001F534 Safety / Regulatory (S >= 9)",
+                safety_gaps,
+                delta="Close before design freeze" if safety_gaps else "Clear",
+                delta_color="inverse",
+            )
+        with g3:
+            st.metric("Parts Affected", int(gaps_view["part_id"].nunique()))
+        with g4:
+            st.metric("Mean DFMEA Coverage", "%s%%" % gap_metrics.get("mean_coverage_pct", 0))
+
+        st.markdown("##### \U0001F6A8 Highest-severity gaps, with the record behind each")
+        for _, row in gaps_view.head(5).iterrows():
+            header = "S=%d | %s %s - never analysed: %s" % (
+                row["standard_severity"], row["part_id"],
+                row["item_reference"], row["failure_mode"])
+            with st.expander(header):
+                ga, gb = st.columns([1, 1])
+                with ga:
+                    st.markdown("**Failure Mode:** %s" % row["failure_mode"])
+                    st.markdown("**Potential Cause:** %s" % row["potential_cause"])
+                    st.markdown("**Effect (%s):** %s" % (row["effect_id"], row["effect_description"]))
+                    st.markdown("**Severity:** `%d` - organization standard for this effect"
+                                % row["standard_severity"])
+                    st.markdown("**Priority:** %s" % row["priority"])
+                with gb:
+                    st.markdown("**Why it applies here**")
+                    st.markdown("- Part type: `%s`" % row["part_type_name"])
+                    st.markdown("- Lesson attached at: `%s` level" % row["scope_level"])
+                    st.markdown("- Learned from: %s" % row["learned_from"])
+                    st.info("**Evidence:** %s" % row["evidence_summary"])
+                    st.markdown("**Existing control on that mode:** %s" % row["typical_control"])
+                    st.markdown("**Recommended action:** %s" % row["recommended_action"])
+
+        gap_table_columns = {
+            "part_id": "Part ID",
+            "item_reference": "Component",
+            "part_type_name": "Part Type",
+            "failure_mode": "Unanalysed Failure Mode",
+            "effect_description": "Effect",
+            "standard_severity": "S",
+            "priority": "Priority",
+            "learned_from": "Learned From",
+            "reports": "Reports",
+            "total_claims": "Claims",
+            "evidence_ids": "8D Records",
+        }
+        gap_display = gaps_view[list(gap_table_columns.keys())].rename(columns=gap_table_columns)
+        st.dataframe(
+            gap_display,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "S": st.column_config.NumberColumn("S", format="%d"),
+                "Unanalysed Failure Mode": st.column_config.TextColumn(
+                    "Unanalysed Failure Mode", width="large"),
+                "Learned From": st.column_config.TextColumn("Learned From", width="medium"),
+            },
+        )
+        st.download_button(
+            label="\U0001F4E5 Export Gap Findings (CSV)",
+            data=gap_display.to_csv(index=False).encode("utf-8"),
+            file_name="Mechnari_Gap_Findings.csv",
+            mime="text/csv",
+        )
+
+        if not drift_view.empty:
+            with st.expander(
+                "\u2696\uFE0F Severity consistency: %d row(s) scored against the organization "
+                "standard for the same effect" % len(drift_view)
+            ):
+                st.caption(
+                    "Severity belongs to the failure effect at a system level, so the same "
+                    "effect must carry the same severity on every program. These rows diverge."
+                )
+                st.dataframe(
+                    drift_view.rename(columns={
+                        "part_id": "Part ID",
+                        "item_reference": "Component",
+                        "failure_mode": "Failure Mode",
+                        "effect_description": "Effect",
+                        "severity": "Scored S",
+                        "standard_severity": "Standard S",
+                        "finding": "Finding",
+                        "analyzed_by": "Analysed By",
+                    })[["Part ID", "Component", "Failure Mode", "Effect",
+                        "Scored S", "Standard S", "Finding", "Analysed By"]],
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
     st.markdown("---")
 

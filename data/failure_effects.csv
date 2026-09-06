@@ -1,0 +1,17 @@
+effect_id,effect_description,system_level,standard_severity
+EF-01,Fuel or oil leak onto hot surface - fire risk,Machine,9
+EF-02,"External fluid leak, no ignition source",Subsystem,7
+EF-03,Loss or degradation of steering assist,Machine,9
+EF-04,Degraded or lost braking function,Machine,10
+EF-05,Fluid overheat - engine or hydraulic power derate,Machine,8
+EF-06,Machine immobilised - unplanned field breakdown,Machine,8
+EF-07,Loss of implement or hitch function,Subsystem,7
+EF-08,Hydraulic circuit contamination,Subsystem,7
+EF-09,Electrical short - arc flash / fire risk,Machine,9
+EF-10,Refrigerant release to atmosphere - regulatory,Machine,6
+EF-11,Loss of cab climate control,Cab,4
+EF-12,"Cab noise, buzz or vibration nuisance",Cab,3
+EF-13,Water or dust ingress into cab,Cab,4
+EF-14,Emissions system fault - EGR / aftertreatment,Machine,7
+EF-15,Unscheduled service / warranty repair,Subsystem,5
+EF-16,Degraded sensor signal / guidance fault,Subsystem,6
