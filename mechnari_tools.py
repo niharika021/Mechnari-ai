@@ -21,6 +21,7 @@ from typing import Any, Dict
 
 import data_layer
 import gap_detection
+import retrieval
 import risk_engine
 
 # Row caps keep tool results small enough to stay useful in a prompt. The
@@ -282,10 +283,76 @@ def check_severity_consistency(part_id: str) -> Dict[str, Any]:
     }
 
 
+def analyse_new_part(part_name: str, function: str = "",
+                     material: str = "") -> Dict[str, Any]:
+    """Proposes a grounded DFMEA for a part that does not exist in the BOM yet.
+
+    Use this when the engineer describes a component they are designing rather
+    than naming an existing part_id. Finds the closest historical parts by
+    similarity and returns the failure modes the company has already proven on
+    that kind of part, each with the warranty records behind it.
+
+    The suggested part type is a suggestion, not a determination. When
+    type_confirmed is false, say so and ask the engineer to confirm the part
+    type, because the proposal spans every kind of part among the neighbours.
+
+    Args:
+        part_name (str): The component name, for example 'EPDM Fuel Return Line'.
+        function (str): What the component does. Optional but improves matching.
+        material (str): The material or compound. Optional but improves matching.
+    """
+    query = retrieval.describe(part_name, function, material)
+    if not query.strip():
+        return _error("Describe the part before asking for a proposal.")
+
+    try:
+        proposal = retrieval.propose_dfmea(query)
+    except data_layer.DatasetError as exc:
+        return _error(str(exc))
+
+    if proposal["status"] != "success":
+        return _error(proposal["reason"])
+
+    return {
+        "status": "success",
+        "suggested_part_type": proposal["part_type_name"],
+        "suggested_family": proposal["family_name"],
+        "type_confirmed": bool(proposal["confident"]),
+        "type_confidence": proposal["confidence"],
+        "confidence_note": proposal["reason"],
+        "closest_historical_parts": [
+            {
+                "part_id": row["part_id"],
+                "component": row["item_reference"],
+                "part_type": row["part_type_name"],
+                "similarity": float(row["similarity"]),
+            }
+            for _, row in proposal["neighbours"].iterrows()
+        ],
+        "candidate_count": int(len(proposal["candidates"])),
+        "safety_candidate_count": proposal["safety_candidates"],
+        "proposed_rows": [
+            {
+                "failure_mode": row["failure_mode"],
+                "potential_cause": row["potential_cause"],
+                "effect": row["effect_description"],
+                "severity": int(row["severity"]),
+                "occurrence_from_claims": int(row["occurrence"]),
+                "detection_baseline": int(row["detection"]),
+                "action_priority": row["action_priority"],
+                "learned_from": row["learned_from"],
+                "warranty_records": row["evidence_ids"],
+                "recommended_action": row["recommended_action"],
+            }
+            for _, row in proposal["candidates"].head(MAX_ROWS).iterrows()
+        ],
+    }
+
+
 # The toolsets each agent is given. Keeping them here means the agent module
 # declares intent and this module owns the contract.
-KNOWLEDGE_BASE_TOOLS = [list_parts, get_part_profile]
-GAP_TOOLS = [get_part_profile, find_unanalysed_failure_modes]
+KNOWLEDGE_BASE_TOOLS = [list_parts, get_part_profile, analyse_new_part]
+GAP_TOOLS = [get_part_profile, find_unanalysed_failure_modes, analyse_new_part]
 RISK_TOOLS = [get_risk_scores, get_occurrence_evidence, check_severity_consistency]
 ALL_TOOLS = KNOWLEDGE_BASE_TOOLS + [
     find_unanalysed_failure_modes,

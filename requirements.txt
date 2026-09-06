@@ -4,3 +4,4 @@ google-cloud-bigquery
 streamlit
 python-dotenv
 pandas
+scikit-learn

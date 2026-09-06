@@ -25,6 +25,7 @@ TOOL_FUNCTIONS = [
     tools.get_risk_scores,
     tools.get_occurrence_evidence,
     tools.check_severity_consistency,
+    tools.analyse_new_part,
 ]
 
 

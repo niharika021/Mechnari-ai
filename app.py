@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 
 import data_layer
 import gap_detection
+import retrieval
 import risk_engine
 from mechnari_agent import agent as mechnari_agent
 
@@ -138,6 +139,23 @@ def cached_ap_changes() -> pd.DataFrame:
 @st.cache_data
 def cached_detection_findings() -> pd.DataFrame:
     return risk_engine.detection_findings()
+
+
+@st.cache_data
+def cached_retrieval_metrics() -> dict:
+    return retrieval.evaluate_retrieval()
+
+
+@st.cache_data
+def cached_proposal(description: str, part_type_id: str) -> dict:
+    proposal = retrieval.propose_dfmea(description, part_type_id=part_type_id or None)
+    # Streamlit caches by value; frames come back as plain records so the
+    # cache key stays stable across reruns.
+    proposal = dict(proposal)
+    proposal["neighbours"] = proposal["neighbours"].to_dict("records")
+    proposal["candidates"] = proposal["candidates"].to_dict("records")
+    proposal.pop("inference", None)
+    return proposal
 
 
 # =====================================================================
@@ -614,6 +632,167 @@ if not df_master.empty:
                     use_container_width=True,
                     hide_index=True,
                 )
+
+    st.markdown("---")
+
+    # =====================================================================
+    # COLD START: A PART THAT DOES NOT EXIST YET
+    # =====================================================================
+    st.subheader("\U0001F50D Analyse a New Part - No Part Number Required")
+    st.caption(
+        "Describe a component being designed. The retrieval agent finds the closest "
+        "parts in the company's history by TF-IDF similarity and proposes the failure "
+        "modes already proven on that kind of part, each traced to its 8D record."
+    )
+
+    with st.form("new_part_form"):
+        f1, f2 = st.columns([1, 1])
+        with f1:
+            new_name = st.text_input(
+                "Component name", value="New EPDM Fuel Return Line")
+            new_material = st.text_input(
+                "Material / compound", value="EPDM rubber with textile braid")
+        with f2:
+            new_function = st.text_area(
+                "Elementary function", height=104,
+                value="Return unburnt diesel from the injector rail to the tank")
+        try:
+            type_options = data_layer.part_types().sort_values("part_type_name")
+            type_labels = ["(let retrieval suggest)"] + type_options["part_type_name"].tolist()
+            type_ids = [""] + type_options["part_type_id"].tolist()
+        except data_layer.DatasetError:
+            type_labels, type_ids = ["(let retrieval suggest)"], [""]
+        chosen_label = st.selectbox("Confirm part type (optional)", type_labels)
+        analyse_clicked = st.form_submit_button(
+            "\U0001F50E Find What History Says", type="primary")
+
+    if analyse_clicked:
+        query = retrieval.describe(new_name, new_function, new_material)
+        chosen_type = type_ids[type_labels.index(chosen_label)]
+        try:
+            proposal = cached_proposal(query, chosen_type)
+        except data_layer.DatasetError as exc:
+            st.warning("Knowledge base not ready: %s" % exc)
+            proposal = {"status": "no_match", "reason": str(exc)}
+
+        if proposal["status"] != "success":
+            st.warning(proposal["reason"])
+        else:
+            neighbours = pd.DataFrame(proposal["neighbours"])
+            candidates = pd.DataFrame(proposal["candidates"])
+
+            if proposal["confirmed"]:
+                st.success(
+                    "Part type confirmed as **%s**. Showing the modes known for that "
+                    "type and its family." % proposal["part_type_name"])
+            elif proposal["confident"]:
+                st.success("Suggested part type: **%s** (%.0f%% of the neighbour vote). %s"
+                           % (proposal["part_type_name"],
+                              proposal["confidence"] * 100, proposal["reason"]))
+            else:
+                st.warning("Suggested part type: **%s**, but %s"
+                           % (proposal["part_type_name"], proposal["reason"][0].lower()
+                              + proposal["reason"][1:]))
+
+            n1, n2, n3 = st.columns(3)
+            with n1:
+                st.metric("Candidate Failure Modes", len(candidates))
+            with n2:
+                st.metric("\U0001F534 Safety / Regulatory (S >= 9)",
+                          proposal["safety_candidates"])
+            with n3:
+                st.metric("Closest Historical Parts", len(neighbours))
+
+            st.markdown("##### Closest parts in the company's history")
+            neighbour_columns = {
+                "similarity": "Similarity",
+                "part_id": "Part ID",
+                "item_reference": "Component",
+                "part_type_name": "Part Type",
+                "material_type": "Material",
+                "system_package": "System Package",
+            }
+            st.dataframe(
+                neighbours[list(neighbour_columns.keys())].rename(columns=neighbour_columns),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Similarity": st.column_config.NumberColumn("Similarity", format="%.3f"),
+                },
+            )
+
+            st.markdown("##### Proposed DFMEA starting point")
+            st.caption(
+                "A proposal, not an analysis: this is what the company's history says a "
+                "part like this should be checked for. Every row is an engineering decision."
+            )
+            candidate_columns = {
+                "failure_mode": "Failure Mode",
+                "potential_cause": "Potential Cause",
+                "effect_description": "Effect",
+                "severity": "S",
+                "occurrence": "O",
+                "detection": "D",
+                "action_priority": "AP",
+                "learned_from": "Learned From",
+                "evidence_ids": "8D Records",
+                "recommended_action": "Recommended Action",
+            }
+            candidate_display = candidates[list(candidate_columns.keys())].rename(
+                columns=candidate_columns)
+            st.dataframe(
+                candidate_display,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "S": st.column_config.NumberColumn("S", format="%d"),
+                    "O": st.column_config.NumberColumn("O", format="%d"),
+                    "D": st.column_config.NumberColumn("D", format="%d"),
+                    "Failure Mode": st.column_config.TextColumn("Failure Mode", width="large"),
+                    "Recommended Action": st.column_config.TextColumn(
+                        "Recommended Action", width="large"),
+                },
+            )
+            st.download_button(
+                label="\U0001F4E5 Export Proposed DFMEA (CSV)",
+                data=candidate_display.to_csv(index=False).encode("utf-8"),
+                file_name="Mechnari_Proposed_DFMEA.csv",
+                mime="text/csv",
+            )
+
+    with st.expander("\U0001F4CF How good is this matching? Leave-one-out evaluation"):
+        st.caption(
+            "Each of the 50 parts is hidden in turn and the remaining 49 are asked what "
+            "kind of part it is. Measured, not asserted."
+        )
+        try:
+            metrics = cached_retrieval_metrics()
+        except data_layer.DatasetError as exc:
+            st.warning("Knowledge base not ready: %s" % exc)
+        else:
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.metric("Mode recall", "%.0f%%" % (metrics["mode_recall"] * 100),
+                          help="Of the failure modes that truly apply to the held-out "
+                               "part, the share the proposal surfaces. The metric that "
+                               "matters: it is what the engineer walks away with.")
+            with m2:
+                st.metric("True type among neighbours",
+                          "%.0f%%" % (metrics["type_recall_at_k"] * 100),
+                          help="The correct part type appears in the shortlist the "
+                               "engineer chooses from.")
+            with m3:
+                st.metric("Shortlist size", "%.0f of %d"
+                          % (metrics["mean_modes_proposed"], metrics["catalog_size"]),
+                          help="Recall is trivial if you propose everything. This stays "
+                               "short enough to review.")
+            st.caption(
+                "Leading part type exactly right: %.0f%%. Top-1 type prediction is weak "
+                "on a 50-part corpus spread over 17 types, which is why the agent "
+                "proposes the modes for every kind of part among the neighbours and asks "
+                "an engineer to confirm the type rather than asserting one."
+                % (metrics["type_top1_accuracy"] * 100)
+            )
 
     st.markdown("---")
 
