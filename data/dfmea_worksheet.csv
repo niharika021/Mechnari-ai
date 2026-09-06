@@ -5,7 +5,7 @@ TR-FL-002,FM-VALVE-MECH-01,7,5,3,Design review and validation test plan,DFMEA Wo
 TR-FL-002,FM-VALVE-MECH-02,4,5,2,Design review and validation test plan,DFMEA Workshop Team B,2025-01-13,Rev A
 TR-FL-002,FM-VALVE-MECH-04,8,5,3,Design review and validation test plan,DFMEA Workshop Team B,2025-01-13,Rev A
 TR-FL-002,FM-FLOW-CONTROL-02,5,4,7,Cold chamber functional test at type approval,DFMEA Workshop Team B,2025-01-13,Rev A
-TR-FL-003,FM-HOSE-FUEL-02,7,6,4,Design review and validation test plan,DFMEA Workshop Team C,2025-01-20,Rev A
+TR-FL-003,FM-HOSE-FUEL-02,7,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-01-20,Rev A
 TR-FL-003,FM-HOSE-FUEL-01,9,2,5,Design review and validation test plan,DFMEA Workshop Team C,2025-01-20,Rev A
 TR-FL-003,FM-HOSE-FUEL-03,9,3,3,Design review and validation test plan,DFMEA Workshop Team C,2025-01-20,Rev A
 TR-FL-004,FM-CLAMP-01,7,5,3,Design review and validation test plan,DFMEA Workshop Team A,2025-01-27,Rev A
@@ -16,14 +16,14 @@ TR-FL-005,FM-BRACKET-04,9,4,6,Design review and validation test plan,DFMEA Works
 TR-FL-005,FM-BRACKET-05,3,4,2,Design review and validation test plan,DFMEA Workshop Team B,2025-02-03,Rev A
 TR-FL-005,FM-BRACKET-06,8,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-02-03,Rev A
 TR-FL-005,FM-BRACKET-09,3,4,4,Assembly torque audit,DFMEA Workshop Team B,2025-02-03,Rev A
-TR-FL-006,FM-COUPLING-01,9,4,6,Design review and validation test plan,DFMEA Workshop Team C,2025-02-10,Rev A
+TR-FL-006,FM-COUPLING-01,9,1,6,Design review and validation test plan,DFMEA Workshop Team C,2025-02-10,Rev A
 TR-FL-006,FM-JOINT-01,5,4,3,Assembly torque monitoring,DFMEA Workshop Team C,2025-02-10,Rev A
-TR-FL-007,FM-FILTER-SEP-01,7,4,3,Design review and validation test plan,DFMEA Workshop Team A,2025-02-17,Rev A
+TR-FL-007,FM-FILTER-SEP-01,7,3,3,Design review and validation test plan,DFMEA Workshop Team A,2025-02-17,Rev A
 TR-FL-007,FM-FILTER-SEP-02,8,2,2,Design review and validation test plan,DFMEA Workshop Team A,2025-02-17,Rev A
-TR-FL-008,FM-TUBE-RIGID-01,8,5,4,Design review and validation test plan,DFMEA Workshop Team B,2025-02-24,Rev A
+TR-FL-008,FM-TUBE-RIGID-01,8,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-02-24,Rev A
 TR-FL-008,FM-TUBE-RIGID-04,8,5,3,Design review and validation test plan,DFMEA Workshop Team B,2025-02-24,Rev A
 TR-FL-008,FM-TUBE-RIGID-05,8,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-02-24,Rev A
-TR-FL-009,FM-HOSE-FUEL-03,9,6,3,Design review and validation test plan,DFMEA Workshop Team C,2025-03-03,Rev A
+TR-FL-009,FM-HOSE-FUEL-03,9,5,3,Design review and validation test plan,DFMEA Workshop Team C,2025-03-03,Rev A
 TR-FL-009,FM-HOSE-FUEL-01,9,4,4,Design review and validation test plan,DFMEA Workshop Team C,2025-03-03,Rev A
 TR-FL-009,FM-FLEX-ROUTING-02,7,4,4,Digital mock-up clearance check at design freeze,DFMEA Workshop Team C,2025-03-03,Rev A
 TR-FL-010,FM-FILTER-SEP-02,8,5,3,Design review and validation test plan,DFMEA Workshop Team A,2025-03-10,Rev A
@@ -31,7 +31,7 @@ TR-AC-011,FM-HOSE-REFRIG-01,6,6,5,Design review and validation test plan,DFMEA W
 TR-AC-011,FM-HOSE-REFRIG-02,3,3,2,Design review and validation test plan,DFMEA Workshop Team B,2025-03-17,Rev A
 TR-AC-011,FM-HOSE-REFRIG-03,6,5,9,Annual dealer recharge,DFMEA Workshop Team B,2025-03-17,Rev A
 TR-AC-011,FM-FLEX-ROUTING-02,7,5,4,Digital mock-up clearance check at design freeze,DFMEA Workshop Team B,2025-03-17,Rev A
-TR-AC-012,FM-TUBE-RIGID-02,6,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-03-24,Rev A
+TR-AC-012,FM-TUBE-RIGID-02,6,4,4,Design review and validation test plan,DFMEA Workshop Team C,2025-03-24,Rev A
 TR-AC-012,FM-TUBE-RIGID-01,8,5,3,Design review and validation test plan,DFMEA Workshop Team C,2025-03-24,Rev A
 TR-AC-012,FM-TUBE-RIGID-03,7,3,5,Design review and validation test plan,DFMEA Workshop Team C,2025-03-24,Rev A
 TR-AC-013,FM-BRACKET-02,8,5,4,Design review and validation test plan,DFMEA Workshop Team A,2025-03-31,Rev A
@@ -39,22 +39,22 @@ TR-AC-013,FM-BRACKET-01,8,2,5,Design review and validation test plan,DFMEA Works
 TR-AC-013,FM-BRACKET-06,8,4,5,Design review and validation test plan,DFMEA Workshop Team A,2025-03-31,Rev A
 TR-AC-013,FM-BRACKET-08,8,2,6,Sample dye penetrant inspection,DFMEA Workshop Team A,2025-03-31,Rev A
 TR-AC-013,FM-BRACKET-09,3,4,5,Assembly torque audit,DFMEA Workshop Team A,2025-03-31,Rev A
-TR-AC-014,FM-SEAL-01,6,4,3,Design review and validation test plan,DFMEA Workshop Team B,2025-04-07,Rev A
+TR-AC-014,FM-SEAL-01,6,2,3,Design review and validation test plan,DFMEA Workshop Team B,2025-04-07,Rev A
 TR-AC-014,FM-SEAL-04,7,3,7,Service manual fluid specification,DFMEA Workshop Team B,2025-04-07,Rev A
 TR-AC-015,FM-VALVE-MECH-02,4,4,2,Design review and validation test plan,DFMEA Workshop Team C,2025-04-14,Rev A
 TR-AC-015,FM-VALVE-MECH-03,6,4,2,Design review and validation test plan,DFMEA Workshop Team C,2025-04-14,Rev A
 TR-AC-015,FM-VALVE-MECH-04,8,2,4,Design review and validation test plan,DFMEA Workshop Team C,2025-04-14,Rev A
 TR-AC-015,FM-FLOW-CONTROL-02,5,3,6,Cold chamber functional test at type approval,DFMEA Workshop Team C,2025-04-14,Rev A
-TR-AC-016,FM-BRACKET-03,6,6,3,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
+TR-AC-016,FM-BRACKET-03,6,5,3,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
 TR-AC-016,FM-BRACKET-01,8,3,6,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
 TR-AC-016,FM-BRACKET-05,3,5,3,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
 TR-AC-016,FM-BRACKET-06,8,3,4,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
 TR-AC-016,FM-BRACKET-07,6,3,4,Design review and validation test plan,DFMEA Workshop Team A,2025-04-21,Rev A
-TR-AC-017,FM-CLAMP-02,3,5,2,Design review and validation test plan,DFMEA Workshop Team B,2025-04-28,Rev A
+TR-AC-017,FM-CLAMP-02,3,4,2,Design review and validation test plan,DFMEA Workshop Team B,2025-04-28,Rev A
 TR-AC-017,FM-CLAMP-01,7,5,3,Design review and validation test plan,DFMEA Workshop Team B,2025-04-28,Rev A
 TR-AC-017,FM-CLAMP-04,9,2,4,Design review and validation test plan,DFMEA Workshop Team B,2025-04-28,Rev A
 TR-AC-017,FM-CLAMP-05,7,2,5,480h salt spray on sample lots,DFMEA Workshop Team B,2025-04-28,Rev A
-TR-AC-018,FM-VALVE-MECH-03,6,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-05-05,Rev A
+TR-AC-018,FM-VALVE-MECH-03,6,2,3,Design review and validation test plan,DFMEA Workshop Team C,2025-05-05,Rev A
 TR-AC-018,FM-VALVE-MECH-01,7,2,2,Design review and validation test plan,DFMEA Workshop Team C,2025-05-05,Rev A
 TR-AC-018,FM-VALVE-MECH-04,8,5,2,Design review and validation test plan,DFMEA Workshop Team C,2025-05-05,Rev A
 TR-AC-018,FM-VALVE-MECH-05,8,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-05-05,Rev A
@@ -63,24 +63,24 @@ TR-AC-019,FM-HOSE-REFRIG-02,3,7,2,Design review and validation test plan,DFMEA W
 TR-AC-019,FM-HOSE-REFRIG-01,6,3,4,Design review and validation test plan,DFMEA Workshop Team A,2025-05-12,Rev A
 TR-AC-019,FM-FLEX-ROUTING-02,7,3,6,Digital mock-up clearance check at design freeze,DFMEA Workshop Team A,2025-05-12,Rev A
 TR-AC-020,FM-VALVE-SOLENOID-01,7,3,4,Design review and validation test plan,DFMEA Workshop Team B,2025-05-19,Rev A
-TR-HYD-021,FM-HOSE-HYD-01,7,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-05-26,Rev A
+TR-HYD-021,FM-HOSE-HYD-01,7,4,4,Design review and validation test plan,DFMEA Workshop Team C,2025-05-26,Rev A
 TR-HYD-021,FM-HOSE-HYD-02,9,3,3,Design review and validation test plan,DFMEA Workshop Team C,2025-05-26,Rev A
 TR-HYD-021,FM-HOSE-HYD-04,6,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-05-26,Rev A
 TR-HYD-021,FM-FLEX-ROUTING-01,7,4,5,Design review clearance check,DFMEA Workshop Team C,2025-05-26,Rev A
 TR-HYD-021,FM-FLEX-ROUTING-02,7,5,5,Digital mock-up clearance check at design freeze,DFMEA Workshop Team C,2025-05-26,Rev A
-TR-HYD-022,FM-BRACKET-04,9,4,5,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
+TR-HYD-022,FM-BRACKET-04,9,1,5,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
 TR-HYD-022,FM-BRACKET-01,8,2,5,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
 TR-HYD-022,FM-BRACKET-02,8,4,3,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
 TR-HYD-022,FM-BRACKET-05,3,5,2,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
 TR-HYD-022,FM-BRACKET-06,8,3,4,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
 TR-HYD-022,FM-BRACKET-07,6,4,4,Design review and validation test plan,DFMEA Workshop Team A,2025-06-02,Rev A
-TR-HYD-023,FM-FITTING-01,9,3,2,Design review and validation test plan,DFMEA Workshop Team B,2025-06-09,Rev A
-TR-HYD-024,FM-TUBE-RIGID-03,7,3,4,Design review and validation test plan,DFMEA Workshop Team C,2025-06-16,Rev A
+TR-HYD-023,FM-FITTING-01,9,2,2,Design review and validation test plan,DFMEA Workshop Team B,2025-06-09,Rev A
+TR-HYD-024,FM-TUBE-RIGID-03,7,2,4,Design review and validation test plan,DFMEA Workshop Team C,2025-06-16,Rev A
 TR-HYD-024,FM-TUBE-RIGID-02,6,4,5,Design review and validation test plan,DFMEA Workshop Team C,2025-06-16,Rev A
 TR-HYD-024,FM-TUBE-RIGID-04,8,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-06-16,Rev A
 TR-HYD-024,FM-TUBE-RIGID-05,8,4,6,Design review and validation test plan,DFMEA Workshop Team C,2025-06-16,Rev A
 TR-HYD-024,FM-RIGID-ROUTING-01,7,4,7,None - relies on technician judgement,DFMEA Workshop Team C,2025-06-16,Rev A
-TR-HYD-025,FM-HOSE-HYD-02,9,4,3,Design review and validation test plan,DFMEA Workshop Team A,2025-06-23,Rev A
+TR-HYD-025,FM-HOSE-HYD-02,9,3,3,Design review and validation test plan,DFMEA Workshop Team A,2025-06-23,Rev A
 TR-HYD-025,FM-HOSE-HYD-01,9,5,3,Design review and validation test plan,DFMEA Workshop Team A,2025-06-23,Rev A
 TR-HYD-025,FM-HOSE-HYD-03,7,2,3,Design review and validation test plan,DFMEA Workshop Team A,2025-06-23,Rev A
 TR-HYD-025,FM-HOSE-HYD-04,6,4,4,Design review and validation test plan,DFMEA Workshop Team A,2025-06-23,Rev A
@@ -94,15 +94,15 @@ TR-HYD-027,FM-BRACKET-02,8,5,3,Design review and validation test plan,DFMEA Work
 TR-HYD-027,FM-BRACKET-03,6,3,3,Design review and validation test plan,DFMEA Workshop Team C,2025-07-07,Rev A
 TR-HYD-027,FM-BRACKET-07,6,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-07-07,Rev A
 TR-HYD-027,FM-BRACKET-09,3,3,4,Assembly torque audit,DFMEA Workshop Team C,2025-07-07,Rev A
-TR-HYD-028,FM-COUPLING-02,7,5,2,Design review and validation test plan,DFMEA Workshop Team A,2025-07-14,Rev A
+TR-HYD-028,FM-COUPLING-02,7,2,2,Design review and validation test plan,DFMEA Workshop Team A,2025-07-14,Rev A
 TR-HYD-028,FM-COUPLING-03,7,4,6,None in service,DFMEA Workshop Team A,2025-07-14,Rev A
 TR-HYD-028,FM-JOINT-01,5,3,5,Assembly torque monitoring,DFMEA Workshop Team A,2025-07-14,Rev A
-TR-HYD-029,FM-HOSE-HYD-04,6,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-07-21,Rev A
+TR-HYD-029,FM-HOSE-HYD-04,6,3,4,Design review and validation test plan,DFMEA Workshop Team B,2025-07-21,Rev A
 TR-HYD-029,FM-HOSE-HYD-01,9,2,3,Design review and validation test plan,DFMEA Workshop Team B,2025-07-21,Rev A
 TR-HYD-029,FM-HOSE-HYD-02,9,4,3,Design review and validation test plan,DFMEA Workshop Team B,2025-07-21,Rev A
 TR-HYD-029,FM-HOSE-HYD-03,7,2,2,Design review and validation test plan,DFMEA Workshop Team B,2025-07-21,Rev A
 TR-HYD-029,FM-FLEX-ROUTING-01,7,5,5,Design review clearance check,DFMEA Workshop Team B,2025-07-21,Rev A
-TR-HYD-030,FM-VALVE-MECH-04,8,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-07-28,Rev A
+TR-HYD-030,FM-VALVE-MECH-04,8,1,3,Design review and validation test plan,DFMEA Workshop Team C,2025-07-28,Rev A
 TR-HYD-030,FM-VALVE-MECH-01,7,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-07-28,Rev A
 TR-HYD-030,FM-VALVE-MECH-02,4,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-07-28,Rev A
 TR-HYD-030,FM-VALVE-MECH-03,6,2,4,Design review and validation test plan,DFMEA Workshop Team C,2025-07-28,Rev A
@@ -113,10 +113,10 @@ TR-ENG-031,FM-HOSE-COOLANT-04,7,4,4,Design review and validation test plan,DFMEA
 TR-ENG-031,FM-HOSE-COOLANT-06,8,5,6,Visual inspection at scheduled service,DFMEA Workshop Team A,2025-08-04,Rev A
 TR-ENG-031,FM-FLEX-ROUTING-01,7,4,4,Design review clearance check,DFMEA Workshop Team A,2025-08-04,Rev A
 TR-ENG-031,FM-FLEX-ROUTING-02,7,5,4,Digital mock-up clearance check at design freeze,DFMEA Workshop Team A,2025-08-04,Rev A
-TR-ENG-032,FM-HOSE-COOLANT-02,8,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-08-11,Rev A
+TR-ENG-032,FM-HOSE-COOLANT-02,8,3,4,Design review and validation test plan,DFMEA Workshop Team B,2025-08-11,Rev A
 TR-ENG-032,FM-HOSE-COOLANT-01,8,4,5,Design review and validation test plan,DFMEA Workshop Team B,2025-08-11,Rev A
 TR-ENG-032,FM-FLEX-ROUTING-01,7,2,5,Design review clearance check,DFMEA Workshop Team B,2025-08-11,Rev A
-TR-ENG-033,FM-HOSE-COOLANT-03,5,6,2,Design review and validation test plan,DFMEA Workshop Team C,2025-08-18,Rev A
+TR-ENG-033,FM-HOSE-COOLANT-03,5,5,2,Design review and validation test plan,DFMEA Workshop Team C,2025-08-18,Rev A
 TR-ENG-033,FM-HOSE-COOLANT-01,8,5,3,Design review and validation test plan,DFMEA Workshop Team C,2025-08-18,Rev A
 TR-ENG-033,FM-HOSE-COOLANT-04,7,5,3,Design review and validation test plan,DFMEA Workshop Team C,2025-08-18,Rev A
 TR-ENG-033,FM-HOSE-COOLANT-05,7,5,2,Design review and validation test plan,DFMEA Workshop Team C,2025-08-18,Rev A
@@ -126,9 +126,9 @@ TR-ENG-034,FM-CLAMP-01,7,5,4,Design review and validation test plan,DFMEA Worksh
 TR-ENG-034,FM-CLAMP-02,3,2,2,Design review and validation test plan,DFMEA Workshop Team A,2025-08-25,Rev A
 TR-ENG-034,FM-CLAMP-04,9,5,4,Design review and validation test plan,DFMEA Workshop Team A,2025-08-25,Rev A
 TR-ENG-034,FM-CLAMP-05,7,4,4,480h salt spray on sample lots,DFMEA Workshop Team A,2025-08-25,Rev A
-TR-ENG-035,FM-TUBE-RIGID-04,8,4,4,Design review and validation test plan,DFMEA Workshop Team B,2025-09-01,Rev A
+TR-ENG-035,FM-TUBE-RIGID-04,8,2,4,Design review and validation test plan,DFMEA Workshop Team B,2025-09-01,Rev A
 TR-ENG-035,FM-TUBE-RIGID-01,8,3,5,Design review and validation test plan,DFMEA Workshop Team B,2025-09-01,Rev A
-TR-ENG-036,FM-HOSE-COOLANT-04,7,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-09-08,Rev A
+TR-ENG-036,FM-HOSE-COOLANT-04,7,3,3,Design review and validation test plan,DFMEA Workshop Team C,2025-09-08,Rev A
 TR-ENG-036,FM-HOSE-COOLANT-06,8,5,7,Visual inspection at scheduled service,DFMEA Workshop Team C,2025-09-08,Rev A
 TR-ENG-036,FM-FLEX-ROUTING-02,7,2,4,Digital mock-up clearance check at design freeze,DFMEA Workshop Team C,2025-09-08,Rev A
 TR-ENG-037,FM-TUBE-RIGID-05,7,3,5,Design review and validation test plan,DFMEA Workshop Team A,2025-09-15,Rev A
@@ -148,11 +148,11 @@ TR-ENG-039,FM-BRACKET-05,3,5,1,Design review and validation test plan,DFMEA Work
 TR-ENG-039,FM-BRACKET-07,6,2,3,Design review and validation test plan,DFMEA Workshop Team C,2025-09-29,Rev A
 TR-ENG-040,FM-VALVE-MECH-05,8,4,2,Design review and validation test plan,DFMEA Workshop Team A,2025-10-06,Rev A
 TR-ENG-040,FM-FLOW-CONTROL-01,7,5,6,Sample pressure test per casting lot,DFMEA Workshop Team A,2025-10-06,Rev A
-TR-ELE-041,FM-TUBE-PNEUMATIC-01,7,4,5,Design review and validation test plan,DFMEA Workshop Team B,2025-01-06,Rev A
+TR-ELE-041,FM-TUBE-PNEUMATIC-01,7,3,5,Design review and validation test plan,DFMEA Workshop Team B,2025-01-06,Rev A
 TR-ELE-041,FM-TUBE-PNEUMATIC-02,7,2,3,Design review and validation test plan,DFMEA Workshop Team B,2025-01-06,Rev A
 TR-ELE-041,FM-RIGID-ROUTING-01,7,4,7,None - relies on technician judgement,DFMEA Workshop Team B,2025-01-06,Rev A
-TR-ELE-042,FM-CONDUIT-ELEC-01,9,5,4,Design review and validation test plan,DFMEA Workshop Team C,2025-01-13,Rev A
-TR-ELE-043,FM-CLAMP-04,7,3,5,Design review and validation test plan,DFMEA Workshop Team A,2025-01-20,Rev A
+TR-ELE-042,FM-CONDUIT-ELEC-01,9,4,4,Design review and validation test plan,DFMEA Workshop Team C,2025-01-13,Rev A
+TR-ELE-043,FM-CLAMP-04,7,2,5,Design review and validation test plan,DFMEA Workshop Team A,2025-01-20,Rev A
 TR-ELE-043,FM-CLAMP-03,7,3,2,Design review and validation test plan,DFMEA Workshop Team A,2025-01-20,Rev A
 TR-ELE-044,FM-SEAL-02,8,6,3,Design review and validation test plan,DFMEA Workshop Team B,2025-01-27,Rev A
 TR-ELE-044,FM-SEAL-01,6,5,4,Design review and validation test plan,DFMEA Workshop Team B,2025-01-27,Rev A
@@ -160,14 +160,14 @@ TR-ELE-044,FM-SEAL-04,7,5,8,Service manual fluid specification,DFMEA Workshop Te
 TR-ELE-045,FM-HOSE-HOTGAS-01,10,4,3,Design review and validation test plan,DFMEA Workshop Team C,2025-02-03,Rev A
 TR-ELE-045,FM-HOSE-HOTGAS-02,7,2,6,Pressure cycling test at type approval,DFMEA Workshop Team C,2025-02-03,Rev A
 TR-ELE-045,FM-FLEX-ROUTING-02,7,3,4,Digital mock-up clearance check at design freeze,DFMEA Workshop Team C,2025-02-03,Rev A
-TR-ELE-046,FM-BRACKET-07,6,6,4,Design review and validation test plan,DFMEA Workshop Team A,2025-02-10,Rev A
+TR-ELE-046,FM-BRACKET-07,6,5,4,Design review and validation test plan,DFMEA Workshop Team A,2025-02-10,Rev A
 TR-ELE-046,FM-BRACKET-01,8,2,5,Design review and validation test plan,DFMEA Workshop Team A,2025-02-10,Rev A
 TR-ELE-046,FM-BRACKET-03,6,2,2,Design review and validation test plan,DFMEA Workshop Team A,2025-02-10,Rev A
 TR-ELE-046,FM-BRACKET-04,9,4,5,Design review and validation test plan,DFMEA Workshop Team A,2025-02-10,Rev A
-TR-ELE-047,FM-CABLE-MECH-01,10,5,3,Design review and validation test plan,DFMEA Workshop Team B,2025-02-17,Rev A
-TR-ELE-048,FM-SEAL-03,4,6,2,Design review and validation test plan,DFMEA Workshop Team C,2025-02-24,Rev A
-TR-ELE-049,FM-FITTING-02,7,3,5,Design review and validation test plan,DFMEA Workshop Team A,2025-03-03,Rev A
+TR-ELE-047,FM-CABLE-MECH-01,10,3,3,Design review and validation test plan,DFMEA Workshop Team B,2025-02-17,Rev A
+TR-ELE-048,FM-SEAL-03,4,5,2,Design review and validation test plan,DFMEA Workshop Team C,2025-02-24,Rev A
+TR-ELE-049,FM-FITTING-02,7,2,5,Design review and validation test plan,DFMEA Workshop Team A,2025-03-03,Rev A
 TR-ELE-049,FM-FITTING-01,9,4,3,Design review and validation test plan,DFMEA Workshop Team A,2025-03-03,Rev A
-TR-ELE-050,FM-TUBE-PNEUMATIC-02,7,4,3,Design review and validation test plan,DFMEA Workshop Team B,2025-03-10,Rev A
+TR-ELE-050,FM-TUBE-PNEUMATIC-02,7,3,3,Design review and validation test plan,DFMEA Workshop Team B,2025-03-10,Rev A
 TR-ELE-050,FM-TUBE-PNEUMATIC-01,10,4,6,Design review and validation test plan,DFMEA Workshop Team B,2025-03-10,Rev A
 TR-ELE-050,FM-TUBE-PNEUMATIC-03,10,3,5,Assembly visual check,DFMEA Workshop Team B,2025-03-10,Rev A

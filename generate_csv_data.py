@@ -900,14 +900,10 @@ from taxonomy import (
     scopes_for_part,
 )
 
+from risk_engine import OCCURRENCE_RATE_PER_1000
+
 SEED = 20260907
 DATA_DIR = "data"
-
-# AIAG-style occurrence anchor: score -> incidents per 1000 units in service.
-OCCURRENCE_RATE_PER_1000 = {
-    10: 120.0, 9: 55.0, 8: 22.0, 7: 11.0, 6: 5.0,
-    5: 2.0, 4: 1.0, 3: 0.5, 2: 0.1, 1: 0.01,
-}
 
 # Detection score -> where the failure was actually caught. A mode only
 # escapes to the field when the design control is weak, so the stage and
@@ -1059,6 +1055,14 @@ def build_worksheet(catalog, rng):
     for entry in catalog:
         by_scope.setdefault(entry["scope_id"], []).append(entry)
 
+    # The DFMEA on file was signed off at design freeze, before any of this
+    # field data existed. On a subset of parts the design-time Occurrence
+    # estimate turned out optimistic once claims came in - that disagreement
+    # is exactly what the risk engine is built to surface, so the baseline
+    # has to contain it. Drawn from its own stream so the rest of the
+    # dataset is unchanged.
+    optimism_rng = random.Random(SEED + 1)
+
     rows = []
     for idx, part in enumerate(PARTS_MASTER):
         pid = part["part_id"]
@@ -1089,7 +1093,8 @@ def build_worksheet(catalog, rng):
                 severity = max(1, standard_s + drift)
 
             if entry["mode_id"] == own_mode["mode_id"]:
-                occurrence = part["historical_occurrence"]
+                occurrence = max(
+                    1, part["historical_occurrence"] - optimism_rng.choice([0, 0, 1, 1, 2, 3]))
                 detection = part["historical_detection"]
             else:
                 # Inherited modes get a workshop estimate, not field evidence.

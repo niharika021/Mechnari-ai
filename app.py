@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 
 import data_layer
 import gap_detection
+import risk_engine
 
 # Load Environment Variables
 load_dotenv()
@@ -160,6 +161,26 @@ def cached_gap_metrics() -> dict:
 @st.cache_data
 def cached_severity_drift() -> pd.DataFrame:
     return gap_detection.severity_consistency_findings()
+
+
+@st.cache_data
+def cached_risk_metrics() -> dict:
+    return risk_engine.headline_metrics()
+
+
+@st.cache_data
+def cached_occurrence_findings() -> pd.DataFrame:
+    return risk_engine.occurrence_findings()
+
+
+@st.cache_data
+def cached_ap_changes() -> pd.DataFrame:
+    return risk_engine.ap_change_findings()
+
+
+@st.cache_data
+def cached_detection_findings() -> pd.DataFrame:
+    return risk_engine.detection_findings()
 
 
 # =====================================================================
@@ -480,6 +501,159 @@ if not df_master.empty:
                         "analyzed_by": "Analysed By",
                     })[["Part ID", "Component", "Failure Mode", "Effect",
                         "Scored S", "Standard S", "Finding", "Analysed By"]],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+    st.markdown("---")
+
+    # =====================================================================
+    # EVIDENCE-BASED RESCORING: OCCURRENCE FROM WARRANTY DATA, AP NOT RPN
+    # =====================================================================
+    st.subheader("\U0001F4C9 Evidence-Based Rescoring - Occurrence From Warranty Data")
+    st.caption(
+        "Occurrence recomputed from claims per 1000 units in service rather than "
+        "workshop recall, Detection checked against the stage each failure actually "
+        "escaped to, and risk ranked by AIAG-VDA Action Priority instead of RPN."
+    )
+
+    try:
+        risk_metrics = cached_risk_metrics()
+        occurrence_all = cached_occurrence_findings()
+        ap_changes_all = cached_ap_changes()
+        detection_all = cached_detection_findings()
+    except data_layer.DatasetError as exc:
+        st.warning("Knowledge base not ready: %s" % exc)
+        risk_metrics = {}
+        occurrence_all = ap_changes_all = detection_all = pd.DataFrame()
+
+    if occurrence_all.empty and ap_changes_all.empty:
+        st.info("No scoring disagreements between the DFMEA on file and the field data.")
+    else:
+        if selected_package != "All System Packages":
+            occurrence_view = occurrence_all[occurrence_all["system_package"] == selected_package]
+            ap_changes_view = ap_changes_all[ap_changes_all["system_package"] == selected_package]
+            detection_view = detection_all[detection_all["system_package"] == selected_package]
+        else:
+            occurrence_view = occurrence_all
+            ap_changes_view = ap_changes_all
+            detection_view = detection_all
+
+        own_part = occurrence_view[occurrence_view["evidence_scope"] == "OWN_PART"]
+        understated_own = int((own_part["occurrence_delta"] > 0).sum())
+        escalations = int((ap_changes_view["direction"] == "Escalates").sum())
+
+        r1, r2, r3, r4 = st.columns(4)
+        with r1:
+            st.metric(
+                "Occurrence Understated (measured on the part)",
+                understated_own,
+                delta="Claims exceed the DFMEA estimate" if understated_own else "Aligned",
+                delta_color="inverse",
+            )
+        with r2:
+            st.metric("Detection Not Supported by Escape Stage", len(detection_view))
+        with r3:
+            st.metric(
+                "Action Priority: High",
+                risk_metrics.get("ap_high_evidence_based", 0),
+                delta="%+d vs as filed" % (
+                    risk_metrics.get("ap_high_evidence_based", 0)
+                    - risk_metrics.get("ap_high_as_filed", 0)),
+                delta_color="inverse",
+            )
+        with r4:
+            st.metric("Rows Escalating on Evidence", escalations)
+
+        if not risk_metrics.get("ap_table_verified", False):
+            st.caption(
+                "\u26A0\uFE0F Action Priority cell values are provisional - the band "
+                "structure is AIAG-VDA, the individual cells still need checking against "
+                "the 2019 handbook. RPN is retained as a legacy column."
+            )
+
+        st.markdown("##### \U0001F4CA Occurrence the warranty record does not support")
+        st.caption(
+            "`OWN_PART` rows are measured on this part. `TYPE_HISTORY` rows are the rate "
+            "this mode runs at on sibling parts - a prior, not a measurement."
+        )
+        occurrence_columns = {
+            "part_id": "Part ID",
+            "item_reference": "Component",
+            "failure_mode": "Failure Mode",
+            "occurrence": "O as Filed",
+            "derived_occurrence": "O from Claims",
+            "finding": "Finding",
+            "evidence_scope": "Evidence",
+            "claims_per_1000": "Claims / 1000 Units",
+            "field_claims": "Claims",
+            "evidence_ids": "8D Records",
+            "ap_as_filed": "AP as Filed",
+            "ap_evidence_based": "AP on Evidence",
+        }
+        occurrence_display = occurrence_view[list(occurrence_columns.keys())].rename(
+            columns=occurrence_columns)
+        st.dataframe(
+            occurrence_display,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "O as Filed": st.column_config.NumberColumn("O as Filed", format="%d"),
+                "O from Claims": st.column_config.NumberColumn("O from Claims", format="%d"),
+                "Claims / 1000 Units": st.column_config.NumberColumn(
+                    "Claims / 1000 Units", format="%.2f"),
+                "Failure Mode": st.column_config.TextColumn("Failure Mode", width="large"),
+            },
+        )
+        st.download_button(
+            label="\U0001F4E5 Export Rescoring Findings (CSV)",
+            data=occurrence_display.to_csv(index=False).encode("utf-8"),
+            file_name="Mechnari_Rescoring_Findings.csv",
+            mime="text/csv",
+        )
+
+        if not ap_changes_view.empty:
+            with st.expander(
+                "\U0001F53A Action Priority moves once evidence replaces opinion: %d row(s)"
+                % len(ap_changes_view)
+            ):
+                ap_columns = {
+                    "part_id": "Part ID",
+                    "failure_mode": "Failure Mode",
+                    "severity_standard": "S",
+                    "derived_occurrence": "O on Evidence",
+                    "detection": "D",
+                    "ap_as_filed": "AP as Filed",
+                    "ap_evidence_based": "AP on Evidence",
+                    "direction": "Direction",
+                    "rpn_legacy": "RPN (legacy)",
+                }
+                st.dataframe(
+                    ap_changes_view[list(ap_columns.keys())].rename(columns=ap_columns),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+        if not detection_view.empty:
+            with st.expander(
+                "\U0001F50E Detection scored better than the escape stage justifies: %d row(s)"
+                % len(detection_view)
+            ):
+                st.caption(
+                    "A control that let the mode reach a customer did not detect it, so a "
+                    "low Detection score on that mode is not defensible."
+                )
+                detection_columns = {
+                    "part_id": "Part ID",
+                    "failure_mode": "Failure Mode",
+                    "detection": "D as Filed",
+                    "detection_floor": "D Floor from Evidence",
+                    "worst_escape_stage": "Escaped To",
+                    "evidence_ids": "8D Records",
+                }
+                st.dataframe(
+                    detection_view[list(detection_columns.keys())].rename(
+                        columns=detection_columns),
                     use_container_width=True,
                     hide_index=True,
                 )
