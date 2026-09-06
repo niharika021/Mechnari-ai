@@ -578,8 +578,9 @@ if not df_master.empty:
         if not risk_metrics.get("ap_table_verified", False):
             st.caption(
                 "\u26A0\uFE0F Action Priority cell values are provisional - the band "
-                "structure is AIAG-VDA, the individual cells still need checking against "
-                "the 2019 handbook. RPN is retained as a legacy column."
+                "structure is AIAG-VDA's DFMEA table, the individual cells still need "
+                "checking against the 2019 handbook (the DFMEA table specifically, not "
+                "the PFMEA or FMEA-MSR one). RPN is retained as a legacy column."
             )
 
         st.markdown("##### \U0001F4CA Occurrence the warranty record does not support")
@@ -1118,7 +1119,8 @@ if not df_master.empty:
                     if not risk_engine.AP_TABLE_VERIFIED:
                         lines.append("")
                         lines.append("_Action Priority cell values are provisional "
-                                     "pending verification against AIAG-VDA (2019)._")
+                                     "pending verification against the DFMEA Action "
+                                     "Priority table in AIAG-VDA (2019)._")
 
                 ai_response = "\n".join(lines)
 

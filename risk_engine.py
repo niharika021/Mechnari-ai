@@ -23,14 +23,24 @@ model. Three jobs:
    because a lookup cannot be argued with.
 
    >>> READ BEFORE RELYING ON THE AP OUTPUT <<<
-   AP_TABLE below reproduces the *structure* of the AIAG-VDA Action
-   Priority table - the severity, occurrence and detection bands and the
-   order they are read in. The individual cell values are a best-effort
-   reconstruction and have NOT been verified against the handbook. Check
-   them against your copy of AIAG-VDA FMEA (2019), Table AP, correct any
-   cell that differs, and set AP_TABLE_VERIFIED = True. Until then the
-   platform reports AP as provisional. RPN is retained alongside it as a
-   legacy column so existing reviewers keep their familiar number.
+   AIAG-VDA (2019) publishes THREE separate Action Priority tables - one
+   each for DFMEA, PFMEA and FMEA-MSR. They are not interchangeable: what
+   Occurrence and Detection mean differs by context (in DFMEA, Occurrence
+   is likelihood of the cause over the design life and Detection is
+   whether design verification/validation catches it; in PFMEA those are
+   about the manufacturing process instead), so the band boundaries and
+   some H/M/L outcomes differ between the three tables.
+
+   Mechnari is a DFMEA tool, so AP_TABLE below is intended to reproduce
+   the *structure* of the DFMEA-specific AP table - its severity,
+   occurrence and detection bands and the order they are read in. The
+   individual cell values are a best-effort reconstruction and have NOT
+   been verified against the handbook. Check them against your copy of
+   the AIAG-VDA FMEA Handbook (2019), the DFMEA Action Priority table
+   specifically (not the PFMEA or FMEA-MSR one), correct any cell that
+   differs, and set AP_TABLE_VERIFIED = True. Until then the platform
+   reports AP as provisional. RPN is retained alongside it as a legacy
+   column so existing reviewers keep their familiar number.
 """
 
 from typing import Optional
@@ -89,8 +99,10 @@ def detection_floor(stage: str) -> int:
 
 
 # =====================================================================
-# ACTION PRIORITY (AIAG-VDA style)
+# ACTION PRIORITY - DFMEA TABLE (AIAG-VDA, 2019)
 # =====================================================================
+# AIAG-VDA publishes three distinct AP tables (DFMEA, PFMEA, FMEA-MSR).
+# This one is meant to be the DFMEA table - see the module docstring.
 # Bands are read severity first, then occurrence, then detection - the
 # order that encodes "how badly it hurts" ahead of "how often" ahead of
 # "would we catch it".
@@ -141,7 +153,7 @@ def _band(value: int, bands) -> str:
 
 def action_priority(severity: int, occurrence: int, detection: int) -> str:
     """
-    AIAG-VDA style Action Priority: H, M or L.
+    AIAG-VDA DFMEA-table Action Priority: H, M or L.
 
     Severity 1 means no discernible effect, so it is always Low no matter
     what the other two scores say - that rule is the one part of the table
@@ -366,8 +378,10 @@ if __name__ == "__main__":
         print("%-*s : %s" % (width, key, value))
 
     if not AP_TABLE_VERIFIED:
-        print("\nNOTE: AP cell values are provisional - verify against AIAG-VDA "
-              "FMEA (2019) Table AP, then set AP_TABLE_VERIFIED = True.")
+        print("\nNOTE: AP cell values are provisional - verify against the DFMEA "
+              "Action Priority table specifically in the AIAG-VDA FMEA Handbook "
+              "(2019) (not the PFMEA or FMEA-MSR table), then set "
+              "AP_TABLE_VERIFIED = True.")
 
     print("\nOccurrence understated, measured on the part itself (top 10)")
     print("-" * 100)
