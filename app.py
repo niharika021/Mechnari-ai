@@ -19,54 +19,11 @@ from dotenv import load_dotenv
 import data_layer
 import gap_detection
 import risk_engine
+from mechnari_agent import agent as mechnari_agent
 
-# Load Environment Variables
+# ADK reads GOOGLE_API_KEY from the environment; the agent package loads
+# the same .env so `adk run` and the dashboard behave identically.
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-
-# Setup google-genai SDK with graceful fallback
-try:
-    from google import genai
-    from google.genai import types
-    USE_NEW_GENAI = True
-except ImportError:
-    try:
-        import google.generativeai as genai
-        USE_NEW_GENAI = False
-    except ImportError:
-        genai = None
-        USE_NEW_GENAI = False
-
-
-def query_gemini_copilot(prompt: str, system_instruction: str = None) -> str:
-    """Invokes Google Gemini 1.5 Flash via google-genai with corporate SSL proxy fallback."""
-    if not genai or not API_KEY:
-        return ""
-
-    try:
-        if USE_NEW_GENAI:
-            client = genai.Client(
-                api_key=API_KEY,
-                http_options=types.HttpOptions(client_args={'verify': False})
-            )
-            config = types.GenerateContentConfig(
-                temperature=0.2,
-                system_instruction=system_instruction
-            ) if system_instruction else types.GenerateContentConfig(temperature=0.2)
-            
-            response = client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=prompt,
-                config=config
-            )
-            return response.text.strip()
-        else:
-            genai.configure(api_key=API_KEY)
-            model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
-            response = model.generate_content(prompt)
-            return response.text.strip()
-    except Exception as e:
-        return f"[Notice] Gemini API Note: {e}"
 
 
 # =====================================================================
@@ -715,8 +672,12 @@ if not df_master.empty:
     # =====================================================================
     # GEMINI AI COPILOT INTERACTIVE CHAT / DEEP DIVE
     # =====================================================================
-    st.subheader("🤖 Mechnari Copilot AI Chat / Component Deep Dive")
-    st.caption("Ask Gemini 1.5 Flash why a component received its risk score and request detailed engineering mitigation strategies.")
+    st.subheader("🤖 Mechnari Copilot - Multi-Agent Component Deep Dive")
+    st.caption(
+        "A Google ADK agent team: a coordinator delegates to a gap analyst, a risk "
+        "scorer and a mitigation writer. The agents read findings through read-only "
+        "tools and explain them - every score still comes from the deterministic engines."
+    )
 
     c_sel, c_q = st.columns([1, 2])
 
@@ -732,53 +693,82 @@ if not df_master.empty:
         ask_btn = st.button("💬 Ask Mechnari Copilot AI", type="primary")
 
     if ask_btn:
-        with st.spinner(f"🤖 Querying Gemini AI Copilot for {selected_pid}..."):
-            system_prompt = """
-            You are a Principal Engineering Specialist & Reliability Lead in Agricultural Tractor Manufacturing.
-            Provide detailed engineering explanations for DFMEA risk scores and give practical, actionable design mitigation advice.
-            """
-            analysis_prompt = f"""
-            Component Details:
-            - Part ID: {selected_part_row['part_id']}
-            - Item Reference: {selected_part_row['item_reference']}
-            - System Package: {selected_part_row['system_package']}
-            - Function: {selected_part_row['elementary_function']}
-            - Material Type: {selected_part_row['material_type']} (Yield: {selected_part_row['yield_strength_mpa']} MPa, Max Temp: {selected_part_row['max_temp_limit_c']}°C, Spec: {selected_part_row['drawing_spec_ref']})
-            - Failure Mode: {selected_part_row['failure_mode']}
-            - Potential Cause: {selected_part_row['potential_cause']}
-            - Severity (S): {selected_part_row['S']} | Occurrence (O): {selected_part_row['O']} | Detection (D): {selected_part_row['D']}
-            - Computed RPN: {selected_part_row['RPN']} ({selected_part_row['risk_tier']})
-            - Baseline Action: {selected_part_row['recommended_action']}
+        with st.spinner("🤖 Mechnari agent team analysing %s..." % selected_pid):
+            question = (
+                "Component %s (%s), a %s in %s, material %s.\n"
+                "Engineer's question: %s\n\n"
+                "Use your tools to ground the answer. Cover: what the DFMEA on file "
+                "never analysed for this kind of part, whether the scores are "
+                "supported by the warranty record, and what to do about it."
+                % (selected_pid, selected_part_row["item_reference"],
+                   selected_part_row["material_type"],
+                   selected_part_row["system_package"],
+                   selected_part_row["material_type"], user_question)
+            )
 
-            User Question: {user_question}
+            result = mechnari_agent.ask_copilot(question, session_id=selected_pid)
 
-            Provide a structured, professional engineering response:
-            1. Risk Score Justification (Break down S, O, D and mechanical root cause).
-            2. Actionable Material & Geometry Redesign Directives.
-            3. Quality & Laboratory Validation Test Mandate.
-            """
-            
-            ai_response = query_gemini_copilot(analysis_prompt, system_instruction=system_prompt)
-            
-            if not ai_response or "[Notice]" in ai_response:
-                # Rule-based fallback synthesis
-                ai_response = f"""
-                ### 🛡️ Mechnari Copilot Engineering Analysis ({selected_pid} - {selected_part_row['item_reference']})
+            if result["status"] == "success":
+                ai_response = result["answer"]
+            else:
+                # Deterministic fallback: the engines, rendered. No model, and
+                # nothing asserted that the data does not support.
+                st.caption("Agent unavailable (%s). Showing the deterministic "
+                           "analysis instead." % result["reason"])
+                gaps = gap_detection.detect_gaps(selected_pid)
+                scored = risk_engine.scored_worksheet(selected_pid)
+                occurrence = risk_engine.occurrence_findings()
+                occurrence = occurrence[occurrence["part_id"] == selected_pid]
 
-                **1. Risk Score Justification (RPN: {selected_part_row['RPN']}):**
-                - **Severity (S = {selected_part_row['S']}):** High severity due to potential system shut-down or fluid leak near critical engine/chassis components.
-                - **Occurrence (O = {selected_part_row['O']}):** Field warranty logs indicate historical wear and thermal soak issues under continuous tractor duty cycles.
-                - **Detection (D = {selected_part_row['D']}):** Intermittent failure modes occurring inside enclosed engine bay require specialized NDE or disassembly to detect.
+                lines = [
+                    "### Deterministic analysis - %s (%s)" % (
+                        selected_pid, selected_part_row["item_reference"]),
+                    "",
+                    "**Part type:** %s | **Material:** %s" % (
+                        scored["part_type_name"].iloc[0] if not scored.empty else "n/a",
+                        selected_part_row["material_type"]),
+                    "",
+                    "**1. Failure modes known for this kind of part that this DFMEA "
+                    "never analysed (%d)**" % len(gaps),
+                ]
+                if gaps.empty:
+                    lines.append("- None. Coverage is complete for this part type.")
+                else:
+                    for _, row in gaps.head(5).iterrows():
+                        lines.append("- **S=%d** %s - learned from %s (%s)" % (
+                            row["standard_severity"], row["failure_mode"],
+                            row["learned_from"], row["evidence_ids"]))
 
-                **2. Actionable Material & Geometry Redesign Directives:**
-                - **Material Upgrade:** Upgrade elastomeric cover from `{selected_part_row['material_type']}` to high-temperature Fluoroelastomer FKM (rated for 180°C continuous).
-                - **Clearance & Routing:** Guarantee minimum 25mm clearance to hot engine manifolds and frame rails using rubber-cushioned P-clamps.
-                - **Structural Reinforcement:** Increase fillet radii at high-stress mounting points to eliminate stress concentration nodes.
+                lines += ["", "**2. Scores on file, checked against the warranty record**"]
+                if occurrence.empty:
+                    lines.append("- Occurrence on file is consistent with the claims data.")
+                else:
+                    for _, row in occurrence.head(5).iterrows():
+                        lines.append(
+                            "- %s: O filed %d, O from claims %d (%.1f per 1000 units, "
+                            "%d claims, %s) - %s" % (
+                                row["failure_mode"], row["occurrence"],
+                                row["derived_occurrence"], row["claims_per_1000"],
+                                row["field_claims"], row["evidence_scope"],
+                                row["evidence_ids"]))
 
-                **3. Quality & Laboratory Validation Test Mandate:**
-                - **Impulse Shock Testing:** Perform 1,000-hour impulse pressure shock test at 135°C fluid temperature.
-                - **Multi-Axis Shaker Test:** Subject assembly to 20G RMS thermal-vibration bench shaker test per ISO 16750 standards.
-                """
+                lines += ["", "**3. Action Priority**"]
+                if scored.empty:
+                    lines.append("- No DFMEA rows on file for this part.")
+                else:
+                    for _, row in scored.head(5).iterrows():
+                        lines.append("- %s: AP %s on evidence (filed as %s), "
+                                     "S=%d O=%d D=%d, legacy RPN %d" % (
+                                         row["failure_mode"], row["ap_evidence_based"],
+                                         row["ap_as_filed"], row["severity_standard"],
+                                         row["evidence_occurrence"], row["detection"],
+                                         row["rpn_legacy"]))
+                    if not risk_engine.AP_TABLE_VERIFIED:
+                        lines.append("")
+                        lines.append("_Action Priority cell values are provisional "
+                                     "pending verification against AIAG-VDA (2019)._")
+
+                ai_response = "\n".join(lines)
 
             st.markdown("### 🤖 Mechnari Copilot AI Response")
             st.info(ai_response)

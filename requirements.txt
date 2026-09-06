@@ -1,5 +1,5 @@
-google-adk
-google-genai
+google-adk>=2.7,<3
+google-genai  # pulled in by google-adk; used for types.Content
 google-cloud-bigquery
 streamlit
 python-dotenv
