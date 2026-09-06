@@ -1,0 +1,51 @@
+part_id,material_id_part_name,yield_strength_mpa,max_temp_limit_c,elastomeric_rating,drawing_spec_ref
+TR-FL-001,Hose 3: Fuel Cooler Supply Line,120,125,NBR-Standard,ES 47646774
+TR-FL-002,Shutoff Valve Assembly & Mounting,290,200,Metallic-Alloy,ES 47646775
+TR-FL-003,High-Pressure Fuel Common Rail Feed Hose,180,160,Fluoroelastomer FKM,CNH-MAT-102
+TR-FL-004,Constant-Tension Fuel Return Line Clamp,1150,180,Spring-Steel,CNH-SPEC-804
+TR-FL-005,Fuel Filter Cast Structural Bracket,160,150,Metallic-Alloy,ES 47646780
+TR-FL-006,Quick-Connect Nylon Fuel Coupling,175,130,Glass-Reinforced-Nylon,SAE J2044
+TR-FL-007,Primary Water Separator Drain Bowl Assembly,65,110,Thermoplastic Polymer,CNH-MAT-108
+TR-FL-008,Fuel Tank Breather & Vapor Vent Tube,28,90,Thermoplastic Polymer,ES 47646788
+TR-FL-009,Injector Spill-Off Fuel Return Harness,55,120,Thermoplastic Polymer,CNH-SPEC-812
+TR-FL-010,Fuel Transfer Pump Suction Line Strainer,210,115,Metallic-Alloy,ES 47646792
+TR-AC-011,HVAC Refrigerant Suction Hose Assembly,110,135,Butyl-IIR-Barrier,ES 47646801
+TR-AC-012,Swaged Aluminum Condenser Discharge Tube,145,150,Metallic-Alloy,CNH-MAT-204
+TR-AC-013,AC Compressor Cast Iron Mount Bracket,250,250,Metallic-Alloy,ES 47646805
+TR-AC-014,HNBR O-Ring Refrigerant Joint Seal,22,140,HNBR-HighTemp,SAE J2064
+TR-AC-015,Evaporator Block Expansion Valve Assembly,276,120,Metallic-Alloy,CNH-SPEC-820
+TR-AC-016,Receiver Drier Mounting Strap Bracket,210,100,Metallic-Alloy,ES 47646810
+TR-AC-017,Cab Roof HVAC Blower Duct Hose Clamp,205,110,Metallic-Alloy,CNH-MAT-210
+TR-AC-018,High-Pressure Service Port Valve Cap & Core,200,120,Metallic-Alloy,SAE J639
+TR-AC-019,Cab Isolated Liquid Line AC Hose,95,125,EPDM-Peroxide,ES 47646818
+TR-AC-020,Compressor Variable Displacement Solenoid Valve,310,140,Metallic-Alloy,CNH-SPEC-828
+TR-HYD-021,Steering Cylinder High-Pressure Flex Hose,450,125,Wire-Spiral-Rubber,ES 47646830
+TR-HYD-022,Steering Arm Forged Steel Bracket,880,300,Metallic-Alloy,CNH-MAT-302
+TR-HYD-023,Steel Hydraulic Swivel Bulkhead Adapter,380,180,Metallic-Alloy,ISO 8434-1
+TR-HYD-024,Priority Steering Valve Control Line,340,200,Metallic-Alloy,ES 47646835
+TR-HYD-025,Low-Pressure Hydraulic Oil Return Hose,85,110,NBR-Standard,CNH-MAT-308
+TR-HYD-026,Rear 3-Point Hitch Implement Cylinder Hose,280,120,Wire-Braid-Rubber,ES 47646840
+TR-HYD-027,Hydrostatic Steering Orbitrol Valve Mounting Plate,355,150,Metallic-Alloy,CNH-SPEC-840
+TR-HYD-028,Implement Quick-Disconnect Female Coupler,600,150,Metallic-Alloy,ISO 5675
+TR-HYD-029,Electro-Hydraulic Steering Pilot Sensor Line,140,115,Thermoplastic Polymer,ES 47646848
+TR-HYD-030,Hydraulic Oil Cooler Bypass Thermo-Valve,220,160,Metallic-Alloy,CNH-MAT-318
+TR-ENG-031,Radiator Upper Coolant Feed Hose,80,140,EPDM-Peroxide,ES 47646860
+TR-ENG-032,Radiator Lower Suction Coolant Hose,85,135,EPDM-Peroxide,CNH-MAT-402
+TR-ENG-033,Coolant Degassing Expansion Tank Hose,90,175,Silicone-VMQ,ES 47646865
+TR-ENG-034,Thermostat Housing Constant-Tension Clamp,950,200,Spring-Steel,CNH-SPEC-850
+TR-ENG-035,Water Pump Bypass Hard Rigid Tube,330,180,Metallic-Alloy,ES 47646870
+TR-ENG-036,Transmission Oil Cooler Heat Exchanger Hose,115,150,HNBR-HighTemp,CNH-MAT-410
+TR-ENG-037,Turbocharger Coolant Supply Hard Line,290,450,Metallic-Alloy,ES 47646878
+TR-ENG-038,EGR Cooler Return Coolant Hose,105,200,Silicone-VMQ,CNH-SPEC-860
+TR-ENG-039,Engine Fan Shroud Structural Support Bracket,420,150,Metallic-Alloy,ES 47646885
+TR-ENG-040,Engine Block Coolant Drain Valve Cock,250,160,Metallic-Alloy,CNH-MAT-420
+TR-ELE-041,Trailer Pneumatic Brake Supply Line,60,100,Thermoplastic Polymer,DIN 74324
+TR-ELE-042,Main Engine Wiring Harness Flexible Conduit,35,135,Thermoplastic Polymer,ES 47646901
+TR-ELE-043,Heavy-Duty Battery Cable Rubber Insulated P-Clamp,220,120,EPDM-Peroxide,CNH-MAT-502
+TR-ELE-044,Starter Motor Solenoid Protective Boot,15,160,Silicone-VMQ,ES 47646905
+TR-ELE-045,Air Compressor Discharge Stainless Steel Braided Tube,220,260,PTFE-Fluoropolymer,CNH-SPEC-875
+TR-ELE-046,Wheel Speed ABS Sensor Cable Guard Bracket,290,200,Metallic-Alloy,ES 47646910
+TR-ELE-047,Park Brake Actuator Bowden Pull Cable Sleeve,450,90,Thermoplastic Polymer,CNH-MAT-510
+TR-ELE-048,Cab Floor Frame Wire Harness Pass-Through Grommet,10,120,EPDM-Peroxide,ES 47646918
+TR-ELE-049,Hydraulic Main Pressure Transducer Fitting,750,150,Metallic-Alloy,CNH-SPEC-885
+TR-ELE-050,Rear Differential Lock Pneumatic Actuator Line,45,85,Thermoplastic Polymer,ES 47646925

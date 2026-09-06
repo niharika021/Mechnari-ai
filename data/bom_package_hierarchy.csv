@@ -1,0 +1,51 @@
+part_id,system_package,item_reference,elementary_function,material_type
+TR-FL-001,Fuel Routings,Hose 3: Fuel Cooler Supply Line,Transport bio-diesel fuel to cooler circuit without thermal leaks,Nitrile Rubber NBR with Aramid Braid
+TR-FL-002,Fuel Routings,Shutoff Valve Assembly & Mounting,Isolate fuel flow during emergency shutdown with zero leakage,Stainless Steel SS316L
+TR-FL-003,Fuel Routings,High-Pressure Fuel Common Rail Feed Hose,Deliver pressurized diesel (15 bar) to common rail manifold,Fluoroelastomer FKM with Stainless Wire Shield
+TR-FL-004,Fuel Routings,Constant-Tension Fuel Return Line Clamp,Maintain uniform 850N radial clamping force across thermal range,51CrV4 Spring Steel (Zinc-Nickel Plated)
+TR-FL-005,Fuel Routings,Fuel Filter Cast Structural Bracket,Support dual fuel filter assembly against 20G chassis shock,ADC12 Die-Cast Aluminum
+TR-FL-006,Fuel Routings,Quick-Connect Nylon Fuel Coupling,Enable tool-less leak-free fuel line connection during service,PA66-GF30 (30% Glass Reinforced Nylon)
+TR-FL-007,Fuel Routings,Primary Water Separator Drain Bowl Assembly,Collect separated water from fuel with manual drain valve,Polycarbonate Clear Bowl with Brass Valve
+TR-FL-008,Fuel Routings,Fuel Tank Breather & Vapor Vent Tube,Equalize fuel tank internal pressure during high-flow consumption,HDPE High-Density Polyethylene
+TR-FL-009,Fuel Routings,Injector Spill-Off Fuel Return Harness,Recirculate excess injector fuel back to main storage tank,Polyamide PA12 Braided Tubing
+TR-FL-010,Fuel Routings,Fuel Transfer Pump Suction Line Strainer,Filter coarse particulates (>200 micron) prior to lift pump intake,SS304 Mesh with Nylon Housing
+TR-AC-011,AC Routings,HVAC Refrigerant Suction Hose Assembly,Route gaseous R134a/R1234yf refrigerant from evaporator to compressor,PA/IIR Barrier Hose with Steel Ferrules
+TR-AC-012,AC Routings,Swaged Aluminum Condenser Discharge Tube,Direct hot high-pressure gas from compressor to front condenser radiator,Aluminum Alloy 3003-H14
+TR-AC-013,AC Routings,AC Compressor Cast Iron Mount Bracket,Rigidly bolt heavy compressor to engine block under 22G engine shake,Ductile Iron GGG40
+TR-AC-014,AC Routings,HNBR O-Ring Refrigerant Joint Seal,Prevent high-pressure R1234yf leakage across block fittings,HNBR 70 Shore A (Hydrogenated Nitrile)
+TR-AC-015,AC Routings,Evaporator Block Expansion Valve Assembly,Meter liquid refrigerant flow into cab HVAC evaporator core,Anodized Extruded Aluminum 6061-T6
+TR-AC-016,AC Routings,Receiver Drier Mounting Strap Bracket,Secure aluminum receiver-drier cylinder to cab subframe,Galvanized Low Carbon Steel ST12
+TR-AC-017,AC Routings,Cab Roof HVAC Blower Duct Hose Clamp,Fasten flexible airflow ducting to cab overhead ventilation nozzles,AISI 304 Stainless Steel Band Clamp
+TR-AC-018,AC Routings,High-Pressure Service Port Valve Cap & Core,Provide sealed service access point for HVAC recharge equipment,Brass Body with Neoprene Internal Seal
+TR-AC-019,AC Routings,Cab Isolated Liquid Line AC Hose,Carry condensed liquid refrigerant up cab rear A-pillar,EPDM Rubber with Synthetic Textile Braid
+TR-AC-020,AC Routings,Compressor Variable Displacement Solenoid Valve,Regulate compressor displacement based on cab cooling demand,Steel Housing with Molded Epoxy Coil
+TR-HYD-021,Hydraulic Steering Routings,Steering Cylinder High-Pressure Flex Hose,Transmit 350 bar hydraulic power to front axle steering cylinder,Four-Spiral Steel Wire Reinforced Rubber (SAE 100R15)
+TR-HYD-022,Hydraulic Steering Routings,Steering Arm Forged Steel Bracket,Transfer steering cylinder thrust load to kingpin spindle assembly,Forged AISI 4140 Quenched & Tempered
+TR-HYD-023,Hydraulic Steering Routings,Steel Hydraulic Swivel Bulkhead Adapter,Provide 360-degree rotation joint for front loader hydraulic lines,Free-Cutting Carbon Steel 11SMn30 (Zinc Plated)
+TR-HYD-024,Hydraulic Steering Routings,Priority Steering Valve Control Line,Ensure steering circuit maintains hydraulic oil priority over implement hydraulics,Cold Drawn Seamless Steel Tube E235+N
+TR-HYD-025,Hydraulic Steering Routings,Low-Pressure Hydraulic Oil Return Hose,Return oil from steering valve back to main hydraulic reservoir,NBR Synthetic Rubber with Textile Reinforcement
+TR-HYD-026,Hydraulic Steering Routings,Rear 3-Point Hitch Implement Cylinder Hose,Supply high-pressure fluid to lift heavy agricultural implements,Two-Wire Braid Rubber Hose (SAE 100R2AT)
+TR-HYD-027,Hydraulic Steering Routings,Hydrostatic Steering Orbitrol Valve Mounting Plate,Attach steering unit below cab floor pan with isolation dampers,Structural Steel S355JR
+TR-HYD-028,Hydraulic Steering Routings,Implement Quick-Disconnect Female Coupler,Provide push-pull coupling interface for tractor trailing equipment,Hardened Carbon Steel 45 (Chrome Plated)
+TR-HYD-029,Hydraulic Steering Routings,Electro-Hydraulic Steering Pilot Sensor Line,Transmit pilot hydraulic signal to auto-guidance valve block,Micro-Bore Flexible Polyamide Hose
+TR-HYD-030,Hydraulic Steering Routings,Hydraulic Oil Cooler Bypass Thermo-Valve,Bypass hydraulic oil cooler during cold startup to accelerate warm-up,Cast Aluminum Alloy AC4C
+TR-ENG-031,Engine Cooling Routings,Radiator Upper Coolant Feed Hose,Deliver 95°C engine coolant from thermostat housing to radiator,Peroxide-Cured EPDM with Polyester Reinforcement
+TR-ENG-032,Engine Cooling Routings,Radiator Lower Suction Coolant Hose,Return cooled glycol mixture from radiator bottom tank to water pump,EPDM Rubber with Internal Helical Steel Wire
+TR-ENG-033,Engine Cooling Routings,Coolant Degassing Expansion Tank Hose,Vent trapped air and steam from cylinder head to deaeration tank,Silicone Rubber VMQ with Aramid Braid
+TR-ENG-034,Engine Cooling Routings,Thermostat Housing Constant-Tension Clamp,Maintain 900N clamping load around cast aluminum thermostat neck,Stainless Steel 301 Band with Belleville Washers
+TR-ENG-035,Engine Cooling Routings,Water Pump Bypass Hard Rigid Tube,Recirculate coolant through engine block during engine warm-up,E235 Steel Tube with Electro-Coated Finish
+TR-ENG-036,Engine Cooling Routings,Transmission Oil Cooler Heat Exchanger Hose,Route transmission fluid to liquid-to-liquid oil cooler,"HNBR Inner, Aramid Reinforcement, EPDM Cover"
+TR-ENG-037,Engine Cooling Routings,Turbocharger Coolant Supply Hard Line,Feed pressurized coolant to turbo center housing bearing section,Seamless Stainless Steel 316L
+TR-ENG-038,Engine Cooling Routings,EGR Cooler Return Coolant Hose,Carry heated coolant away from Exhaust Gas Recirculation cooler,High-Temp Aramid Reinforced Silicone (VMQ)
+TR-ENG-039,Engine Cooling Routings,Engine Fan Shroud Structural Support Bracket,Position cooling fan shroud relative to engine crankshaft pulley,Stamped High-Strength Steel S420MC
+TR-ENG-040,Engine Cooling Routings,Engine Block Coolant Drain Valve Cock,Allow complete drainage of engine coolant during overhaul service,Forged Brass CW614N
+TR-ELE-041,Pneumatic & Electrical Routings,Trailer Pneumatic Brake Supply Line,Deliver 8.5 bar compressed air to trailer pneumatic braking system,Polyamide PA12 Air Brake Tubing
+TR-ELE-042,Pneumatic & Electrical Routings,Main Engine Wiring Harness Flexible Conduit,"Protect 48-pin ECU sensor wires from heat, oil, and abrasion",Modified Polypropylene Slit Corrugated Tubing
+TR-ELE-043,Pneumatic & Electrical Routings,Heavy-Duty Battery Cable Rubber Insulated P-Clamp,Support 70mm2 starter motor positive battery cable along frame rail,Galvanized Steel Strap with EPDM Cushion
+TR-ELE-044,Pneumatic & Electrical Routings,Starter Motor Solenoid Protective Boot,Seal starter high-current B+ terminal against water and mud splash,Silicone Rubber Elastomer
+TR-ELE-045,Pneumatic & Electrical Routings,Air Compressor Discharge Stainless Steel Braided Tube,Convey hot compressed air (220°C) from compressor to air dryer,PTFE Inner Tube with Stainless Steel Wire Braid
+TR-ELE-046,Pneumatic & Electrical Routings,Wheel Speed ABS Sensor Cable Guard Bracket,Protect wheel speed sensor wiring from crop debris and mud packing,Stamped Stainless Steel 304
+TR-ELE-047,Pneumatic & Electrical Routings,Park Brake Actuator Bowden Pull Cable Sleeve,Transmit mechanical handbrake lever pull force to rear axle calipers,Steel Wire Core with POM Polyacetal Liner & PVC Jacket
+TR-ELE-048,Pneumatic & Electrical Routings,Cab Floor Frame Wire Harness Pass-Through Grommet,"Seal cab floor pan wire penetration against dust, noise, and water",EPDM Closed-Cell Sponge Rubber
+TR-ELE-049,Pneumatic & Electrical Routings,Hydraulic Main Pressure Transducer Fitting,Mount 0-400 bar electronic pressure sensor into valve manifold,High-Strength Steel 42CrMo4
+TR-ELE-050,Pneumatic & Electrical Routings,Rear Differential Lock Pneumatic Actuator Line,Engage rear differential lock via 6 bar pneumatic pressure pulse,Polyurethane PUR Flexible Tubing

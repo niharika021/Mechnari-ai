@@ -3,14 +3,14 @@ Mechnari.ai - Multi-Agent DFMEA Risk Copilot Engine
 =====================================================
 Specialized Multi-Agent architecture for complex manufacturing systems (e.g., 1,000+ part agricultural & heavy tractors).
 
-Agents:
-1. Structure & Function Agent: Ingests package BOMs and assigns context-specific mechanical functions.
-2. Failure & RAG Retrieval Agent: Matches components against historical tractor field issues (8D logs, warranty reports).
-3. Deterministic Risk Engine: Computes RPN = Severity (S) x Occurrence (O) x Detection (D) and tags outliers.
-4. Mitigation Agent: Synthesizes specific, practical Engineering Action Items for critical risks (RPN >= 200 or S >= 9).
+Reads structured mock CSV datasets:
+1. data/bom_package_hierarchy.csv (50 parts across 5 system packages)
+2. data/material_master.csv (50 engineering specs)
+3. data/historical_field_issues.csv (50 historical 8D warranty RAG entries)
 """
 
 import os
+import csv
 import json
 import logging
 from typing import List, Dict, Any, Optional
@@ -72,195 +72,109 @@ def call_gemini(prompt: str, system_instruction: Optional[str] = None) -> str:
 
 
 # =====================================================================
-# SAMPLE HEAVY TRACTOR SUBSYSTEM BOM PACKAGES & HISTORICAL 8D RAG CATALOG
+# DYNAMIC CSV DATASET LOADERS (50 PARTS ACROSS 3 CSV FILES)
 # =====================================================================
 
-HEAVY_TRACTOR_BOM_PACKAGES: Dict[str, List[Dict[str, Any]]] = {
-    "Fuel Routing Package (1,000+ HP Tractor)": [
-        {
-            "part_id": "TR-FL-101",
-            "part_name": "High-Pressure Fuel Rail Hose",
-            "subsystem": "Fuel Delivery",
-            "material": "NBR/PVC Inner, High-Tenacity Aramid Braid, EPDM Cover",
-            "operating_temp_c": 120,
-            "operating_pressure_bar": 15.0
-        },
-        {
-            "part_id": "TR-FL-102",
-            "part_name": "Constant-Tension Spring Hose Clamp",
-            "subsystem": "Fuel Retaining",
-            "material": "51CrV4 Spring Steel (Zinc-Nickel Plated)",
-            "operating_temp_c": 110,
-            "clamping_force_n": 850
-        },
-        {
-            "part_id": "TR-FL-103",
-            "part_name": "Fuel Filter Cast Mounting Bracket",
-            "subsystem": "Structural Support",
-            "material": "ADC12 Die-Cast Aluminum",
-            "vibration_g_rms": 18.5,
-            "mass_kg": 2.4
-        },
-        {
-            "part_id": "TR-FL-104",
-            "part_name": "Quick-Connect Nylon Fuel Line Fitting",
-            "subsystem": "Fuel Coupler",
-            "material": "PA66-GF30 (30% Glass Fiber Reinforced Nylon)",
-            "operating_temp_c": 95,
-            "operating_pressure_bar": 8.0
-        }
-    ],
-    "AC Routing Package (Cab Climate Subsystem)": [
-        {
-            "part_id": "TR-AC-201",
-            "part_name": "HVAC Refrigerant Suction Hose Assembly",
-            "subsystem": "Refrigerant Loop",
-            "material": "PA/IIR Barrier Hose with Crimp Sleeves",
-            "operating_temp_c": 135,
-            "operating_pressure_bar": 28.0
-        },
-        {
-            "part_id": "TR-AC-202",
-            "part_name": "Swaged Aluminum Condenser Line Tube",
-            "subsystem": "Refrigerant Line",
-            "material": "Alloy 3003-H14 Aluminum",
-            "operating_temp_c": 105,
-            "vibration_freq_hz": 65
-        },
-        {
-            "part_id": "TR-AC-203",
-            "part_name": "AC Compressor Cast Iron Mount Bracket",
-            "subsystem": "Engine Bay Structural",
-            "material": "Ductile Iron GGG40",
-            "vibration_g_rms": 22.0,
-            "mass_kg": 5.8
-        },
-        {
-            "part_id": "TR-AC-204",
-            "part_name": "HNBR O-Ring Refrigerant Joint Seal",
-            "subsystem": "Sealing Interface",
-            "material": "Hydrogenated Nitrile Rubber (HNBR 70 Shore A)",
-            "operating_temp_c": 140,
-            "operating_pressure_bar": 28.0
-        }
-    ],
-    "Hydraulic Steering & Implement Package": [
-        {
-            "part_id": "TR-HYD-301",
-            "part_name": "Steering Cylinder High-Pressure Flex Hose",
-            "subsystem": "Hydraulic Power",
-            "material": "Four-Spiral Steel Wire Reinforced Synthetic Rubber (SAE 100R15)",
-            "operating_temp_c": 125,
-            "operating_pressure_bar": 350.0
-        },
-        {
-            "part_id": "TR-HYD-302",
-            "part_name": "Steering Arm Forged Steel Bracket",
-            "subsystem": "Chassis Steering Linkage",
-            "material": "Forged AISI 4140 Quenched & Tempered",
-            "peak_load_kn": 120.0,
-            "mass_kg": 14.2
-        },
-        {
-            "part_id": "TR-HYD-303",
-            "part_name": "Steel Hydraulic Swivel Bulkhead Adapter",
-            "subsystem": "Hydraulic Fitting",
-            "material": "Free-Cutting Carbon Steel 11SMn30 (Zinc Plated)",
-            "operating_pressure_bar": 350.0
-        }
-    ]
-}
+def load_bom_packages_from_csv() -> Dict[str, List[Dict[str, Any]]]:
+    """Loads part hierarchy from data/bom_package_hierarchy.csv grouped by system_package."""
+    file_path = os.path.join("data", "bom_package_hierarchy.csv")
+    packages: Dict[str, List[Dict[str, Any]]] = {}
 
-HISTORICAL_8D_WARRANTY_RAG: Dict[str, Dict[str, Any]] = {
-    "TR-FL-101": {
-        "historical_grounding": "8D Report #8D-TR-2024-88: B10 field failures at 450 operating hours due to bio-diesel permeation and thermal hardening near turbo heat shield.",
-        "failure_mode": "Thermal Degradation & Micro-Cracking of Outer Cover",
-        "potential_cause": "Radiant heat exposure exceeding 115°C continuous thermal ceiling combined with biodiesel chemical swelling.",
-        "base_severity": 9,
-        "base_occurrence": 7,
-        "base_detection": 4
-    },
-    "TR-FL-102": {
-        "historical_grounding": "Warranty Log #WAR-2023-1402: Cold-weather diesel weeping in Northern European field trials below -15°C.",
-        "failure_mode": "Joint Relaxation & Low-Temperature Fuel Weeping",
-        "potential_cause": "Hose rubber cold compression set exceeding clamp expansion range during thermal cycling.",
-        "base_severity": 6,
-        "base_occurrence": 5,
-        "base_detection": 3
-    },
-    "TR-FL-103": {
-        "historical_grounding": "8D Report #8D-TR-2023-19: Resonant fatigue cracking along secondary mounting boss observed under 18G chassis shaker testing.",
-        "failure_mode": "Structural Fatigue Fracture at Mounting Boss Fillet",
-        "potential_cause": "First structural bending mode (145 Hz) aligns with diesel engine 2nd order harmonic vibration.",
-        "base_severity": 8,
-        "base_occurrence": 6,
-        "base_detection": 5
-    },
-    "TR-FL-104": {
-        "historical_grounding": "Quality Claim #QC-2024-512: Retainer latch tab embrittlement under prolonged UV and road salt exposure.",
-        "failure_mode": "Retaining Latch Fracture & Hose Disengagement",
-        "potential_cause": "Glass-fiber orientation anisotropy creating notch sensitivity at locking latch hinge root.",
-        "base_severity": 9,
-        "base_occurrence": 4,
-        "base_detection": 6
-    },
-    "TR-AC-201": {
-        "historical_grounding": "Warranty Log #WAR-2024-041: Refrigerant leak R134a/R1234yf at aluminum crimp fitting collar after 600 hours high-vibration tilling.",
-        "failure_mode": "Freon Leakage at Crimp Sleeve Interface",
-        "potential_cause": "Relative axial movement between ferrule crimp and rubber barrier under engine engine shake.",
-        "base_severity": 7,
-        "base_occurrence": 6,
-        "base_detection": 5
-    },
-    "TR-AC-202": {
-        "historical_grounding": "Field Quality Incident #FQ-2023-90: Fretting abrasion pinhole leak against engine frame rail.",
-        "failure_mode": "Wall Abrasion & Pinhole Refrigerant Discharge",
-        "potential_cause": "Inadequate clearance (<15mm) to chassis frame rail allowing intermittent contact during high-torque chassis twist.",
-        "base_severity": 5,
-        "base_occurrence": 5,
-        "base_detection": 4
-    },
-    "TR-AC-203": {
-        "historical_grounding": "8D Report #8D-TR-2024-104: Heavy casting fracture at lower compressor bolt eyelet on rough terrain transport.",
-        "failure_mode": "Brittle Fatigue Fracture at Fastener Lug",
-        "potential_cause": "Shrinkage porosity in casting combined with cantilevered AC compressor inertia load during field bumps.",
-        "base_severity": 8,
-        "base_occurrence": 5,
-        "base_detection": 4
-    },
-    "TR-AC-204": {
-        "historical_grounding": "Warranty Log #WAR-2023-311: O-ring compression set extrusion under 140°C peak soak temperature.",
-        "failure_mode": "Seal Extrusion & HVAC Refrigerant Loss",
-        "potential_cause": "Soak temperature exceeding HNBR continuous rating during post-shutdown heat soak in enclosed engine compartment.",
-        "base_severity": 6,
-        "base_occurrence": 4,
-        "base_detection": 3
-    },
-    "TR-HYD-301": {
-        "historical_grounding": "8D Report #8D-TR-2024-210: Catastrophic hydraulic burst under 420 bar pressure spike during rapid loader bucket drop.",
-        "failure_mode": "Outer Wire Braid Burst & High-Pressure Hydraulic Oil Spray",
-        "potential_cause": "Transient hydraulic shock wave exceeding hose impulse fatigue rating (SAE 100R15 500k cycle limit).",
-        "base_severity": 10,
-        "base_occurrence": 5,
-        "base_detection": 4
-    },
-    "TR-HYD-302": {
-        "historical_grounding": "Field Quality Incident #FQ-2024-02: Micro-fretting wear on kingpin tapered bore.",
-        "failure_mode": "Bore Fretting & Steering Play Accumulation",
-        "potential_cause": "Insufficient surface hardness (HRC < 35) on bore inner surface allowing fretting micro-motion under cyclic steering torque.",
-        "base_severity": 8,
-        "base_occurrence": 4,
-        "base_detection": 5
-    },
-    "TR-HYD-303": {
-        "historical_grounding": "Warranty Log #WAR-2023-889: Thread stripping during high-torque assembly at dealership service.",
-        "failure_mode": "Thread Shear & Fitting Disconnection",
-        "potential_cause": "Over-torquing beyond 60 Nm combined with low shear strength of free-cutting carbon steel.",
-        "base_severity": 7,
-        "base_occurrence": 3,
-        "base_detection": 2
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    pkg = row.get("system_package", "General Routings")
+                    part_item = {
+                        "part_id": row.get("part_id"),
+                        "part_name": row.get("item_reference"),
+                        "subsystem": pkg,
+                        "material": row.get("material_type"),
+                        "elementary_function": row.get("elementary_function")
+                    }
+                    if pkg not in packages:
+                        packages[pkg] = []
+                    packages[pkg].append(part_item)
+
+            # Add an 'All Subsystem Packages (50 Parts)' aggregated option
+            all_parts = []
+            for pkg_name, parts in packages.items():
+                all_parts.extend(parts)
+            packages["Complete Heavy Tractor Subsystem (50 Parts Master BOM)"] = all_parts
+            return packages
+        except Exception as e:
+            logger.error(f"Error reading {file_path}: {e}")
+
+    # Fallback default if CSV is missing
+    return {
+        "Fuel Routings": [
+            {
+                "part_id": "TR-FL-001",
+                "part_name": "Hose 3: Fuel Cooler Supply Line",
+                "subsystem": "Fuel Routings",
+                "material": "Nitrile Rubber NBR with Aramid Braid",
+                "elementary_function": "Transport fuel around circuit without thermal leaks"
+            }
+        ]
     }
-}
+
+
+def load_historical_rag_from_csv() -> Dict[str, Dict[str, Any]]:
+    """Loads historical field issue 8D RAG dataset from data/historical_field_issues.csv keyed by part_id."""
+    file_path = os.path.join("data", "historical_field_issues.csv")
+    rag_map: Dict[str, Dict[str, Any]] = {}
+
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    pid = row.get("part_id")
+                    rag_map[pid] = {
+                        "historical_grounding": f"8D Report #{pid}-8D: Historical warranty log indicates '{row.get('failure_mode')}' cause by {row.get('potential_cause')}.",
+                        "failure_mode": row.get("failure_mode"),
+                        "potential_cause": row.get("potential_cause"),
+                        "base_severity": int(row.get("historical_severity", 5)),
+                        "base_occurrence": int(row.get("historical_occurrence", 5)),
+                        "base_detection": int(row.get("historical_detection", 5)),
+                        "recommended_action": row.get("recommended_action")
+                    }
+            return rag_map
+        except Exception as e:
+            logger.error(f"Error reading {file_path}: {e}")
+
+    return {}
+
+
+def load_material_master_from_csv() -> Dict[str, Dict[str, Any]]:
+    """Loads material properties and specifications from data/material_master.csv keyed by part_id."""
+    file_path = os.path.join("data", "material_master.csv")
+    mat_map: Dict[str, Dict[str, Any]] = {}
+
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    pid = row.get("part_id")
+                    mat_map[pid] = {
+                        "yield_strength_mpa": float(row.get("yield_strength_mpa", 200)),
+                        "max_temp_limit_c": float(row.get("max_temp_limit_c", 120)),
+                        "elastomeric_rating": row.get("elastomeric_rating"),
+                        "drawing_spec_ref": row.get("drawing_spec_ref")
+                    }
+            return mat_map
+        except Exception as e:
+            logger.error(f"Error reading {file_path}: {e}")
+
+    return {}
+
+
+# Load CSV datasets at startup
+HEAVY_TRACTOR_BOM_PACKAGES = load_bom_packages_from_csv()
+HISTORICAL_8D_WARRANTY_RAG = load_historical_rag_from_csv()
+MATERIAL_MASTER = load_material_master_from_csv()
 
 
 # =====================================================================
@@ -271,6 +185,10 @@ class StructureFunctionAgent:
     """Agent 1: Ingests package BOMs and assigns context-specific mechanical functions."""
     
     def process(self, part_data: Dict[str, Any], package_name: str) -> str:
+        # Check if function is pre-defined in CSV
+        if part_data.get("elementary_function"):
+            return part_data["elementary_function"]
+
         part_name = part_data.get("part_name", "")
         material = part_data.get("material", "")
         subsystem = part_data.get("subsystem", "")
@@ -281,7 +199,7 @@ class StructureFunctionAgent:
         Component Name: {part_name}
         Subsystem: {subsystem}
         Material / Specs: {material}
-        Output ONLY a 1-sentence engineering function description (e.g., 'Provides flexible pressurized fuel containment while isolating engine high-frequency vibration').
+        Output ONLY a 1-sentence engineering function description.
         """
         ai_function = call_gemini(prompt, system_instruction="You assign precise mechanical functions for agricultural tractor engineering components.")
         if ai_function:
@@ -294,12 +212,6 @@ class StructureFunctionAgent:
             return f"Maintains constant radial sealing force across the hose-barb interface throughout thermal expansion cycles."
         elif "Bracket" in part_name or "Mount" in part_name:
             return f"Secures component assembly to chassis structural frame under 20G peak shock loads."
-        elif "Fitting" in part_name or "Adapter" in part_name:
-            return f"Provides quick-disconnect zero-leak fluid coupling under high operating system pressure."
-        elif "Tube" in part_name:
-            return f"Transfers high-pressure fluid along rigid chassis routing paths with minimal pressure drop."
-        elif "Seal" in part_name or "O-Ring" in part_name:
-            return f"Prevents fluid leakage across mating metal flanges under dynamic thermal expansion."
         else:
             return f"Performs structural load transmission and fluid containment within the {subsystem} assembly."
 
@@ -326,6 +238,7 @@ class FailureRAGAgent:
         - "base_severity": Integer 1-10.
         - "base_occurrence": Integer 1-10.
         - "base_detection": Integer 1-10.
+        - "recommended_action": Suggested engineering action.
         """
         raw = call_gemini(prompt)
         if raw and "{" in raw:
@@ -337,12 +250,13 @@ class FailureRAGAgent:
                 pass
 
         return {
-            "historical_grounding": f"8D Report #8D-TR-GENERIC: Field warranty logs indicate localized stress concentration risks under field torsional shock loads.",
-            "failure_mode": "Mechanical Fatigue & Material Wear",
+            "historical_grounding": f"8D Report #{part_id}-8D: Field warranty logs indicate localized stress concentration risks under field torsional shock loads.",
+            "failure_mode": "Mechanical Fatigue & Line Wear",
             "potential_cause": "High cyclic mechanical stress exceeding component fatigue limits.",
             "base_severity": 7,
             "base_occurrence": 5,
-            "base_detection": 4
+            "base_detection": 4,
+            "recommended_action": "Add protective chafing sleeve and relocate away from heat sources."
         }
 
 
@@ -389,57 +303,44 @@ class MitigationAgent:
         material = part_data.get("material", "")
         failure_mode = failure_data.get("failure_mode", "")
         cause = failure_data.get("potential_cause", "")
+        rec_action = failure_data.get("recommended_action", "")
 
-        # For low / medium risks (< 200 RPN and S < 9), return standard design validation note
+        # For low / medium risks (< 200 RPN and S < 9), return standard baseline validation
         if not is_critical:
             return f"Standard Quality Control: Retain baseline material ({material}). Conduct standard production line leak & dimension check."
 
-        # High risk / Critical Outlier -> Generate actionable practical engineering items
+        # High risk / Critical Outlier -> Use CSV recommendation if available or query Gemini
+        if rec_action:
+            base_action = f"• **Action Directives**: {rec_action}\n"
+        else:
+            base_action = ""
+
         prompt = f"""
         You are a Principal Engineering Specialist in Agricultural Tractor Reliability.
         Generate specific, practical Engineering Action Items for a critical DFMEA risk.
-        DO NOT generate generic formal ECO paperwork boilerplate. Give actionable design engineering directives:
-        - Material compound / alloy upgrades (e.g. upgrade NBR to FKM Fluoroelastomer, 51CrV4 to 4140 steel)
-        - Geometry redesign directives (e.g. increase fillet radius from 2.0mm to 4.5mm, add isolation grommets)
-        - Validation test mandates (e.g. mandatory 500-hour thermal-shaker bench test at 140°C under 20G RMS)
+        DO NOT generate generic formal ECO paperwork boilerplate. Give 3 bulleted actionable design engineering directives:
+        - Material compound / alloy upgrades
+        - Geometry redesign directives
+        - Validation test mandates
 
         Component: {part_name} (Part ID: {part_id})
         Current Material: {material}
         Failure Mode: {failure_mode}
         Potential Cause: {cause}
         Severity: {s}/10 | Computed RPN: {rpn}
-
-        Output 3 clear, bulleted Engineering Action Directives.
+        Historical Recommendation: {rec_action}
         """
         ai_mitigation = call_gemini(prompt)
         if ai_mitigation:
-            return ai_mitigation
+            return base_action + ai_mitigation
 
         # Rule-based fallback for critical action items
-        if "Hose" in part_name:
-            return (
-                "• **Material Upgrade**: Replace inner NBR liner with FKM Fluoroelastomer barrier rated for 150°C continuous biodiesel soak.\n"
-                "• **Protection Sheathing**: Add silicone-coated fiberglass firesleeve over turbo proximity zone.\n"
-                "• **Validation Mandate**: Perform 1,000-hour impulse pressure shock test at 135°C with 15G multi-axis shaker table vibration."
-            )
-        elif "Clamp" in part_name or "Fitting" in part_name:
-            return (
-                "• **Design Mod**: Implement dual-bead bead-lock retention profile on mating aluminum barb.\n"
-                "• **Material Upgrade**: Upgrade spring steel plating to 316 Stainless Steel with heavy-duty constant-tension Belleville washers.\n"
-                "• **Test Mandate**: Execute cold-chamber leak testing at -30°C under 30 bar pressure spikes."
-            )
-        elif "Bracket" in part_name:
-            return (
-                "• **Structural Redesign**: Increase fillet radii at boss mounting junctions from 2.0mm to 4.5mm and add 3mm stiffening gussets.\n"
-                "• **Material Upgrade**: Switch from die-cast aluminum ADC12 to Ductile Iron GGG50.\n"
-                "• **FEA Mandate**: Perform modal resonance avoidance FEA analysis to shift first structural mode above 220 Hz."
-            )
-        else:
-            return (
-                "• **Material Upgrade**: Upgrade base material to high-fatigue alloy (AISI 4140 Quenched & Tempered).\n"
-                "• **Geometry Mod**: Add vibration-damping rubber isolation grommets at primary chassis attachment points.\n"
-                "• **Validation Mandate**: Mandate 100% Ultrasonic non-destructive examination (NDE) for production lots."
-            )
+        return (
+            base_action +
+            "• **Design Directive**: Determine final placement of line; add protective silicone fiberglass chafing sleeve.\n"
+            "• **Material Upgrade**: Upgrade inner elastomeric liner to high-temp FKM Fluoroelastomer.\n"
+            "• **Validation Mandate**: Mandate 1,000-hour impulse pressure shock test at 135°C under 20G RMS shaker vibration."
+        )
 
 
 # =====================================================================
@@ -478,12 +379,17 @@ class DFMEAMultiAgentOrchestrator:
             # Agent 4: Practical Engineering Mitigation Generation
             action_items = self.mitigation_agent.process(part, rag_data, risk_data)
 
+            # Fetch Material Spec Reference
+            mat_info = MATERIAL_MASTER.get(part_id, {})
+            drawing_ref = mat_info.get("drawing_spec_ref", "ES-GENERIC")
+
             # Assemble complete DFMEA record row
             row = {
                 "part_id": part_id,
                 "part_name": part_name,
                 "subsystem": part.get("subsystem", "Tractor Subsystem"),
                 "material": part.get("material", "Standard Alloy"),
+                "drawing_spec_ref": drawing_ref,
                 "function": function_desc,
                 "potential_failure_mode": rag_data.get("failure_mode", "Mechanical Fatigue"),
                 "potential_cause": rag_data.get("potential_cause", "Cyclic vibration & stress"),
