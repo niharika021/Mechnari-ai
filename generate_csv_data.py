@@ -1039,6 +1039,64 @@ def build_field_issues(catalog, rng):
                     entry["failure_mode"], part_name, entry["potential_cause"]),
             })
 
+    # A failure mode does not stay on the part it was first seen on. The same
+    # mode recurs on other parts of the same type or family, and those
+    # recurrences are the whole reason a company's own history is worth
+    # mining - the second part to suffer it usually has no such row in its
+    # own DFMEA. Without this the data would only ever record a mode on the
+    # part that taught it, and cross-part learning could not be measured.
+    sibling_rng = random.Random(SEED + 2)
+    members_by_scope = {}
+    for part in PARTS_MASTER:
+        part_type_id, _ = PART_ASSIGNMENTS[part["part_id"]]
+        members_by_scope.setdefault(part_type_id, []).append(part)
+        members_by_scope.setdefault(family_of(part_type_id), []).append(part)
+
+    # A share of recurrences land on a part OUTSIDE the mode's scope. Real
+    # taxonomies are imperfect and failure physics does not respect them - a
+    # chafing failure crosses from a hose to a harness. These are the cases
+    # the platform genuinely cannot anticipate from the taxonomy, and leaving
+    # them out would make the backtest incapable of scoring anything but
+    # 100%. A measurement that cannot fail is not a measurement.
+    OUT_OF_SCOPE_SHARE = 0.12
+    all_parts = list(PARTS_MASTER)
+
+    for entry in catalog:
+        siblings = [p for p in members_by_scope.get(entry["scope_id"], [])
+                    if p["part_id"] != entry["origin_part_id"]]
+        if sibling_rng.random() < OUT_OF_SCOPE_SHARE:
+            in_scope = {p["part_id"] for p in members_by_scope.get(entry["scope_id"], [])}
+            siblings = [p for p in all_parts if p["part_id"] not in in_scope]
+        if not siblings or sibling_rng.random() > 0.55:
+            continue
+
+        effect = FAILURE_EFFECTS[entry["effect_id"]]
+        for sibling in sibling_rng.sample(siblings, k=min(len(siblings),
+                                                          sibling_rng.randint(1, 2))):
+            # A recurrence on another part usually runs at a lower rate than
+            # on the part the mode is known for.
+            anchor = max(1, sibling_rng.randint(3, 6))
+            rate = OCCURRENCE_RATE_PER_1000[anchor]
+            report_date = date(2021, 1, 1) + timedelta(days=sibling_rng.randint(180, 1750))
+            units = sibling_rng.randrange(1200, 9200, 100)
+            claims = max(1, int(round(rate * units / 1000.0)))
+            issues.append({
+                "issue_id": None,
+                "part_id": sibling["part_id"],
+                "scope_id": entry["scope_id"],
+                "mode_id": entry["mode_id"],
+                "report_date": report_date.isoformat(),
+                "units_in_service": units,
+                "claim_count": claims,
+                "median_machine_hours": sibling_rng.randrange(200, 3800, 50),
+                "detection_stage": _detection_stage(entry["baseline_detection"]),
+                "observed_effect_id": entry["effect_id"],
+                "observed_severity": effect["standard_severity"],
+                "description": "%s recurred on %s. Root cause: %s" % (
+                    entry["failure_mode"], sibling["item_reference"],
+                    entry["potential_cause"]),
+            })
+
     # Number the 8D reports chronologically, the way a real register runs.
     issues.sort(key=lambda r: (r["report_date"], r["part_id"], r["mode_id"]))
     seq = {}

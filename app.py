@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
+import backtest
 import data_layer
 import gap_detection
 import retrieval
@@ -147,6 +148,29 @@ def cached_retrieval_metrics() -> dict:
 
 
 @st.cache_data
+def cached_backtest(cutoff: str) -> dict:
+    result = backtest.temporal_backtest(cutoff)
+    return {
+        "summary": result["summary"],
+        "train_records": result["train_records"],
+        "test_records": result["test_records"],
+        "detail": result["detail"].to_dict("records"),
+    }
+
+
+@st.cache_data
+def cached_backtest_sweep() -> pd.DataFrame:
+    return backtest.sweep()
+
+
+@st.cache_data
+def cached_cold_start() -> dict:
+    result = backtest.cold_start_backtest()
+    result["detail"] = result["detail"].to_dict("records")
+    return result
+
+
+@st.cache_data
 def cached_proposal(description: str, part_type_id: str) -> dict:
     proposal = retrieval.propose_dfmea(description, part_type_id=part_type_id or None)
     # Streamlit caches by value; frames come back as plain records so the
@@ -224,6 +248,17 @@ if "approval_states" not in st.session_state and not df_master.empty:
 st.sidebar.image("https://img.icons8.com/color/96/tractor.png", width=70)
 st.sidebar.title("⚙️ Mechnari.ai")
 st.sidebar.caption("Enterprise AI DFMEA Risk Copilot (1,000+ Part Systems)")
+
+st.sidebar.markdown("---")
+
+# Regenerating the CSVs while the app runs leaves both this process's data
+# cache and Streamlit's result cache holding the old knowledge base, which
+# looks like the app ignoring your changes. This clears both.
+if st.sidebar.button("🔄 Reload knowledge base", use_container_width=True):
+    data_layer.reload()
+    retrieval.reload()
+    st.cache_data.clear()
+    st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔍 Filters & Search")
@@ -793,6 +828,144 @@ if not df_master.empty:
                 "an engineer to confirm the type rather than asserting one."
                 % (metrics["type_top1_accuracy"] * 100)
             )
+
+    st.markdown("---")
+
+    # =====================================================================
+    # BACKTEST: WOULD THIS HAVE CAUGHT ANYTHING WE MISSED?
+    # =====================================================================
+    st.subheader("\U0001F9EA Backtest - Would This Have Caught What We Missed?")
+    st.caption(
+        "The warranty history is cut at a date. The system is given only what was "
+        "known before it, and asked what it would have flagged on the failures that "
+        "came after. Nothing after the cutoff is visible to the system."
+    )
+
+    cutoff = st.select_slider(
+        "Knowledge cutoff - everything before this date is all the system knows",
+        options=backtest.CUTOFF_SWEEP,
+        value=backtest.DEFAULT_CUTOFF,
+    )
+
+    try:
+        run = cached_backtest(cutoff)
+        sweep_frame = cached_backtest_sweep()
+        cold = cached_cold_start()
+    except data_layer.DatasetError as exc:
+        st.warning("Knowledge base not ready: %s" % exc)
+    else:
+        summary = run["summary"]
+        detail = pd.DataFrame(run["detail"])
+
+        st.caption(
+            "%d warranty records before the cutoff, %d after. %d incidents landed on "
+            "active parts, of which %d were unknowable - nothing had reported that "
+            "failure mode anywhere yet, so nobody could have flagged them. They are "
+            "excluded from the recall figures below rather than counted as either "
+            "a hit or a miss."
+            % (run["train_records"], run["test_records"], summary["incidents"],
+               summary["unknowable"])
+        )
+
+        b1, b2, b3, b4 = st.columns(4)
+        with b1:
+            st.metric("DFMEA on file caught", "%.0f%%" % (summary["dfmea_recall"] * 100),
+                      help="Of the knowable failures after the cutoff, the share the "
+                           "manual DFMEA had already analysed. This is the baseline.")
+        with b2:
+            st.metric(
+                "Mechnari would have flagged",
+                "%.0f%%" % (summary["mechnari_recall"] * 100),
+                delta="+%.0f pts" % ((summary["mechnari_recall"]
+                                      - summary["dfmea_recall"]) * 100),
+            )
+        with b3:
+            st.metric("Failures newly caught", summary["newly_caught"],
+                      help="Incidents the DFMEA on file missed that Mechnari flags. "
+                           "This is the product, counted.")
+        with b4:
+            st.metric("Warranty claims behind them", summary["newly_caught_claims"],
+                      help="One 8D covering 187 claims is not the same size of miss "
+                           "as one covering 3.")
+
+        st.caption(
+            "Claim-weighted, the DFMEA covered %.0f%% and Mechnari %.0f%%. All %d newly "
+            "caught incidents were modes learned on a **different part** - which is the "
+            "institutional-memory claim, not a part being flagged for something it is "
+            "already famous for. %d of them sit at severity 9 or above."
+            % (summary["dfmea_recall_claim_weighted"] * 100,
+               summary["mechnari_recall_claim_weighted"] * 100,
+               summary["newly_caught_cross_part"], summary["newly_caught_safety"])
+        )
+
+        if not detail.empty and detail["newly_caught"].any():
+            st.markdown("##### Failures the DFMEA on file would have missed")
+            missed = detail[detail["newly_caught"]].sort_values(
+                ["severity", "claims"], ascending=False)
+            missed_columns = {
+                "issue_id": "8D Record",
+                "report_date": "Reported",
+                "part_id": "Part ID",
+                "failure_mode": "Failure Mode That Occurred",
+                "severity": "S",
+                "claims": "Claims",
+            }
+            missed_display = missed[list(missed_columns.keys())].rename(
+                columns=missed_columns)
+            missed_display["Reported"] = pd.to_datetime(
+                missed_display["Reported"]).dt.date.astype(str)
+            st.dataframe(
+                missed_display, use_container_width=True, hide_index=True,
+                column_config={
+                    "S": st.column_config.NumberColumn("S", format="%d"),
+                    "Failure Mode That Occurred": st.column_config.TextColumn(
+                        "Failure Mode That Occurred", width="large"),
+                },
+            )
+
+        with st.expander("\U0001F4C8 Does it hold at other cutoffs? (one date is a data point)"):
+            sweep_display = sweep_frame[[
+                "cutoff", "incidents", "knowable", "dfmea_recall",
+                "mechnari_recall", "newly_caught", "newly_caught_claims"]].rename(
+                columns={
+                    "cutoff": "Cutoff", "incidents": "Incidents After",
+                    "knowable": "Knowable", "dfmea_recall": "DFMEA Caught",
+                    "mechnari_recall": "Mechnari Flagged",
+                    "newly_caught": "Newly Caught",
+                    "newly_caught_claims": "Claims",
+                })
+            st.dataframe(
+                sweep_display, use_container_width=True, hide_index=True,
+                column_config={
+                    "DFMEA Caught": st.column_config.NumberColumn(
+                        "DFMEA Caught", format="%.0f%%"),
+                    "Mechnari Flagged": st.column_config.NumberColumn(
+                        "Mechnari Flagged", format="%.0f%%"),
+                },
+            )
+            st.caption(
+                "Mechnari does not score 100%: some failures cross the taxonomy - the "
+                "same physics on a different kind of part - and those it cannot "
+                "anticipate. A backtest that always scores perfectly is measuring its "
+                "own construction, not the product."
+            )
+
+        with st.expander("\U0001F195 Cold start: every part treated as never seen before"):
+            st.caption(
+                "Each part is hidden from the corpus entirely - no DFMEA, no history of "
+                "its own - and retrieval works from its written description alone. Then: "
+                "did the proposal contain the mode that actually failed on it?"
+            )
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Actual failure modes surfaced",
+                          "%.0f%%" % (cold["recall"] * 100),
+                          help="%d of %d modes that really failed."
+                               % (cold["modes_surfaced"], cold["failure_modes_evaluated"]))
+            with c2:
+                st.metric("Parts fully covered", cold["parts_fully_covered"])
+            with c3:
+                st.metric("Parts missed entirely", cold["parts_missed_entirely"])
 
     st.markdown("---")
 
