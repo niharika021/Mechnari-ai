@@ -31,16 +31,18 @@ model. Three jobs:
    about the manufacturing process instead), so the band boundaries and
    some H/M/L outcomes differ between the three tables.
 
-   Mechnari is a DFMEA tool, so AP_TABLE below is intended to reproduce
-   the *structure* of the DFMEA-specific AP table - its severity,
-   occurrence and detection bands and the order they are read in. The
-   individual cell values are a best-effort reconstruction and have NOT
-   been verified against the handbook. Check them against your copy of
-   the AIAG-VDA FMEA Handbook (2019), the DFMEA Action Priority table
-   specifically (not the PFMEA or FMEA-MSR one), correct any cell that
-   differs, and set AP_TABLE_VERIFIED = True. Until then the platform
-   reports AP as provisional. RPN is retained alongside it as a legacy
-   column so existing reviewers keep their familiar number.
+   Mechnari is a DFMEA tool, so AP_TABLE below reproduces the
+   DFMEA-specific AP table. Its band structure and 7 of its cells are now
+   confirmed against a primary source (a slide from the actual VDA
+   project lead who co-authored the AIAG-VDA alignment - see the citation
+   above AP_TABLE); the remaining cells are a best-effort completion,
+   individually marked VERIFIED / DERIVED / unconfirmed in the comments
+   there. Check the unconfirmed cells against your copy of the AIAG-VDA
+   FMEA Handbook (2019), the DFMEA Action Priority table specifically
+   (not the PFMEA or FMEA-MSR one), correct any that differ, and set
+   AP_TABLE_VERIFIED = True. Until then the platform reports AP as
+   provisional. RPN is retained alongside it as a legacy column so
+   existing reviewers keep their familiar number.
 """
 
 from typing import Optional
@@ -99,46 +101,77 @@ def detection_floor(stage: str) -> int:
 
 
 # =====================================================================
-# ACTION PRIORITY - DFMEA TABLE (AIAG-VDA, 2019)
+# ACTION PRIORITY - DFMEA TABLE (AIAG-VDA)
 # =====================================================================
 # AIAG-VDA publishes three distinct AP tables (DFMEA, PFMEA, FMEA-MSR).
 # This one is meant to be the DFMEA table - see the module docstring.
 # Bands are read severity first, then occurrence, then detection - the
 # order that encodes "how badly it hurts" ahead of "how often" ahead of
 # "would we catch it".
+#
+# PARTIALLY VERIFIED against a primary source:
+#   Pfeufer, J. (VDA QMC project lead for the AIAG-VDA alignment), "New
+#   global FMEA standard - FMEA Alignment AIAG and VDA", SMMT AQMS
+#   Conference, Nov 2018, slide "Design FMEA Action Priority (AP)
+#   (Extract)". The deck itself states it reflects the pre-publication
+#   "yellow print" status of the handbook and is "not fixed and
+#   non-binding" - the final AIAG-VDA FMEA Handbook, 1st Edition (2019),
+#   may differ in cells this source does not confirm.
+#
+# That slide directly contradicted the band structure this table used to
+# have: Severity does NOT split into 5 bands (9-10/7-8/4-6/2-3/1) - the
+# real table uses 4 (9-10/5-8/2-4/1). Detection does NOT split into 4
+# bands (7-10/5-6/2-4/1) - the real table merges the bottom two into one
+# band, 1-4. A wrong band boundary is worse than an unverified cell: it
+# puts entire ranges of scores in the wrong bucket. Both are fixed below.
+#
+# Every cell tagged VERIFIED is taken directly from that slide. Cells
+# tagged DERIVED are the one value logically forced by a VERIFIED
+# neighbour plus the monotonic rule enforced by
+# test_action_priority_never_decreases_as_risk_rises (AP cannot improve
+# as any one of S, O, D gets worse). Cells tagged unconfirmed are a
+# best-effort completion, consistent with that same monotonic rule and
+# with severity dominating occurrence dominating detection, but not
+# checked against any handbook text - do not treat them as authoritative.
+# Occurrence's low end (O2-3 vs O1) is not confirmed either way by the
+# source; it is kept split as the more conservative, finer-grained choice.
 
 AP_TABLE_VERIFIED = False
 
-SEVERITY_BANDS = [(9, "S9-10"), (7, "S7-8"), (4, "S4-6"), (2, "S2-3"), (1, "S1")]
-OCCURRENCE_BANDS = [(8, "O8-10"), (6, "O6-7"), (4, "O4-5"), (2, "O2-3"), (1, "O1")]
-DETECTION_BANDS = [(7, "D7-10"), (5, "D5-6"), (2, "D2-4"), (1, "D1")]
+SEVERITY_BANDS = [(9, "S9-10"), (5, "S5-8"), (2, "S2-4"), (1, "S1")]
+OCCURRENCE_BANDS = [(6, "O6-10"), (4, "O4-5"), (2, "O2-3"), (1, "O1")]
+DETECTION_BANDS = [(7, "D7-10"), (5, "D5-6"), (1, "D1-4")]
 
 # (severity band, occurrence band) -> AP by detection band, in the order
-# D7-10, D5-6, D2-4, D1.
+# D7-10, D5-6, D1-4. Severity 1 is handled as a shortcut in
+# action_priority() below (VERIFIED: "Low priority due to no discernible
+# effect", O 1-10, D 1-10 -> L) and has no entry here.
 AP_TABLE = {
-    ("S9-10", "O8-10"): ("H", "H", "H", "H"),
-    ("S9-10", "O6-7"):  ("H", "H", "H", "H"),
-    ("S9-10", "O4-5"):  ("H", "H", "H", "M"),
-    ("S9-10", "O2-3"):  ("H", "H", "M", "L"),
-    ("S9-10", "O1"):    ("M", "M", "L", "L"),
+    # VERIFIED: "High priority due to safety and/or regulatory effects
+    # that have a high or very high occurrence rating" - the whole row is
+    # H regardless of detection.
+    ("S9-10", "O6-10"): ("H", "H", "H"),
+    # D7-10 VERIFIED ("...moderate occurrence rating and high detection
+    # rating" - i.e. a high D *score*, meaning poor detection capability).
+    # D5-6 and D1-4 not shown; kept at H - unconfirmed, conservative for a
+    # safety/regulatory effect.
+    ("S9-10", "O4-5"):  ("H", "H", "H"),
+    ("S9-10", "O2-3"):  ("H", "M", "M"),   # unconfirmed
+    ("S9-10", "O1"):    ("M", "M", "L"),   # unconfirmed
 
-    ("S7-8", "O8-10"):  ("H", "H", "H", "H"),
-    ("S7-8", "O6-7"):   ("H", "H", "H", "M"),
-    ("S7-8", "O4-5"):   ("H", "H", "M", "M"),
-    ("S7-8", "O2-3"):   ("M", "M", "M", "L"),
-    ("S7-8", "O1"):     ("L", "L", "L", "L"),
+    ("S5-8", "O6-10"):  ("H", "H", "M"),   # unconfirmed
+    # D5-6 VERIFIED H, D1-4 VERIFIED M. D7-10 DERIVED: cannot be better
+    # than D5-6's H once detection gets worse, so also H.
+    ("S5-8", "O4-5"):   ("H", "H", "M"),
+    ("S5-8", "O2-3"):   ("M", "M", "L"),   # unconfirmed
+    ("S5-8", "O1"):     ("L", "L", "L"),   # unconfirmed
 
-    ("S4-6", "O8-10"):  ("H", "H", "M", "M"),
-    ("S4-6", "O6-7"):   ("M", "M", "M", "L"),
-    ("S4-6", "O4-5"):   ("M", "M", "L", "L"),
-    ("S4-6", "O2-3"):   ("L", "L", "L", "L"),
-    ("S4-6", "O1"):     ("L", "L", "L", "L"),
-
-    ("S2-3", "O8-10"):  ("M", "M", "L", "L"),
-    ("S2-3", "O6-7"):   ("L", "L", "L", "L"),
-    ("S2-3", "O4-5"):   ("L", "L", "L", "L"),
-    ("S2-3", "O2-3"):   ("L", "L", "L", "L"),
-    ("S2-3", "O1"):     ("L", "L", "L", "L"),
+    ("S2-4", "O6-10"):  ("M", "M", "L"),   # unconfirmed
+    # D5-6 VERIFIED M, D1-4 VERIFIED L. D7-10 kept at M - unconfirmed,
+    # conservative rather than escalating to H at this severity band.
+    ("S2-4", "O4-5"):   ("M", "M", "L"),
+    ("S2-4", "O2-3"):   ("L", "L", "L"),   # unconfirmed
+    ("S2-4", "O1"):     ("L", "L", "L"),   # unconfirmed
 }
 
 AP_LABELS = {"H": "H - High", "M": "M - Medium", "L": "L - Low"}

@@ -65,6 +65,30 @@ def test_action_priority_never_decreases_as_risk_rises():
             assert rank[re.action_priority(s, o, d + 1)] >= here, (s, o, d)
 
 
+def test_verified_ap_cells_match_the_primary_source():
+    """
+    Pins every AP cell confirmed against the cited source (Pfeufer, VDA QMC,
+    "Design FMEA Action Priority (AP) (Extract)", SMMT AQMS Nov 2018 - see
+    the citation in risk_engine.py above AP_TABLE). If this fails, a table
+    edit silently drifted from what is actually sourced, not just from an
+    internal best-effort choice.
+    """
+    verified = [
+        # (severity, occurrence, detection) -> AP, each an example inside
+        # the cited band combination.
+        ((10, 8, 5), "H"),   # S9-10,O6-10: whole row H regardless of D
+        ((9, 6, 1), "H"),
+        ((10, 5, 8), "H"),   # S9-10,O4-5,D7-10
+        ((7, 5, 6), "H"),    # S5-8,O4-5,D5-6
+        ((7, 5, 3), "M"),    # S5-8,O4-5,D1-4
+        ((3, 5, 6), "M"),    # S2-4,O4-5,D5-6
+        ((3, 5, 2), "L"),    # S2-4,O4-5,D1-4
+        ((1, 10, 10), "L"),  # S1: any O, any D
+    ]
+    for (s, o, d), expected in verified:
+        assert re.action_priority(s, o, d) == expected, (s, o, d, expected)
+
+
 def test_severity_one_is_always_low():
     for o, d in itertools.product(range(1, 11), repeat=2):
         assert re.action_priority(1, o, d) == "L"
