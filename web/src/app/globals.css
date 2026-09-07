@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+  Mechnari.ai design tokens.
+
+  Same values as the Streamlit app's injected CSS (see ../app.py) and the
+  build dossier / role-view mockup artifacts from earlier in this project -
+  one committed dark theme, not a new palette per surface. Petrol-teal
+  accent reserved for actions and identity; Action Priority owns
+  red/amber/green everywhere, kept out of the accent on purpose.
+*/
+:root {
+  --bg: #0b1210;
+  --bg-elevated: #101a17;
+  --surface: #16211d;
+  --surface-hover: #1c2925;
+  --border: #263631;
+  --border-strong: #37493f;
+  --ink: #e7eeec;
+  --ink-soft: #9fb0aa;
+  --ink-faint: #6d7e78;
+  --accent: #3fa895;
+  --accent-strong: #59c4b0;
+  --accent-ink: #06120f;
+  --accent-soft: #16302b;
+  --accent-line: #2e5c51;
+  --crit: #e4806a;
+  --crit-soft: #2e1811;
+  --warn: #e0ac55;
+  --warn-soft: #2e230a;
+  --ok: #7bc98d;
+  --ok-soft: #16261b;
+  --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "SFMono-Regular", Consolas, monospace;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+* {
+  scrollbar-color: var(--border-strong) transparent;
+}
