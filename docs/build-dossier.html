@@ -1,0 +1,1034 @@
+<title>Mechnari.ai Build Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground: #F4F6F5;
+    --surface: #FFFFFF;
+    --surface-sunk: #EDF1EF;
+    --ink: #121A19;
+    --ink-soft: #55605D;
+    --ink-faint: #7C8783;
+    --rule: #D6DDDA;
+    --rule-strong: #B9C4C0;
+    --accent: #0F6B63;
+    --accent-soft: #E2EFEC;
+    --accent-line: #9BC7C0;
+    --crit: #A8321E;
+    --crit-soft: #F6E4E0;
+    --warn: #B5761A;
+    --warn-soft: #F8EEDC;
+    --ok: #2F6B3C;
+    --ok-soft: #E3EFE5;
+    --shadow: 0 1px 2px rgba(18, 26, 25, .05), 0 8px 24px -16px rgba(18, 26, 25, .28);
+
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 84px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1413;
+      --surface: #161E1D;
+      --surface-sunk: #101817;
+      --ink: #E6EDEB;
+      --ink-soft: #9AA8A4;
+      --ink-faint: #74827E;
+      --rule: #2A3634;
+      --rule-strong: #3B4A47;
+      --accent: #4FBFAF;
+      --accent-soft: #14302C;
+      --accent-line: #2E6B63;
+      --crit: #E2705A;
+      --crit-soft: #3A1D17;
+      --warn: #D9A04A;
+      --warn-soft: #37280F;
+      --ok: #6FBF7F;
+      --ok-soft: #17301B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0E1413;
+    --surface: #161E1D;
+    --surface-sunk: #101817;
+    --ink: #E6EDEB;
+    --ink-soft: #9AA8A4;
+    --ink-faint: #74827E;
+    --rule: #2A3634;
+    --rule-strong: #3B4A47;
+    --accent: #4FBFAF;
+    --accent-soft: #14302C;
+    --accent-line: #2E6B63;
+    --crit: #E2705A;
+    --crit-soft: #3A1D17;
+    --warn: #D9A04A;
+    --warn-soft: #37280F;
+    --ok: #6FBF7F;
+    --ok-soft: #17301B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+
+  /* ---------- document control ---------- */
+
+  .control {
+    border-bottom: 2px solid var(--ink);
+    padding: 28px 0 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 36px;
+    align-items: baseline;
+  }
+  .control dl { display: contents; }
+  .control .field { display: flex; gap: 8px; align-items: baseline; }
+  .control dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .control dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .status {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { padding: 56px 0 44px; border-bottom: 1px solid var(--rule); }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(40px, 7vw, 68px);
+    letter-spacing: -.03em;
+    line-height: 1.02;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .wordmark .dot { color: var(--accent); }
+  .standfirst {
+    max-width: var(--measure);
+    font-size: 19px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  .byline {
+    margin: 24px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- sections ---------- */
+
+  section { padding: 44px 0; border-bottom: 1px solid var(--rule); }
+  .band { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); gap: 0 28px; }
+  .code {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--accent);
+    padding-top: 10px;
+    white-space: nowrap;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(24px, 3.4vw, 31px);
+    letter-spacing: -.022em;
+    line-height: 1.18;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -.01em;
+    margin: 32px 0 10px;
+  }
+  p { max-width: var(--measure); margin: 0 0 16px; }
+  .lede { font-size: 17.5px; color: var(--ink-soft); }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--mono); font-size: .88em; }
+  code {
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  ul { max-width: var(--measure); margin: 0 0 16px; padding-left: 0; list-style: none; }
+  ul li { position: relative; padding-left: 20px; margin-bottom: 9px; }
+  ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: .68em;
+    width: 6px; height: 1px;
+    background: var(--rule-strong);
+  }
+
+  /* ---------- metric strip ---------- */
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 4px 0 28px;
+  }
+  .metric { background: var(--surface); padding: 18px 18px 16px; }
+  .metric .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .metric .v {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: -.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .metric .n {
+    display: block;
+    margin-top: 7px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+  .metric.is-base .v { color: var(--ink-soft); }
+  .metric.is-lift .v { color: var(--accent); }
+  .metric.is-crit .v { color: var(--crit); }
+
+  /* ---------- chart ---------- */
+
+  figure { margin: 28px 0; }
+  .plot {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 20px 18px 12px;
+    overflow-x: auto;
+  }
+  .plot svg { display: block; min-width: 560px; width: 100%; height: auto; }
+  figcaption {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    max-width: var(--measure);
+  }
+  .tick { font-family: var(--mono); font-size: 11px; }
+  .serieslabel { font-family: var(--display); font-size: 13px; font-weight: 600; }
+
+  /* ---------- tables ---------- */
+
+  .tablewrap { overflow-x: auto; margin: 22px 0; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 14px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.was { color: var(--ink-soft); }
+  .rowlabel { font-weight: 600; }
+
+  /* ---------- comparison ---------- */
+
+  .versus td:nth-child(2) { color: var(--ink-soft); }
+  .versus td:nth-child(3) { border-left: 2px solid var(--accent-line); }
+
+  /* ---------- callouts ---------- */
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 20px;
+    margin: 24px 0;
+    max-width: var(--measure);
+  }
+  .note.caution { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note p { margin: 0 0 10px; }
+  .note p:last-child { margin: 0; }
+  .note .h {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- inventory ---------- */
+
+  .inventory {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 22px 0;
+  }
+  .inv { background: var(--surface); padding: 14px 16px; }
+  .inv .v {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 21px;
+    font-variant-numeric: tabular-nums;
+    display: block;
+    letter-spacing: -.02em;
+  }
+  .inv .k {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+
+  /* ---------- pipeline ---------- */
+
+  .pipeline { margin: 24px 0; display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .stage { background: var(--surface); padding: 16px 20px; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 20px; align-items: baseline; }
+  .stage .name { font-family: var(--display); font-weight: 600; font-size: 15px; }
+  .stage .det { font-size: 14px; color: var(--ink-soft); }
+  .stage .badge {
+    grid-column: 1;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .stage.is-llm .badge { color: var(--warn); }
+
+  /* ---------- status pills ---------- */
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .pill.built { background: var(--ok-soft); color: var(--ok); }
+  .pill.partial { background: var(--warn-soft); color: var(--warn); }
+  .pill.planned { background: var(--surface-sunk); color: var(--ink-faint); }
+
+  footer {
+    padding: 36px 0 0;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+  }
+  footer p { max-width: var(--measure); }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  @media (max-width: 880px) {
+    .metrics, .inventory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 460px) {
+    .metrics { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (max-width: 720px) {
+    .band { grid-template-columns: 1fr; gap: 0; }
+    .code { padding: 0 0 8px; }
+    .stage { grid-template-columns: 1fr; }
+    .sheet { padding: 0 18px 64px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="control">
+    <dl>
+      <div class="field"><dt>Document</dt><dd>Mechnari.ai concept &amp; build report</dd></div>
+      <div class="field"><dt>Revision</dt><dd>C</dd></div>
+      <div class="field"><dt>Status</dt><dd class="status">Build phase — results measured</dd></div>
+      <div class="field"><dt>Date</dt><dd>7 Sep 2026</dd></div>
+      <div class="field"><dt>Repo</dt><dd>Mechnari-ai @ 2187d92</dd></div>
+    </dl>
+  </div>
+
+  <header class="masthead">
+    <h1 class="wordmark">Mechnari<span class="dot">.</span>ai</h1>
+    <p class="standfirst">
+      A DFMEA platform that treats a manufacturer's own warranty history as the primary
+      knowledge source for analysing a new part — and tells engineers
+      <strong>what the review they just signed never checked</strong>.
+    </p>
+    <p class="byline">Niharika Yadav · 10+ years mechanical engineering · Google Patchamomma 2026</p>
+  </header>
+
+  <!-- ============================ 1 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 1</div>
+      <div>
+        <h2>The problem is omission, not typing speed</h2>
+        <p class="lede">
+          Design FMEA is the mandatory instrument for catching how a part fails before it is
+          built — AIAG-VDA in automotive, SAE ARP5580 in aerospace, ISO 14971 in medical
+          devices. In practice it has three chronic faults.
+        </p>
+        <ul>
+          <li><strong>Slow.</strong> A DFMEA workshop for one 10–14 part assembly package runs about a calendar week of cross-functional sessions; industry reports cite a comparable two to four weeks for a new part more broadly.</li>
+          <li><strong>Inconsistent.</strong> Failure modes surface from whichever engineers happen to be in the room and what they happen to remember.</li>
+          <li><strong>Disconnected from institutional memory.</strong> Warranty claims, 8D reports and prior DFMEA records sit in separate systems and rarely feed the next part's analysis.</li>
+        </ul>
+        <div class="note">
+          <span class="h">From the job itself</span>
+          <p>
+            Niharika Yadav, who is building this, has spent 10 years as a mechanical design
+            engineer in agriculture — tractors, specifically. In that job, a DFMEA for one
+            assembly or package (roughly 10–14 parts — a fuel routing package, a hydraulic
+            package, that kind of grouping) takes about <strong>one calendar week</strong>,
+            run as a cross-functional workshop with design, quality and manufacturing in the
+            room together.
+          </p>
+          <p>
+            A full tractor has <strong>1,000+ parts</strong>. At 10–14 parts per package,
+            that is on the order of <strong>70–100 of these week-long workshops</strong>
+            somewhere in a single tractor program. Even with some running in parallel across
+            different package teams, the total effort is on that scale — which is also the
+            actual mechanism behind the second and third faults above: with that many
+            workshops, run by different people at different points in the program, nothing
+            keeps them consistent with each other or with what the last program already
+            learned. It is not a training gap. It is a scale problem no manual process
+            handles well.
+          </p>
+        </div>
+        <p>
+          The third fault is the expensive one. Speed is a commodity claim every competitor
+          makes, it is unverifiable, and the part being sped up — filling in the table — is the
+          part engineers least want automated. <strong>The defensible claim is the inverse:
+          you have already seen this failure, and this DFMEA did not check for it.</strong>
+          That is checkable against an 8D number, it survives an audit, and only a company's
+          own history can produce it.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 2 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 2</div>
+      <div>
+        <h2>Market</h2>
+        <p>
+          FMEA tooling is an established category with an active AI transition. Industry
+          market reports place the FMEA software segment in the billions with a low-double-digit
+          CAGR through the early 2030s, and every major report names AI/ML integration as the
+          differentiator. A published Omnex case study on an automotive Tier-2 reports
+          AI-assisted process FMEA generation cutting creation from three weeks to two hours
+          while holding AIAG-VDA compliance.
+        </p>
+        <p>
+          Established players — Omnex FMEA AI Agent, Relyence FMEA, APIS IQ-FMEA — prove the
+          demand and share one gap: they ship <strong>generic, industry-wide failure
+          libraries</strong>. None treats a specific manufacturer's warranty and field data as a
+          first-class, continuously learning input. Credible AI FMEA tools only became viable
+          after 2023, so the category is early rather than saturated.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 3 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 3</div>
+      <div>
+        <h2>What it does</h2>
+        <p>
+          An engineer describes a part — name, function, material, interface — without needing
+          to know its failure modes. The system finds the closest historically similar parts,
+          produces a grounded DFMEA with an evidence trail, and flags every failure mode known
+          for that kind of part that has not been analysed.
+        </p>
+        <p>
+          Two properties make the output usable rather than merely plausible. Every row carries
+          the 8D or warranty record it came from, so an engineer can check it and an auditor can
+          trace it. And <strong>no number is ever produced by a language model</strong> —
+          severity, occurrence, detection and Action Priority all come from deterministic
+          lookups, which is what keeps the result defensible under IATF 16949.
+        </p>
+
+        <h3>Three views, because these are three different jobs</h3>
+        <p>
+          Drafting a DFMEA, auditing one, and reporting on program risk are not the same task
+          and do not want the same screen. The application splits into three role views over
+          one deterministic core.
+        </p>
+        <div class="pipeline">
+          <div class="stage">
+            <span class="badge">Design engineer</span>
+            <span class="name">Draft from history</span>
+            <span class="det">Describe a part that need not exist yet; get candidate rows with the 8D records behind them, and — on every High row — the single change in Occurrence or Detection that would actually move its Action Priority, computed against the AP table rather than suggested</span>
+          </div>
+          <div class="stage">
+            <span class="badge">Quality engineer</span>
+            <span class="name">Audit, not drafting</span>
+            <span class="det">A review queue of submitted drafts, each linkable by URL; declined High rows are shown as considered-and-declined rather than missing. The same audit suite runs against parts already on file</span>
+          </div>
+          <div class="stage">
+            <span class="badge">Leadership</span>
+            <span class="name">Program rollup</span>
+            <span class="det">Coverage, open safety gaps by subsystem, and the backtest curve — the evidence for the spend, not row detail</span>
+          </div>
+        </div>
+        <p>
+          The split is also what makes the declined-row trail possible: an engineer who leaves
+          a High row out is recorded as having decided, not as having missed it, and the
+          quality reviewer sees that distinction. That is the artefact an auditor asks for.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 4 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 4</div>
+      <div>
+        <h2>How it differs</h2>
+        <div class="tablewrap">
+          <table class="versus">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Omnex · Relyence · APIS</th>
+                <th>Mechnari.ai</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rowlabel">Failure knowledge</td>
+                <td>Generic industry-wide libraries</td>
+                <td>The company's own proven history, scoped by part type and family</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Warranty data</td>
+                <td>Passive reference material</td>
+                <td>Structurally linked; drives Occurrence and ranking directly</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Completeness</td>
+                <td>Validation against static rules</td>
+                <td>Gap detection — a set difference against everything known for that part type</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Audit posture</td>
+                <td>Full-AI generation carries trust risk</td>
+                <td>Hybrid: the LLM writes prose, deterministic engines own every score</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Risk ranking</td>
+                <td>RPN, largely retained</td>
+                <td>AIAG-VDA Action Priority, with RPN kept as a legacy column</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Scope</td>
+                <td>One-size-fits-all product</td>
+                <td>Platform core — DFMEA first, PFMEA and 8D reuse the same layer</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <span class="h">Domain note — why not RPN</span>
+          <p>
+            AIAG-VDA dropped RPN in 2019 because multiplication misranks risk:
+            <code>S=9, O=2, D=2</code> scores 36 while <code>S=4, O=3, D=4</code> scores 48,
+            which says the safety-relevant failure matters less. Action Priority is a band
+            lookup read severity-first — and a lookup table is more auditable than a product,
+            because it cannot be argued with.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 5 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 5</div>
+      <div>
+        <h2>Architecture</h2>
+        <p>
+          Five agents built on Google ADK 2.x. The division of labour is the architecture's
+          whole point: agents read findings and write English, deterministic engines own every
+          number. No agent holds a tool that could write a score — a test enforces it rather
+          than a README asserting it.
+        </p>
+        <div class="pipeline">
+          <div class="stage">
+            <span class="badge">Deterministic</span>
+            <span class="name">Semantic Retrieval</span>
+            <span class="det">TF-IDF cosine over the active BOM; finds the closest historical parts and infers the part type from them</span>
+          </div>
+          <div class="stage">
+            <span class="badge">Deterministic</span>
+            <span class="name">Failure RAG</span>
+            <span class="det">Grounds every mode in a real 8D or warranty record, never a guess</span>
+          </div>
+          <div class="stage">
+            <span class="badge">Deterministic</span>
+            <span class="name">Gap Detection</span>
+            <span class="det">Set difference: modes known for the part's type and family, minus the modes its DFMEA covers</span>
+          </div>
+          <div class="stage">
+            <span class="badge">Deterministic</span>
+            <span class="name">Risk Engine</span>
+            <span class="det">Severity from the effect registry, Occurrence from claims per 1,000 units, Action Priority from the AIAG-VDA band lookup</span>
+          </div>
+          <div class="stage is-llm">
+            <span class="badge">LLM · Gemini</span>
+            <span class="name">Mitigation Writer</span>
+            <span class="det">Turns findings into material, geometry and validation actions — prose only, constrained to the component's real material and medium</span>
+          </div>
+        </div>
+        <p>
+          Behind them sit the knowledge base tables: a two-level part taxonomy, a failure effect
+          registry holding one severity per effect organization-wide, a failure mode catalogue
+          scoped to type or family, the warranty record, and the DFMEA worksheet on file. Every
+          table is <code>organization_id</code>-ready, so the same schema scales from one
+          company to multi-tenant SaaS without redesign.
+        </p>
+        <h3>The service boundary</h3>
+        <p>
+          The engines are Python modules with their own test suites, and they are reached two
+          ways. <code>api.py</code> is a FastAPI wrapper that is deliberately thin: every route
+          calls one of those modules and shapes its return value as JSON, and computes nothing
+          itself. The Next.js frontend talks only to that boundary; Streamlit keeps calling the
+          same modules in-process, unchanged. Neither frontend can produce a number the engines
+          did not produce, because neither frontend contains the arithmetic.
+        </p>
+        <p>
+          One consequence is worth stating, because it was a bug before it was a principle:
+          the Action Priority levers on each candidate row are computed server-side and sent
+          with the row. Having the client fetch them per row put a loading state in front of
+          exactly the High rows that most need the answer. The lever computation is a pure
+          table lookup, so doing all of them inside the proposal costs nothing and removes the
+          failure mode entirely.
+        </p>
+
+        <h3>Why the taxonomy has two levels</h3>
+        <p>
+          A failure mode attaches at the level it actually generalises to. Chafing wear-through
+          is real for any flexible line, so it sits at family level; coking inside a PTFE lumen
+          is only real downstream of an air compressor, so it sits at type level. The first
+          build keyed everything to part type and produced a finding telling an engineer to
+          check a wire conduit for park-brake binding. Inheritance has to be narrow enough to
+          stay true, or the tool loses its reader on one screen.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 6 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 6</div>
+      <div>
+        <h2>Build status — what is measured</h2>
+        <p class="lede">
+          A working v3 prototype runs the full pipeline end to end on a 50-part heavy tractor
+          BOM. Every number below is reproducible from the repository; the harnesses that
+          produce them are committed alongside the code.
+        </p>
+
+        <h3>The backtest</h3>
+        <p>
+          The warranty history is cut at a date. The system is given only what was known before
+          it, and asked what it would have flagged on the failures that came after. Nothing
+          after the cutoff is visible to it.
+        </p>
+
+        <div class="metrics">
+          <div class="metric is-base">
+            <span class="k">DFMEA on file caught</span>
+            <span class="v">72%</span>
+            <span class="n">The manual baseline, on failures it could have anticipated</span>
+          </div>
+          <div class="metric is-lift">
+            <span class="k">Mechnari would flag</span>
+            <span class="v">98%</span>
+            <span class="n">+27 points, holding across five cutoffs</span>
+          </div>
+          <div class="metric is-crit">
+            <span class="k">Failures newly caught</span>
+            <span class="v">16</span>
+            <span class="n">All 16 learned on a <em>different</em> part; 3 at severity 9+</span>
+          </div>
+          <div class="metric">
+            <span class="k">Warranty claims behind them</span>
+            <span class="v">228</span>
+            <span class="n">Claim-weighted: 72% baseline against 99%</span>
+          </div>
+        </div>
+
+        <figure>
+          <div class="plot">
+            <svg viewBox="0 0 720 300" role="img" aria-label="Line chart comparing recall of the DFMEA on file against Mechnari across five knowledge cutoffs. The DFMEA baseline stays between 72 and 79 percent while Mechnari stays between 97 and 98 percent.">
+              <g>
+                <line x1="80" y1="240" x2="690" y2="240" stroke="var(--rule-strong)" stroke-width="1"></line>
+                <line x1="80" y1="190" x2="690" y2="190" stroke="var(--rule)" stroke-width="1"></line>
+                <line x1="80" y1="140" x2="690" y2="140" stroke="var(--rule)" stroke-width="1"></line>
+                <line x1="80" y1="90" x2="690" y2="90" stroke="var(--rule)" stroke-width="1"></line>
+                <line x1="80" y1="40" x2="690" y2="40" stroke="var(--rule)" stroke-width="1"></line>
+              </g>
+              <g class="tick" fill="var(--ink-faint)" text-anchor="end">
+                <text x="68" y="244">0%</text>
+                <text x="68" y="194">25%</text>
+                <text x="68" y="144">50%</text>
+                <text x="68" y="94">75%</text>
+                <text x="68" y="44">100%</text>
+              </g>
+              <polygon points="80,93 233,97 385,97 538,83 690,96 690,45 538,44 385,43 233,46 80,46"
+                       fill="var(--accent-soft)" stroke="none"></polygon>
+              <polyline points="80,93 233,97 385,97 538,83 690,96"
+                        fill="none" stroke="var(--ink-soft)" stroke-width="2"
+                        stroke-dasharray="5 4" stroke-linejoin="round"></polyline>
+              <polyline points="80,46 233,46 385,43 538,44 690,45"
+                        fill="none" stroke="var(--accent)" stroke-width="2.5"
+                        stroke-linejoin="round"></polyline>
+              <g fill="var(--ink-soft)">
+                <circle cx="80" cy="93" r="3.5"></circle>
+                <circle cx="233" cy="97" r="3.5"></circle>
+                <circle cx="385" cy="97" r="3.5"></circle>
+                <circle cx="538" cy="83" r="3.5"></circle>
+                <circle cx="690" cy="96" r="3.5"></circle>
+              </g>
+              <g fill="var(--accent)">
+                <circle cx="80" cy="46" r="4"></circle>
+                <circle cx="233" cy="46" r="4"></circle>
+                <circle cx="385" cy="43" r="4"></circle>
+                <circle cx="538" cy="44" r="4"></circle>
+                <circle cx="690" cy="45" r="4"></circle>
+              </g>
+              <g>
+                <line x1="96" y1="164" x2="126" y2="164" stroke="var(--accent)" stroke-width="2.5"></line>
+                <circle cx="111" cy="164" r="4" fill="var(--accent)"></circle>
+                <text class="serieslabel" x="134" y="168" fill="var(--accent)">Mechnari would have flagged it</text>
+                <line x1="96" y1="188" x2="126" y2="188" stroke="var(--ink-soft)" stroke-width="2" stroke-dasharray="5 4"></line>
+                <circle cx="111" cy="188" r="3.5" fill="var(--ink-soft)"></circle>
+                <text class="serieslabel" x="134" y="192" fill="var(--ink-soft)">DFMEA on file caught it</text>
+              </g>
+              <g class="tick" fill="var(--ink-faint)" text-anchor="middle">
+                <text x="80" y="266">2022-07</text>
+                <text x="233" y="266">2023-01</text>
+                <text x="385" y="266">2023-07</text>
+                <text x="538" y="266">2024-01</text>
+                <text x="690" y="266">2024-07</text>
+              </g>
+              <text class="tick" x="80" y="288" fill="var(--ink-faint)" text-anchor="start">Knowledge cutoff</text>
+            </svg>
+          </div>
+          <figcaption>
+            Recall against failures reported after each cutoff. The shaded band is the
+            difference — the failures a manual review missed that the system surfaces.
+          </figcaption>
+        </figure>
+
+        <div class="note">
+          <span class="h">Why the numbers are not higher, and why that matters</span>
+          <p>
+            Modes with no pre-cutoff record anywhere are counted as <strong>unknowable</strong>
+            and excluded from both sides rather than scored as misses — 25 of 85 incidents at
+            the reference cutoff. Nobody could have flagged them, and including them would
+            quietly inflate the headline.
+          </p>
+          <p>
+            Mechnari does not score 100% either. Some failures cross the taxonomy — the same
+            physics on a different kind of part — and those it cannot anticipate. A backtest
+            that always scores perfectly is measuring its own construction, not the product.
+          </p>
+        </div>
+
+        <h3>Cold start — a part that does not exist yet</h3>
+        <p>
+          Each part is hidden from the corpus entirely — no DFMEA, no history of its own — and
+          retrieval works from its written description alone. It surfaces
+          <strong>73% of the failure modes that really failed on it</strong> (82 of 112),
+          in a shortlist averaging 19 candidates out of 71 catalogued modes.
+        </p>
+        <p>
+          Worked example: a never-before-seen <em>EPDM Fuel Return Line</em>, described in
+          words only, retrieves three close fuel-hose analogues and proposes
+          <span class="mono">Fuel leakage at crimped ferrule joint</span> at severity 9 —
+          a mode proven on a hose retired in 2022 and cited to
+          <span class="mono">8D-2023-0018</span>. No part currently in the BOM would have
+          surfaced it.
+        </p>
+
+        <h3>Retrieval quality, reported in full</h3>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>Leave-one-out metric</th><th>Result</th><th>Reading</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rowlabel">Mode recall</td>
+                <td class="num">76%</td>
+                <td>The product metric — the share of truly applicable modes the proposal surfaces</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">True type among neighbours</td>
+                <td class="num">72%</td>
+                <td>The correct part type appears in the shortlist the engineer chooses from</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Leading family correct</td>
+                <td class="num">66%</td>
+                <td>Family-scoped modes are the general lessons, so this carries weight</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Leading type exactly right</td>
+                <td class="num">46%</td>
+                <td>Weak — and the reason the system proposes rather than decides</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Top-1 type prediction plateaus near 50% on a 50-part corpus spread over 17 types, and
+          no tuning fixes it — after holding a part out, some types have a single sibling left.
+          So the agent does not assert a type. It proposes the modes for every kind of part
+          among the neighbours, states its confidence, and asks an engineer to confirm, with an
+          override that narrows the proposal once they do. That choice is worth 19 points of
+          mode recall over winner-take-all.
+        </p>
+
+        <h3>What the engines find in the current knowledge base</h3>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>Engine</th><th>Finding</th><th>Detail</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rowlabel">Gap detection</td>
+                <td class="num">127 gaps</td>
+                <td>Across all 50 parts, 15 at severity 9+, every one evidence-backed. Mean DFMEA coverage 57%.</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Occurrence from warranty</td>
+                <td class="num">40 understated</td>
+                <td>Rows where claims measured on the part itself exceed the DFMEA's own estimate</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Action Priority</td>
+                <td class="num">35 → 64 High</td>
+                <td>70 rows change priority once evidence replaces workshop opinion</td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Severity consistency</td>
+                <td class="num">6 rows</td>
+                <td>Same failure effect scored below the organization standard</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Dataset</h3>
+        <p>
+          Synthetic but domain-correlated: a bracket only ever draws bracket-type failure modes,
+          never a hose's. Materials, drawing references and failure physics are drawn from real
+          agricultural tractor routing practice.
+        </p>
+        <div class="inventory">
+          <div class="inv"><span class="v">50</span><span class="k">Parts across 5 subsystems</span></div>
+          <div class="inv"><span class="v">17</span><span class="k">Part types in 8 families</span></div>
+          <div class="inv"><span class="v">71</span><span class="k">Catalogued failure modes</span></div>
+          <div class="inv"><span class="v">16</span><span class="k">Failure effects, one severity each</span></div>
+          <div class="inv"><span class="v">227</span><span class="k">Warranty records</span></div>
+          <div class="inv"><span class="v">3,808</span><span class="k">Field claims</span></div>
+          <div class="inv"><span class="v">172</span><span class="k">DFMEA rows on file</span></div>
+          <div class="inv"><span class="v">103</span><span class="k">Tests across 7 suites, all passing</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 7 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 7</div>
+      <div>
+        <h2>Known limitations</h2>
+        <p>
+          Stated here rather than discovered in review. Two are open items; two are properties
+          of the current stage.
+        </p>
+        <div class="note caution">
+          <span class="h">Action Priority table — partially verified</span>
+          <p>
+            AIAG-VDA publishes three separate AP tables — DFMEA, PFMEA and FMEA-MSR — because
+            Occurrence and Detection mean different things in each. The band structure here was
+            checked against a primary source: a slide from Jochen Pfeufer, the VDA project lead
+            who co-authored the AIAG-VDA alignment, presenting the actual DFMEA AP table at the
+            SMMT AQMS conference (Nov 2018). That check caught a real structural error — Severity
+            does not split into 5 bands, it splits into 4 (9–10 / 5–8 / 2–4 / 1) — and fixed it,
+            along with 7 specific H/M/L cells now taken directly from that source.
+          </p>
+          <p>
+            The source itself is an "Extract" of a pre-publication draft, explicitly marked
+            non-binding, so the remaining cells are still a best-effort completion pending the
+            final 2019 handbook. Every cell is individually tagged verified, derived, or
+            unconfirmed in <code>risk_engine.py</code>. The system still labels AP as provisional
+            and keeps RPN alongside until every cell is checked.
+          </p>
+        </div>
+        <ul>
+          <li><strong>The data is synthetic.</strong> Domain-correlated and internally consistent, but the backtest measures the system against generated warranty history. The harness is built to run unchanged against a pilot company's anonymised data — that substitution is the next real validation, not a rewrite.</li>
+          <li><strong>TF-IDF is a floor, not a ceiling.</strong> At 50 parts it is the honest choice. Moving to Vertex AI embeddings replaces two functions and nothing downstream.</li>
+          <li><strong>Effects are inherited with their origin.</strong> A mode carried to a new part keeps the effect it had on the part that taught it, so a coolant drain valve can inherit an AC valve's cab-climate effect. Re-evaluating effect per target part is the known fix.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 8 ============================ -->
+  <section>
+    <div class="band">
+      <div class="code">§ 8</div>
+      <div>
+        <h2>Stack and roadmap</h2>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>Layer</th><th>Today</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rowlabel">Agents</td>
+                <td>Google ADK 2.x — <code>root_agent</code> coordinator, three specialists via <code>sub_agents</code>, graph <code>Workflow</code> for the fixed review pipeline</td>
+                <td><span class="pill built">Built</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Model</td>
+                <td>Gemini via <code>google-genai</code>, prose only</td>
+                <td><span class="pill built">Built</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Retrieval</td>
+                <td>scikit-learn TF-IDF, head-noun weighted</td>
+                <td><span class="pill built">Built</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Risk engine</td>
+                <td>Deterministic S/O/D, AIAG-VDA Action Priority</td>
+                <td><span class="pill partial">AP table pending verification</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Data layer</td>
+                <td>Normalised CSV tables, multi-tenant-shaped schema</td>
+                <td><span class="pill partial">Postgres migration next</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">API</td>
+                <td>FastAPI over the same modules — <code>api.py</code>, no arithmetic of its own</td>
+                <td><span class="pill built">Built</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Frontend</td>
+                <td>Next.js App Router, three role views; Streamlit retained as a fallback on the same engines</td>
+                <td><span class="pill built">Built</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">Vector search</td>
+                <td>—</td>
+                <td><span class="pill planned">Vertex AI Vector Search</span></td>
+              </tr>
+              <tr>
+                <td class="rowlabel">PFMEA module</td>
+                <td>—</td>
+                <td><span class="pill planned">Reuses the same core</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Next, in order of value</h3>
+        <ul>
+          <li>Verify the Action Priority cells against the AIAG-VDA handbook and lift the provisional label.</li>
+          <li>Export to the AIAG-VDA form sheet, so output lands in the format engineers already use rather than requiring a new tool to be adopted.</li>
+          <li>Replace synthetic data with a pilot company's anonymised warranty set and re-run the backtest unchanged.</li>
+          <li>Migrate the CSV layer to live Postgres with real multi-tenant auth.</li>
+          <li>Close the loop: when a new claim arrives, flag which shipped DFMEAs predicted low risk for that mode.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Mechnari.ai · concept and build report, revision C · 7 September 2026 · Niharika Yadav.
+      All figures reproduce from the repository at commit 2187d92 via the committed harnesses:
+      backtest.py, retrieval.py, gap_detection.py, risk_engine.py.
+    </p>
+  </footer>
+
+</div>
+
