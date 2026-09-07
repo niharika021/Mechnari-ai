@@ -89,6 +89,55 @@ def test_verified_ap_cells_match_the_primary_source():
         assert re.action_priority(s, o, d) == expected, (s, o, d, expected)
 
 
+def test_lever_finder_never_offers_severity():
+    """Severity is fixed by the effect registry - not a mitigation lever."""
+    result = re.find_ap_levers(9, 5, 5)
+    factors = {lever["factor"] for lever in result["levers"]}
+    assert "severity" not in factors
+    assert factors <= {"occurrence", "detection"}
+
+
+def test_lever_finder_offers_nothing_when_already_low():
+    result = re.find_ap_levers(3, 1, 1)
+    assert result["current_ap"] == "L"
+    assert result["levers"] == []
+
+
+def test_lever_finder_finds_the_smallest_step_first():
+    """The closest change to try, not the most extreme one."""
+    result = re.find_ap_levers(9, 4, 4)
+    assert result["current_ap"] == "H"
+    assert result["levers"], "expected at least one lever for this triple"
+    steps = [lever["step"] for lever in result["levers"]]
+    assert steps == sorted(steps)
+    for lever in result["levers"]:
+        assert re.action_priority(**{
+            "severity": 9, "occurrence": 4, "detection": 4,
+            lever["factor"]: lever["to"],
+        }) == lever["resulting_ap"]
+        assert lever["resulting_ap"] != result["current_ap"]
+
+
+def test_lever_finder_reports_no_lever_when_the_whole_row_is_fixed():
+    """
+    S9-10,O6-10 is High for every Detection value (VERIFIED against the
+    source). No detection-only lever should be reported for that cell.
+    """
+    result = re.find_ap_levers(10, 8, 10)
+    factors = {lever["factor"] for lever in result["levers"]}
+    assert "detection" not in factors
+
+
+def test_lever_finder_agrees_with_action_priority_at_every_step():
+    """Every 'from' matches the input and every 'resulting_ap' is real."""
+    for s, o, d in [(9, 6, 8), (7, 5, 5), (4, 4, 5), (3, 6, 3)]:
+        result = re.find_ap_levers(s, o, d)
+        for lever in result["levers"]:
+            source_value = {"occurrence": o, "detection": d}[lever["factor"]]
+            assert lever["from"] == source_value
+            assert 1 <= lever["to"] < lever["from"]
+
+
 def test_severity_one_is_always_low():
     for o, d in itertools.product(range(1, 11), repeat=2):
         assert re.action_priority(1, o, d) == "L"

@@ -45,7 +45,7 @@ model. Three jobs:
    existing reviewers keep their familiar number.
 """
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -203,6 +203,49 @@ def action_priority(severity: int, occurrence: int, detection: int) -> str:
     detection_index = [label for _, label in DETECTION_BANDS].index(
         _band(detection, DETECTION_BANDS))
     return AP_TABLE[key][detection_index]
+
+
+def find_ap_levers(severity: int, occurrence: int, detection: int) -> Dict[str, Any]:
+    """
+    What single-factor change would lower this row's Action Priority.
+
+    Answers "what do I need to change" for real, by re-running action_priority
+    with one factor swept down at a time - no invented data, just the actual
+    table. Severity is never offered as a lever: it is a property of the
+    failure effect, fixed by the effect registry, not something a mitigation
+    can move. Only Occurrence (a prevention control) and Detection (a
+    validation control) are levers an engineer can actually pull.
+
+    Because AP is monotonic in each factor (enforced by
+    test_action_priority_never_decreases_as_risk_rises), scanning downward
+    from the current value and stopping at the first change finds the
+    SMALLEST step that would move the priority - not the most extreme one.
+
+    Returns {"current_ap": "H"/"M"/"L", "levers": [...]}, each lever a dict
+    with factor, from, to, resulting_ap - sorted by size of the step, so the
+    cheapest change to try comes first. An empty list means no single-factor
+    change gets there; both factors would have to move together.
+    """
+    current = action_priority(severity, occurrence, detection)
+    levers: List[Dict[str, Any]] = []
+
+    for factor, current_value in (("detection", detection), ("occurrence", occurrence)):
+        for candidate in range(current_value - 1, 0, -1):
+            trial = dict(severity=severity, occurrence=occurrence, detection=detection)
+            trial[factor] = candidate
+            resulting = action_priority(**trial)
+            if resulting != current:
+                levers.append({
+                    "factor": factor,
+                    "from": current_value,
+                    "to": candidate,
+                    "step": current_value - candidate,
+                    "resulting_ap": resulting,
+                })
+                break
+
+    levers.sort(key=lambda lever: lever["step"])
+    return {"current_ap": current, "levers": levers}
 
 
 def rpn(severity: int, occurrence: int, detection: int) -> int:

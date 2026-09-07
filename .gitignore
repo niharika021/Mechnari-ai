@@ -28,6 +28,9 @@ wheels/
 # Streamlit secrets & cache
 .streamlit/secrets.toml
 
+# Local demo/runtime state (the draft review queue) - not source data
+.mechnari_runtime/
+
 # Virtual environments
 venv/
 env/
