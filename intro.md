@@ -26,6 +26,27 @@ of guessing, and it checks whether the DFMEA's math is even using the
 right formula (the official standard changed the formula in 2019 and a
 lot of tools never caught up).
 
+## The scale, from the job itself
+
+This isn't a hypothetical. Niharika Yadav, who's building this, has spent
+10 years as a mechanical design engineer in agriculture — tractors,
+specifically. In that job, a DFMEA for one assembly or package (roughly
+10–14 parts — a fuel routing package, a hydraulic package, that kind of
+grouping) takes about **1 calendar week**, done as a cross-functional
+workshop: design, quality, and manufacturing in the room together going
+through failure modes.
+
+A full tractor has **1,000+ parts**. At 10–14 parts per package, that's
+roughly **70–100 of these week-long workshops** somewhere in a tractor
+program. Even accounting for some of that running in parallel across
+different package teams, the total effort is on that order — which is
+also why coverage gets uneven: with that many workshops running, at
+different times, with different people in the room, nothing keeps them
+consistent with each other or with what the last program already learned.
+That's the actual mechanism behind "inconsistent" and "disconnected from
+institutional memory" above — it isn't a training problem, it's a scale
+problem no manual process handles well.
+
 ## How it works, simply
 
 1. **You describe a part** — name, material, what it does. Doesn't need
