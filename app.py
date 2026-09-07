@@ -227,9 +227,9 @@ st.markdown("""
     [data-testid="stBaseButton-secondary"]:hover {
         border-color: var(--accent) !important; color: var(--accent-strong) !important;
     }
-    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    [data-testid="stTabs"] [role="tablist"] {
         gap: 4px; background: var(--surface); padding: 4px;
-        border-radius: 10px; border: 1px solid var(--border);
+        border-radius: 10px; border: 1px solid var(--border); width: fit-content;
     }
     [data-testid="stTab"] {
         font-family: var(--body); font-weight: 600; font-size: 14px;
@@ -249,10 +249,16 @@ st.markdown("""
         font-family: var(--mono) !important; font-size: 10.5px !important;
         letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint) !important;
     }
+    [data-testid="stMetricLabel"] p {
+        white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+        line-height: 1.35 !important;
+    }
     [data-testid="stMetricValue"] {
         font-family: var(--display) !important; font-weight: 700 !important;
-        color: var(--ink) !important;
+        color: var(--ink) !important; font-size: clamp(1.05rem, 4vw, 1.75rem) !important;
     }
+    [data-testid="stMetricValue"] p { overflow: visible !important; text-overflow: clip !important; }
+    [data-testid="stMetric"] { min-width: 0; }
     [data-testid="stMetricDelta"] { font-family: var(--mono) !important; font-size: 12.5px !important; }
     [data-testid="stExpander"] {
         background: var(--surface); border: 1px solid var(--border) !important;
@@ -276,7 +282,13 @@ st.markdown("""
     [data-testid="stAlertContentSuccess"] { color: var(--ok) !important; }
     [data-testid="stAlertContentWarning"] { color: var(--warn) !important; }
     [data-testid="stAlertContentError"] { color: var(--crit) !important; }
+    [data-testid="stAlertContentInfo"] { color: var(--accent-strong) !important; }
     [data-testid="stAlert"] { border-radius: 9px !important; }
+    [data-testid="stAlertContainer"] { border-radius: 9px !important; border: 1px solid transparent; }
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentSuccess"]) { background: var(--ok-soft) !important; border-color: var(--ok); }
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentWarning"]) { background: var(--warn-soft) !important; border-color: var(--warn); }
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentError"]) { background: var(--crit-soft) !important; border-color: var(--crit); }
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) { background: var(--accent-soft) !important; border-color: var(--accent-line); }
     [data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
     </style>
 """, unsafe_allow_html=True)
