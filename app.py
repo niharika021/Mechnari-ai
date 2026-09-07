@@ -132,17 +132,152 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Streamlit's markdown renderer still runs its markdown pass before trusting
+# this as HTML, and asterisk pairs inside /* ... */ CSS comments get read as
+# emphasis markers and mangled - it truncated the whole style block the first
+# time through. So the CSS injected below carries no C-style comments; the
+# explanation lives here instead. One committed dark theme (see
+# .streamlit/config.toml for the native-widget half of this) - a warm-black
+# ground with a slight green bias, not a flat near-black, so cards and the
+# sidebar read as distinct surfaces rather than one flat panel. Semantic
+# colors (critical / warning / ok) are kept separate from the accent, since
+# Action Priority already owns red/amber/green everywhere on this app - the
+# accent (petrol teal) is reserved for actions and identity.
 st.markdown("""
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
     <style>
-    .main { background-color: #0D1117; color: #E6EDF3; }
-    .value-banner {
-        background: linear-gradient(90deg, #1F2937 0%, #111827 100%);
-        border: 1px solid #374151; border-left: 6px solid #3B82F6;
-        padding: 18px 20px; border-radius: 8px; margin-bottom: 20px;
+    :root {
+        --bg: #0B1210;
+        --bg-elevated: #101A17;
+        --surface: #16211D;
+        --surface-hover: #1C2925;
+        --border: #263631;
+        --border-strong: #37493F;
+        --ink: #E7EEEC;
+        --ink-soft: #9FB0AA;
+        --ink-faint: #6D7E78;
+        --accent: #3FA895;
+        --accent-strong: #59C4B0;
+        --accent-ink: #06120F;
+        --accent-soft: #16302B;
+        --accent-line: #2E5C51;
+        --crit: #E4806A;
+        --crit-soft: #2E1811;
+        --warn: #E0AC55;
+        --warn-soft: #2E230A;
+        --ok: #7BC98D;
+        --ok-soft: #16261B;
+        --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+        --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
     }
-    .value-banner h3 { color: #60A5FA; margin-top: 0; font-weight: 700; }
-    .stButton>button { border-radius: 6px; font-weight: 600; }
-    .stTabs [data-baseweb="tab"] { font-weight: 600; }
+    html, body, [class*="css"] { font-family: var(--body); }
+    [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: var(--bg); }
+    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stMainBlockContainer"] { padding-top: 1.6rem; max-width: 1240px; }
+    h1, h2, h3, h4, [data-testid="stHeading"] * {
+        font-family: var(--display) !important;
+        letter-spacing: -0.01em;
+    }
+    [data-testid="stMarkdownContainer"] p { color: var(--ink); }
+    [data-testid="stCaptionContainer"] { color: var(--ink-faint) !important; }
+    code { font-family: var(--mono) !important; }
+    hr { border-color: var(--border) !important; }
+    [data-testid="stSidebar"] {
+        background: var(--bg-elevated);
+        border-right: 1px solid var(--border);
+    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1 {
+        font-size: 1.25rem !important; margin-bottom: 0 !important;
+    }
+    [data-testid="stSidebarUserContent"] hr { margin: 0.9rem 0; }
+    .mechnari-masthead {
+        background: linear-gradient(135deg, var(--surface) 0%, var(--bg-elevated) 100%);
+        border: 1px solid var(--border); border-left: 4px solid var(--accent);
+        border-radius: 10px; padding: 22px 26px; margin-bottom: 22px;
+    }
+    .mechnari-masthead .eyebrow {
+        font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+        text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    }
+    .mechnari-masthead h1 {
+        font-size: 1.65rem !important; margin: 0 0 8px !important; color: var(--ink) !important;
+    }
+    .mechnari-masthead p {
+        color: var(--ink-soft) !important; margin: 0; max-width: 74ch; line-height: 1.55;
+    }
+    .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+        border-radius: 8px !important; font-family: var(--body) !important;
+        font-weight: 600 !important; letter-spacing: .01em;
+        transition: filter .12s ease, transform .04s ease;
+    }
+    .stButton > button:active, .stFormSubmitButton > button:active { transform: scale(.99); }
+    [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"] {
+        background: var(--accent) !important; color: var(--accent-ink) !important; border: none !important;
+    }
+    [data-testid="stBaseButton-primary"]:hover, [data-testid="stBaseButton-primaryFormSubmit"]:hover {
+        background: var(--accent-strong) !important;
+    }
+    [data-testid="stBaseButton-secondary"] {
+        background: transparent !important; color: var(--ink) !important;
+        border: 1px solid var(--border-strong) !important;
+    }
+    [data-testid="stBaseButton-secondary"]:hover {
+        border-color: var(--accent) !important; color: var(--accent-strong) !important;
+    }
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        gap: 4px; background: var(--surface); padding: 4px;
+        border-radius: 10px; border: 1px solid var(--border);
+    }
+    [data-testid="stTab"] {
+        font-family: var(--body); font-weight: 600; font-size: 14px;
+        border-radius: 7px !important; color: var(--ink-soft) !important;
+        padding: 10px 18px !important;
+    }
+    [data-testid="stTab"][aria-selected="true"] {
+        background: var(--accent-soft) !important; color: var(--accent-strong) !important;
+    }
+    [data-baseweb="tab-highlight"] { background: transparent !important; }
+    [data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
+    [data-testid="stMetric"] {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 14px 16px 12px;
+    }
+    [data-testid="stMetricLabel"] {
+        font-family: var(--mono) !important; font-size: 10.5px !important;
+        letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint) !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-family: var(--display) !important; font-weight: 700 !important;
+        color: var(--ink) !important;
+    }
+    [data-testid="stMetricDelta"] { font-family: var(--mono) !important; font-size: 12.5px !important; }
+    [data-testid="stExpander"] {
+        background: var(--surface); border: 1px solid var(--border) !important;
+        border-radius: 10px !important; overflow: hidden;
+    }
+    [data-testid="stExpander"] summary { font-weight: 600 !important; }
+    [data-testid="stExpander"] summary:hover { background: var(--surface-hover) !important; }
+    [data-testid="stExpanderDetails"] { border-top: 1px solid var(--border); }
+    [data-testid="stForm"] {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 18px 20px 8px;
+    }
+    [data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"],
+    [data-baseweb="select"] > div {
+        background: var(--bg-elevated) !important; border-color: var(--border-strong) !important;
+        border-radius: 7px !important;
+    }
+    [data-testid="stWidgetLabel"] p {
+        font-size: 12.5px !important; font-weight: 600 !important; color: var(--ink-soft) !important;
+    }
+    [data-testid="stAlertContentSuccess"] { color: var(--ok) !important; }
+    [data-testid="stAlertContentWarning"] { color: var(--warn) !important; }
+    [data-testid="stAlertContentError"] { color: var(--crit) !important; }
+    [data-testid="stAlert"] { border-radius: 9px !important; }
+    [data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -192,8 +327,9 @@ st.sidebar.caption(
 # =====================================================================
 
 st.markdown("""
-<div class="value-banner">
-    <h3>⚙️ Mechnari.ai — DFMEA Grounded in Your Own Warranty History</h3>
+<div class="mechnari-masthead">
+    <div class="eyebrow">Enterprise DFMEA Risk Copilot</div>
+    <h1>Mechnari.ai — Grounded in Your Own Warranty History</h1>
     <p>Three views of the same deterministic core - Design Engineer, Quality Engineer, and
     Company &amp; Leadership - because drafting, auditing and reporting on risk are different jobs.</p>
 </div>
