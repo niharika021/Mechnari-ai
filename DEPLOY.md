@@ -23,13 +23,13 @@ From the repository root — `gcloud run deploy --source .` builds the
 container in the cloud via Cloud Build, so no local Docker is required:
 
 ```bash
-gcloud config set project YOUR_PROJECT_ID
+gcloud config set project mechnari-ai-82319
 
 gcloud run deploy mechnari-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_API_KEY=YOUR_KEY,GOOGLE_API_KEY=YOUR_KEY \
+  --set-env-vars GEMINI_API_KEY=<your fresh key from aistudio.google.com/apikey>,GOOGLE_API_KEY=<your fresh key from aistudio.google.com/apikey> \
   --memory 1Gi
 ```
 
@@ -45,7 +45,7 @@ For a real deployment (not a demo), prefer Secret Manager over
 `--set-env-vars` for the key:
 
 ```bash
-echo -n "YOUR_KEY" | gcloud secrets create gemini-api-key --data-file=-
+echo -n "<your fresh key from aistudio.google.com/apikey>" | gcloud secrets create gemini-api-key --data-file=-
 gcloud run deploy mechnari-api --source . --region us-central1 \
   --allow-unauthenticated \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest,GOOGLE_API_KEY=gemini-api-key:latest \
@@ -76,7 +76,7 @@ the deployed frontend's real origin. Redeploy the API with that origin added:
 ```bash
 gcloud run deploy mechnari-api --source . --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_API_KEY=YOUR_KEY,GOOGLE_API_KEY=YOUR_KEY,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
+  --set-env-vars GEMINI_API_KEY=<your fresh key from aistudio.google.com/apikey>,GOOGLE_API_KEY=<your fresh key from aistudio.google.com/apikey>,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
   --memory 1Gi
 ```
 
