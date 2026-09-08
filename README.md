@@ -175,20 +175,42 @@ artefact an auditor asks for.
 
 - **Python 3.10+** (3.13 tested)
 - **Node.js 20+** — only for the Next.js frontend
-- **Google AI Studio API key** — only for the copilot's prose; every number works without it
+- **Gemini access via Vertex AI** — only for the copilot's prose; every
+  score, gap, Action Priority and backtest figure works without it
 
 ```bash
 git clone https://github.com/niharika021/Mechnari-ai.git
 cd Mechnari-ai
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-Create a `.env` in the repository root:
+### Model access
 
-```env
-GEMINI_API_KEY=your_google_ai_studio_api_key_here
-GOOGLE_API_KEY=your_google_ai_studio_api_key_here
+The copilot reaches Gemini through **Vertex AI**, authenticated by your
+Google Cloud identity rather than an API key:
+
+```bash
+gcloud auth application-default login
+gcloud services enable aiplatform.googleapis.com --project YOUR_PROJECT_ID
 ```
+
+Then set `GOOGLE_CLOUD_PROJECT` in `.env` to that project.
+
+> **Why not an AI Studio key?** As of September 2026 the keys AI Studio
+> issues — the new `AQ.` "Auth key" format that replaced `AIza` — return
+> `401 ACCESS_TOKEN_TYPE_UNSUPPORTED` against the Generative Language API.
+> That is a known Google-side issue with no published fix; it was
+> reproduced here on the latest SDK with both `x-goog-api-key` and bearer
+> auth. Vertex avoids that path entirely and is the better fit for Cloud
+> Run anyway, since the service account supplies the credential and there
+> is no key to leak or rotate. A legacy `AIza` key still works if you have
+> one — see `.env.example` for that path.
+>
+> Model names do not carry over: Vertex serves versioned publisher models
+> and 404s on AI Studio's floating aliases (`gemini-flash-latest`).
+> Availability is regional — `gemini-3.5-flash-lite` serves from `global`
+> but not from `us-central1`.
 
 ### Run it — Next.js frontend
 

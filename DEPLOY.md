@@ -13,9 +13,59 @@ its URL baked in at build time.
   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
   ```
 
-- `GEMINI_API_KEY` — a valid key from <https://aistudio.google.com/apikey>.
-  Every score, gap and backtest figure works without one; only the copilot's
-  prose explanations need it.
+### Model access: use Vertex AI, not an AI Studio key
+
+The copilot reaches Gemini through **Vertex AI**, authenticated by the
+service account Cloud Run already runs as. There is no API key to set,
+leak or rotate.
+
+This is not only a preference. As of September 2026 the API keys AI Studio
+issues (the new `AQ.` "Auth key" format that replaced `AIza`) return
+`401 ACCESS_TOKEN_TYPE_UNSUPPORTED` against the Generative Language API —
+a known Google-side issue with no published fix, reproduced here on the
+latest SDK with both `x-goog-api-key` and bearer auth. Vertex avoids that
+path entirely.
+
+```bash
+gcloud services enable aiplatform.googleapis.com --project mechnari-ai-82319
+```
+
+Grant the runtime service account model access (the default compute
+service account, unless you deploy with `--service-account`):
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe mechnari-ai-82319 --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding mechnari-ai-82319 \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+```
+
+**Model names and regions do not carry over from AI Studio.** Vertex serves
+versioned publisher models, so AI Studio's floating aliases 404 there
+(`gemini-flash-latest` does not resolve). Availability is also regional:
+`gemini-3.5-flash-lite` serves from `global` but 404s in `us-central1`,
+`us-east5` and `europe-west4`. Check before changing either:
+
+```bash
+py -c "import google.genai as g; [print(m.name) for m in g.Client().models.list()]"
+```
+
+Every score, gap and backtest figure works with no model access at all —
+only the copilot's prose needs it.
+
+#### Behind a TLS-inspecting corporate network
+
+If `gcloud` fails with `CERTIFICATE_VERIFY_FAILED — self-signed
+certificate in certificate chain`, its bundled Python does not trust the
+corporate root CA. Point it at a bundle that does rather than disabling
+verification:
+
+```bash
+gcloud config set core/custom_ca_certs_file /path/to/ca-bundle.pem
+```
+
+On this machine that bundle was generated from the Windows trust store and
+the setting is already persisted in gcloud's config.
 
 ## 1. Deploy the API
 
@@ -29,7 +79,7 @@ gcloud run deploy mechnari-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_API_KEY=<your fresh key from aistudio.google.com/apikey>,GOOGLE_API_KEY=<your fresh key from aistudio.google.com/apikey> \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=mechnari-ai-82319,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite \
   --memory 1Gi
 ```
 
@@ -39,17 +89,6 @@ Confirm it's actually serving before moving on:
 ```bash
 curl https://mechnari-api-xxxxx-uc.a.run.app/api/health
 # {"status":"ok"}
-```
-
-For a real deployment (not a demo), prefer Secret Manager over
-`--set-env-vars` for the key:
-
-```bash
-echo -n "<your fresh key from aistudio.google.com/apikey>" | gcloud secrets create gemini-api-key --data-file=-
-gcloud run deploy mechnari-api --source . --region us-central1 \
-  --allow-unauthenticated \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest,GOOGLE_API_KEY=gemini-api-key:latest \
-  --memory 1Gi
 ```
 
 ## 2. Deploy the frontend
@@ -76,7 +115,7 @@ the deployed frontend's real origin. Redeploy the API with that origin added:
 ```bash
 gcloud run deploy mechnari-api --source . --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_API_KEY=<your fresh key from aistudio.google.com/apikey>,GOOGLE_API_KEY=<your fresh key from aistudio.google.com/apikey>,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=mechnari-ai-82319,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
   --memory 1Gi
 ```
 

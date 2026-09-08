@@ -42,10 +42,32 @@ load_dotenv(os.path.join(_ROOT, ".env"))
 
 APP_NAME = "mechnari_dfmea"
 
-# A floating alias rather than a pinned snapshot: the previous build pinned a
-# model that was later retired, which silently sent every call into the
-# fallback path. Pin a dated model here only when a release needs to freeze.
-MODEL = "gemini-flash-latest"
+# Two ways to reach Gemini, and which one is in use decides the model name.
+#
+#   Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true) authenticates with the
+#   caller's Google Cloud identity - Application Default Credentials
+#   locally, the service account on Cloud Run - so there is no API key to
+#   leak or rotate. This is the default here because AI Studio's current
+#   "AQ." keys are, as of Sept 2026, returning 401
+#   ACCESS_TOKEN_TYPE_UNSUPPORTED against the Generative Language API - a
+#   known Google-side issue with no published fix, reproduced here on the
+#   latest SDK with both x-goog-api-key and bearer auth.
+#
+#   AI Studio (an API key in GOOGLE_API_KEY / GEMINI_API_KEY) still works
+#   for anyone holding a legacy AIza key, so it stays supported.
+#
+# The model names are NOT interchangeable between the two. Vertex serves
+# versioned publisher models and 404s on AI Studio's floating aliases:
+# `gemini-flash-latest` does not resolve there, `gemini-2.5-flash` does.
+USE_VERTEX = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("1", "true", "yes")
+
+# A floating alias on AI Studio rather than a pinned snapshot: an earlier
+# build pinned a model that was later retired, which silently sent every
+# call into the fallback path. Vertex has no such alias, so it pins.
+MODEL = os.getenv(
+    "MECHNARI_MODEL",
+    "gemini-2.5-flash" if USE_VERTEX else "gemini-flash-latest",
+)
 
 _NUMBERS_RULE = (
     "The tools are the only source of numbers. Never calculate, estimate, "
@@ -182,6 +204,12 @@ dfmea_review_workflow = Workflow(
 # --- Programmatic entry point for the Streamlit dashboard ----------------
 
 def _api_key_present() -> bool:
+    """Whether *some* credential path is configured. Under Vertex the
+    credential is the ambient Google Cloud identity (ADC locally, the
+    service account on Cloud Run), so there is no key to look for and
+    requiring one here would wrongly report the copilot as unavailable."""
+    if USE_VERTEX:
+        return True
     return bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
 
 

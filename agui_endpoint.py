@@ -51,8 +51,9 @@ def mount(app) -> None:
 
 
 def api_key_present() -> bool:
-    """Whether a Gemini key is configured at all."""
-    return bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
+    """Whether a credential path is configured at all - an API key, or the
+    ambient Google Cloud identity when running against Vertex."""
+    return mechnari_agent._api_key_present()
 
 
 _key_check_cache: Dict[str, Any] = {"checked_at": 0.0, "result": None}
@@ -73,7 +74,10 @@ def api_key_works() -> Dict[str, Any]:
     Cached, because this is called on page load.
     """
     if not api_key_present():
-        return {"ok": False, "reason": "No GOOGLE_API_KEY or GEMINI_API_KEY is set."}
+        return {"ok": False,
+                "reason": "No credential configured: set GOOGLE_API_KEY, or "
+                          "GOOGLE_GENAI_USE_VERTEXAI=true with Google Cloud "
+                          "credentials available."}
 
     now = time.time()
     cached = _key_check_cache["result"]
@@ -83,10 +87,20 @@ def api_key_works() -> Dict[str, Any]:
     try:
         from google import genai
 
-        client = genai.Client(
-            api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        )
-        next(iter(client.models.list()), None)
+        if mechnari_agent.USE_VERTEX:
+            # Vertex reads project/location and ADC from the environment.
+            # A generate call is the honest check here: models.list does not
+            # exercise the same publisher-model path, and a wrong model name
+            # 404s on Vertex while looking fine on AI Studio.
+            client = genai.Client()
+            client.models.generate_content(
+                model=mechnari_agent.MODEL, contents="ping"
+            )
+        else:
+            client = genai.Client(
+                api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            )
+            next(iter(client.models.list()), None)
         result = {"ok": True, "reason": ""}
     except Exception as exc:  # noqa: BLE001 - reported, not masked
         message = str(exc)
