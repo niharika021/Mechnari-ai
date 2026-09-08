@@ -1,153 +1,312 @@
-# ⚙️ Mechnari.ai - Enterprise AI DFMEA Risk Copilot
+# ⚙️ Mechnari.ai — AI DFMEA Risk Copilot
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Framework](https://img.shields.io/badge/Framework-Streamlit-FF4B4B.svg)](https://streamlit.io/)
-[![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%201.5%20Flash-4285F4.svg)](https://deepmind.google/technologies/gemini/)
-[![Database](https://img.shields.io/badge/Database-Google%20Cloud%20BigQuery-669DF6.svg)](https://cloud.google.com/bigquery)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Agents](https://img.shields.io/badge/Agents-Google%20ADK%202.x-4285F4.svg)](https://google.github.io/adk-docs/)
+[![Frontend](https://img.shields.io/badge/Frontend-Next.js%20%2B%20FastAPI-000000.svg)](https://nextjs.org/)
+[![Standard](https://img.shields.io/badge/Standard-AIAG--VDA%20Action%20Priority-0F6B63.svg)](https://www.aiag.org/)
+[![Tests](https://img.shields.io/badge/tests-103%20passing-2F6B3C.svg)](#-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Mechnari.ai** is an enterprise-grade AI DFMEA (Design Failure Mode and Effects Analysis) Risk Copilot built for complex manufacturing systems (such as 1,000+ part agricultural and heavy machinery tractors). Powered by **Google Gemini 1.5 Flash** (via `google-genai`), **Pandas**, **Streamlit**, and **Google Cloud BigQuery**, Mechnari cuts manual DFMEA processing time from **4,000+ manual engineering hours down to under 4 hours**.
+**Mechnari.ai treats a manufacturer's own warranty history as the primary knowledge
+source for analysing a new part — and tells engineers what the review they just
+signed never checked.**
+
+A Design FMEA is the mandatory instrument for catching how a part fails before it
+is built. In practice it is filled in by a room of engineers relying on memory. If
+nobody present happens to remember that a similar hose cracked in the field three
+years ago, that failure mode simply does not make it onto the list.
+
+This is not a hypothetical scale problem. A DFMEA for one 10–14 part package
+assembly takes about **one calendar week** as a cross-functional workshop; a
+tractor has **1,000+ parts** — on the order of **70–100 such workshops per
+program**, run by different people at different times, with nothing keeping them
+consistent with each other or with what the last program already learned.
+
+> **The claim this project makes is not speed.** Speed is unverifiable, and the
+> part being sped up — filling in the table — is the part engineers least want
+> automated. The defensible claim is the inverse: *you have already seen this
+> failure, and this DFMEA did not check for it.* That is checkable against an 8D
+> number and it survives an audit.
 
 ---
 
-## ⚡ Key Architecture & Features
+## 📊 Measured results
 
-### 1. 🧮 Deterministic Pandas Merge & RPN Calculation Engine
-- **3-Way CSV Data Merge**: Automatically merges three structured local CSV datasets on `part_id`:
-  - `data/bom_package_hierarchy.csv`: Systems, sub-packages, item references, elementary functions, and materials.
-  - `data/material_master.csv`: Physical properties, yield strength, thermal limits, elastomeric ratings, and CNH drawing spec references.
-  - `data/historical_field_issues.csv`: 8D warranty logs, failure modes, root causes, $S$, $O$, $D$, and recommended action directives.
-- **Mathematical RPN Calculation**:
-  $$RPN = \text{Severity (S)} \times \text{Occurrence (O)} \times \text{Detection (D)}$$
-- **Deterministic Risk Tier Matrix**:
-  - 🔴 **Critical Risk** ($RPN \ge 200$ or $S \ge 9$): Requires mandatory executive review.
-  - 🟠 **High Risk** ($120 \le RPN < 200$): Design optimization & mitigation required.
-  - 🟡 **Medium Risk** ($60 \le RPN < 120$): Process/inspection tweak suggested.
-  - 🟢 **Low Risk** ($RPN < 60$): Acceptable operational margin.
+Every figure below is reproduced by a committed harness, not asserted. Run
+`py backtest.py` or `py retrieval.py` to regenerate them.
 
-### 2. 🛡️ Management-by-Exception Executive Dashboard
-- **1-Click Batch Approval**: Lead engineers can batch-approve all non-critical components ($RPN < 200$) in **one click** using the `⚡ Batch Approve Low/Medium Risk Items` button.
-- **Critical Outlier Isolation**: High-risk components ($RPN \ge 200$) are isolated into dedicated review cards featuring material properties, 8D warranty grounding, and AI action directives.
-- **Structured Interactive Matrix**: Displaying Part ID, Package, Item Reference, Function, Material Type, Failure Mode, $S, O, D, RPN$, Risk Tier, Action Items, and Approval Status with CSV export capabilities.
+### The backtest
 
-### 3. 🤖 Interactive Gemini AI Copilot (`google-genai`)
-- **Component Deep-Dive Q&A**: Select any component from the 50-part catalog and query Gemini 1.5 Flash: *"Why did this component receive this risk score, and what are the detailed design mitigation steps?"*
-- **Practical Engineering Directives**: Generates specific material upgrades (e.g. NBR to FKM Fluoroelastomer), geometry redesigns (e.g. 4.5mm fillet radii, 3mm stiffening gussets), and validation test mandates (1,000-hour impulse shock test at 135°C under 20G RMS vibration).
+The warranty history is cut at a date. The system sees only what was known before
+it, and is asked what it would have flagged on the failures that came after.
+
+| Metric | Result |
+| --- | --- |
+| DFMEA on file caught | **72%** of failures it could have anticipated |
+| Mechnari would flag | **98%** — *+27 points*, holding across five cutoffs |
+| Failures newly caught | **16**, all learned on a *different* part; 3 at severity 9+ |
+| Warranty claims behind them | **228** (claim-weighted: 72% → 99%) |
+
+Modes with no pre-cutoff record anywhere are counted **unknowable** and excluded
+from both sides rather than scored as misses — 25 of 85 incidents at the reference
+cutoff. Nobody could have flagged them, and including them would inflate the
+headline. Mechnari does not score 100% either: some failures cross the taxonomy,
+and a backtest that always scores perfectly is measuring its own construction.
+
+### Cold start — a part that does not exist yet
+
+Each part is hidden from the corpus entirely, and retrieval works from its written
+description alone. It surfaces **73% of the failure modes that really failed on
+it** (82 of 112), in a shortlist averaging 19 candidates out of 71 catalogued
+modes.
+
+### Retrieval quality, reported in full
+
+| Leave-one-out metric | Result | Reading |
+| --- | --- | --- |
+| Mode recall | **76%** | The product metric — applicable modes the proposal surfaces |
+| True type among neighbours | 72% | Correct type appears in the shortlist |
+| Leading family correct | 66% | Family-scoped modes are the general lessons |
+| Leading type exactly right | **46%** | Weak — and the reason the system proposes rather than decides |
+
+Top-1 type prediction plateaus near 50% on a 50-part corpus spread over 17 types,
+and no tuning fixes it — after holding a part out, some types have a single sibling
+left. So the agent does not assert a type: it proposes modes for every kind of part
+among the neighbours, states its confidence, and asks an engineer to confirm. That
+choice is worth **19 points of mode recall** over winner-take-all.
+
+### What the engines find in the current knowledge base
+
+| Engine | Finding | Detail |
+| --- | --- | --- |
+| Gap detection | **127 gaps** | Across 50 parts, 15 at severity 9+, every one evidence-backed. Mean DFMEA coverage 57%. |
+| Occurrence from warranty | 40 understated | Claims measured on the part itself exceed the DFMEA's own estimate |
+| Action Priority | 35 → 64 High | 70 rows change priority once evidence replaces workshop opinion |
+| Severity consistency | 6 rows | Same failure effect scored below the organization standard |
 
 ---
 
-## 🏗️ System Architecture
+## ⚡ Architecture
+
+**Agents read findings and write English. Deterministic engines own every number.**
+No agent holds a tool that could write a score — [`test_mechnari_tools.py`](test_mechnari_tools.py)
+enforces that rather than this README asserting it. The division is what keeps the
+output defensible under IATF 16949.
 
 ```mermaid
 graph TD
-    User([Lead Mechanical / Reliability Engineer]) <--> UIView[Streamlit Dashboard - app.py]
-    
-    subgraph Deterministic Data Engine (Pandas)
-        CSV1[(bom_package_hierarchy.csv)] -->|Merge on part_id| MergeEngine[Pandas Inner Merge Engine]
-        CSV2[(material_master.csv)] -->|Merge on part_id| MergeEngine
-        CSV3[(historical_field_issues.csv)] -->|Merge on part_id| MergeEngine
-        
-        MergeEngine -->|Mathematical Calculation| RPNEngine[RPN Engine: S x O x D]
-        RPNEngine -->|Deterministic Tiers| RiskMatrix[Risk Matrix: Critical / High / Med / Low]
+    DE([Design Engineer]) --> WEB[Next.js - three role views]
+    QE([Quality Engineer]) --> WEB
+    CO([Company / Leadership]) --> WEB
+    WEB <--> API[FastAPI - api.py, no arithmetic of its own]
+    ST([Streamlit fallback]) --> ENG
+    API --> ENG
+
+    subgraph ENG[Deterministic engines]
+        RET[retrieval.py - TF-IDF cosine, head-noun weighted]
+        GAP[gap_detection.py - applicable minus analysed]
+        RISK[risk_engine.py - S/O/D and AIAG-VDA Action Priority]
+        BT[backtest.py - temporal holdout harness]
     end
-    
-    subgraph Management-by-Exception & AI Layer (agents.py)
-        RiskMatrix -->|RPN >= 200| OutlierView[Critical Outlier Isolation Cards]
-        RiskMatrix -->|RPN < 200| BatchApproval[1-Click Batch Approval Engine]
-        
-        UIView <-->|Component Q&A Deep-Dive| GeminiSDK[Google GenAI / Gemini 1.5 Flash API]
-    end
-    
-    subgraph Cloud Infrastructure
-        GeminiSDK <-->|LLM Inference| Gemini[Google Gemini 1.5 Flash Model]
-        UIView <-->|SQL DDL Schema| BigQuery[Google Cloud BigQuery]
-    end
+
+    ENG --> DL[data_layer.py - normalised tables]
+    DL --> CSV[(8 CSV tables, organization_id-ready)]
+    ENG --> ADK[mechnari_agent - Google ADK 2.x]
+    ADK -->|prose only, never scores| GEM[Gemini via google-genai]
 ```
 
+### The service boundary
+
+`api.py` is deliberately thin: every route calls a module that already has its own
+test suite and shapes the return value as JSON. It computes nothing. The Next.js
+frontend talks only to that boundary; Streamlit keeps calling the same modules
+in-process, unchanged. **Neither frontend can produce a number the engines did not
+produce, because neither frontend contains the arithmetic.**
+
+### Why not RPN
+
+AIAG-VDA dropped RPN in 2019 because multiplication misranks risk: `S=9, O=2, D=2`
+scores 36 while `S=4, O=3, D=4` scores 48 — which says the safety-relevant failure
+matters less. **Action Priority** is a band lookup read severity-first, and a lookup
+table is more auditable than a product because it cannot be argued with. RPN is
+retained as a legacy column only.
+
+> ⚠️ **The Action Priority table is provisional.** AIAG-VDA publishes three separate
+> AP tables (DFMEA, PFMEA, FMEA-MSR) because Occurrence and Detection mean
+> different things in each. The band structure here was checked against a primary
+> source — a Jochen Pfeufer (VDA project lead) slide presenting the DFMEA table at
+> SMMT AQMS, Nov 2018 — which caught a real structural error: Severity has **4**
+> bands (9–10 / 5–8 / 2–4 / 1), not 5. That source is an extract of a
+> pre-publication draft marked non-binding, so each cell is individually tagged
+> verified, derived or unconfirmed in `risk_engine.py`, and `AP_TABLE_VERIFIED`
+> stays `False` until every cell is checked against the published handbook.
+
+### Why the taxonomy has two levels
+
+A failure mode attaches at the level it actually generalises to. Chafing
+wear-through is real for any flexible line, so it sits at **family** level; coking
+inside a PTFE lumen is only real downstream of an air compressor, so it sits at
+**type** level. The first build keyed everything to part type and produced a
+finding telling an engineer to check a wire conduit for park-brake binding.
+Inheritance has to be narrow enough to stay true.
+
 ---
 
-## 📦 Subsystem Packages (50-Part Master Dataset)
+## 🧑‍🔧 Three role views
 
-The repository includes 50 pre-packaged heavy agricultural tractor components across 5 major subsystem packages:
+Drafting a DFMEA, auditing one, and reporting on program risk are different jobs
+and do not want the same screen.
 
-1. ⛽ **Fuel Routings** (Hoses, shutoff valves, high-pressure rail lines, clamps, filter brackets)
-2. ❄️ **AC Routings** (Refrigerant suction hoses, swaged aluminum tubes, compressor brackets, HNBR O-rings)
-3. 🚜 **Hydraulic Steering Routings** (High-pressure flex hoses, forged steering arms, swivel adapters, priority valves)
-4. 🌡️ **Engine Cooling Routings** (Radiator hoses, expansion tank lines, thermostat clamps, turbo hard lines)
-5. ⚡ **Pneumatic & Electrical Routings** (Trailer brake lines, harness conduits, battery cable clamps, ABS guards)
+| Route | Role | What it does |
+| --- | --- | --- |
+| `/design` | Design Engineer | Describe a part that need not exist yet; get candidate rows with the 8D records behind them, and on every High row the single change in Occurrence or Detection that would actually move its Action Priority — computed against the AP table, not suggested |
+| `/quality` | Quality Engineer | A review queue of submitted drafts, each linkable by URL; declined High rows show as *considered and declined* rather than missing. The same audit suite runs against parts already on file |
+| `/company` | Company & Leadership | Coverage, open safety gaps by subsystem, and the backtest curve — the evidence for the spend, not row detail |
+
+The split is what makes the declined-row trail possible: an engineer who leaves a
+High row out is recorded as having decided, not as having missed it. That is the
+artefact an auditor asks for.
 
 ---
 
-## 🚀 Quickstart Guide
+## 🚀 Quickstart
 
 ### Prerequisites
-- **Python 3.10+** (Python 3.13 tested)
-- **Google AI Studio API Key** ([Get key here](https://aistudio.google.com/))
 
-### 1. Clone the Repository
+- **Python 3.10+** (3.13 tested)
+- **Node.js 20+** — only for the Next.js frontend
+- **Google AI Studio API key** — only for the copilot's prose; every number works without it
 
 ```bash
 git clone https://github.com/niharika021/Mechnari-ai.git
 cd Mechnari-ai
-```
-
-### 2. Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-
-Create a `.env` file in the root folder:
+Create a `.env` in the repository root:
 
 ```env
 GEMINI_API_KEY=your_google_ai_studio_api_key_here
 GOOGLE_API_KEY=your_google_ai_studio_api_key_here
 ```
 
-### 4. Regenerate Mock CSV Datasets (Optional)
+### Run it — Next.js frontend
+
+Two processes. Backend first:
 
 ```bash
-py generate_csv_data.py
+py -m uvicorn api:app --port 8000 --reload
 ```
 
-### 5. Launch the Streamlit Dashboard
+Then the frontend, in a second terminal:
+
+```bash
+cd web && cp .env.example .env.local && npm install && npm run dev
+```
+
+Open <http://localhost:3000>.
+
+### Run it — Streamlit fallback
+
+The same engines, one process, no Node required:
 
 ```bash
 streamlit run app.py
 ```
 
-Open `http://localhost:8501` in your browser.
+Open <http://localhost:8501>.
+
+### Regenerate the dataset
+
+```bash
+py generate_csv_data.py
+```
+
+The generator is seeded, so the figures in this README reproduce exactly.
 
 ---
 
-## 📁 Repository Structure
+## 🧪 Tests
+
+**103 tests across 7 suites, all passing.** Each file runs standalone or under
+pytest:
+
+```bash
+for f in test_*.py; do py "$f"; done
+```
+
+| Suite | Tests | Covers |
+| --- | --- | --- |
+| `test_risk_engine.py` | 23 | S/O/D derivation, AP band lookup, lever finding |
+| `test_api.py` | 17 | Route wiring, JSON-safety, 404-not-500, queue round trip |
+| `test_retrieval.py` | 17 | Describe/similarity, type inference, proposals |
+| `test_mechnari_tools.py` | 13 | ADK tool surface — including that no agent can write a score |
+| `test_backtest.py` | 12 | Temporal holdout, unknowable exclusion, claim weighting |
+| `test_gap_detection.py` | 12 | Type ∪ family applicability, severity consistency |
+| `test_queue_store.py` | 9 | Draft queue atomicity and corruption recovery |
+
+---
+
+## 📁 Repository structure
 
 ```
 Mechnari-ai/
-├── README.md                   # Enterprise Project Documentation
-├── .gitignore                  # Security & environment exclusion rules
-├── requirements.txt            # Python dependencies (google-genai, streamlit, pandas)
-├── app.py                      # Streamlit dashboard & Management-by-Exception UI
-├── agents.py                   # Multi-Agent logic & Gemini AI Copilot handlers
-├── generate_csv_data.py        # 50-part mock CSV dataset generator script
-├── schema.sql                  # BigQuery SQL DDL schema scripts
-└── data/                       # 50-part CSV Datasets
-    ├── bom_package_hierarchy.csv
-    ├── material_master.csv
-    └── historical_field_issues.csv
+├── taxonomy.py              # Authoring source for the data model (families, types, effects)
+├── generate_csv_data.py     # Seeded generator -> the 8 CSV tables
+├── data_layer.py            # Loads and joins the normalised tables
+├── gap_detection.py         # Applicable modes minus analysed modes
+├── risk_engine.py           # S/O/D, AIAG-VDA Action Priority, AP levers
+├── retrieval.py             # TF-IDF retrieval, type inference, DFMEA proposal
+├── backtest.py              # Temporal holdout + cold-start harnesses
+├── queue_store.py           # Draft review queue (JSON, atomic writes)
+├── mechnari_agent/agent.py  # Google ADK 2.x root agent, sub_agents, Workflow
+├── mechnari_tools.py        # Plain-function tools handed to the agents
+├── api.py                   # FastAPI wrapper - thin, computes nothing
+├── app.py                   # Streamlit fallback UI
+├── web/                     # Next.js frontend (three role views)
+├── test_*.py                # 7 suites, 103 tests
+├── docs/build-dossier.html  # Concept and build report
+├── intro.md                 # Plain-language introduction
+├── schema.sql               # BigQuery DDL
+└── data/                    # 8 normalised CSV tables
 ```
+
+---
+
+## 📉 Known limitations
+
+Stated here rather than discovered in review.
+
+- **The data is synthetic.** Domain-correlated and internally consistent — a
+  bracket only ever draws bracket-type failure modes, never a hose's — but the
+  backtest measures the system against generated warranty history. The harness runs
+  unchanged against a pilot company's anonymised data; that substitution is the
+  next real validation, not a rewrite.
+- **The AP table is provisional.** See the callout above.
+- **TF-IDF is a floor, not a ceiling.** At 50 parts it is the honest choice. Moving
+  to Vertex AI embeddings replaces two functions and nothing downstream.
+- **Effects are inherited with their origin.** A mode carried to a new part keeps
+  the effect it had on the part that taught it, so a coolant drain valve can
+  inherit an AC valve's cab-climate effect. Re-evaluating effect per target part is
+  the known fix.
+
+## 🗺️ Roadmap
+
+1. Verify the Action Priority cells against the AIAG-VDA handbook and lift the provisional label
+2. Export to the AIAG-VDA form sheet, so output lands in the format engineers already use
+3. Replace synthetic data with a pilot company's anonymised warranty set; re-run the backtest unchanged
+4. Migrate the CSV layer to Postgres with real multi-tenant auth
+5. Close the loop: when a new claim arrives, flag which shipped DFMEAs predicted low risk for that mode
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT — see [LICENSE](LICENSE).
 
----
+## 🤝 Contact
 
-## 🤝 Contact & Contributions
+Built by **Niharika Yadav** — 10+ years mechanical design engineering, agriculture
+(tractors) — [@niharika021](https://github.com/niharika021)
 
-Created with ❤️ by **Niharika Yadav** - [@niharika021](https://github.com/niharika021)  
-Repository: [https://github.com/niharika021/Mechnari-ai](https://github.com/niharika021/Mechnari-ai)
+Google Patchamomma 2026 · [Mechnari-ai](https://github.com/niharika021/Mechnari-ai)
