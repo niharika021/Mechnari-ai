@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { RoleNav } from "@/components/RoleNav";
+import { CopilotChat } from "@/components/CopilotChat";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -40,6 +41,7 @@ export default function RootLayout({
           <RoleNav />
           {children}
         </div>
+        <CopilotChat />
       </body>
     </html>
   );
