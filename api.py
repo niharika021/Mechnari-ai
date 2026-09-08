@@ -234,6 +234,25 @@ def audit_part(part_id: str) -> Dict[str, Any]:
     }
 
 
+@app.get("/api/issues/summary")
+def issue_summary() -> List[Dict[str, Any]]:
+    """Every part with a warranty issue on record - active or retired - and
+    how many. Company-wide visibility into what's actually gone wrong,
+    independent of what any one DFMEA says."""
+    try:
+        return _records(data_layer.issue_summary())
+    except data_layer.DatasetError as exc:
+        raise _dataset_error(exc)
+
+
+@app.get("/api/issues/{part_id}")
+def issues_for_part(part_id: str) -> List[Dict[str, Any]]:
+    try:
+        return _records(data_layer.issue_history(part_id))
+    except data_layer.DatasetError as exc:
+        raise _dataset_error(exc)
+
+
 @app.get("/api/gaps")
 def all_gaps(system_package: Optional[str] = None) -> List[Dict[str, Any]]:
     try:

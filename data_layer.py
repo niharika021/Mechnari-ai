@@ -170,3 +170,42 @@ def coverage_summary() -> pd.DataFrame:
         df["modes_analysed"] / df["modes_applicable"].replace(0, pd.NA) * 100
     ).round(0)
     return df
+
+
+def issue_history(part_id: str = None) -> pd.DataFrame:
+    """
+    Warranty issues with the failure mode name resolved in, newest first.
+
+    field_issues() carries 71 distinct part_ids but parts() only carries the
+    50 still on the active BOM - the other 21 are retired parts kept only
+    because their failures are exactly what retrieval learns from. So this
+    joins against failure_mode_catalog (universal) rather than parts()
+    (partial), and item_reference is left null rather than dropping the row
+    for a retired part with no current listing.
+    """
+    issues = field_issues()
+    if part_id:
+        issues = issues[issues["part_id"] == part_id]
+    modes = failure_mode_catalog()[["mode_id", "failure_mode"]]
+    part_names = parts()[["part_id", "item_reference"]]
+    df = issues.merge(modes, on="mode_id", how="left")
+    df = df.merge(part_names, on="part_id", how="left")
+    return df.sort_values("report_date", ascending=False)
+
+
+def issue_summary() -> pd.DataFrame:
+    """Per part_id: how many warranty issues and claims are on record for it -
+    across all 71 part_ids that have ever had one, active or retired."""
+    issues = field_issues()
+    part_names = parts()[["part_id", "item_reference"]]
+    summary = (
+        issues.groupby("part_id")
+        .agg(issue_count=("issue_id", "size"), total_claims=("claim_count", "sum"),
+             latest_report=("report_date", "max"))
+        .reset_index()
+    )
+    summary = summary.merge(part_names, on="part_id", how="left")
+    summary["item_reference"] = summary["item_reference"].fillna(
+        summary["part_id"] + " (retired part, not on current BOM)"
+    )
+    return summary.sort_values("issue_count", ascending=False)

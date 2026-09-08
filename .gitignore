@@ -9,18 +9,23 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+# Anchored to the repo root (leading /) - these are setuptools sdist/build
+# artifact names, and unanchored they also match unrelated directories
+# that happen to share the name, like web/src/lib/ (caught api.ts, the
+# whole typed API client, silently - it was never committed until this
+# was fixed).
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
 *.egg-info/
 .installed.cfg
 *.egg

@@ -194,6 +194,52 @@ def test_audit_of_an_unknown_part_is_404_not_500():
     assert client.get("/api/audit/TR-NOT-A-PART").status_code == 404
 
 
+def test_issue_summary_covers_active_and_retired_parts():
+    summary = client.get("/api/issues/summary").json()
+    import data_layer
+
+    all_issues = data_layer.field_issues()
+    # Every part_id that has ever filed an issue, not just the 50 on the
+    # current BOM - that is the whole point of this route.
+    assert len(summary) == all_issues["part_id"].nunique()
+    assert sum(row["issue_count"] for row in summary) == len(all_issues)
+    assert all(row["issue_count"] >= 1 for row in summary)
+    # Sorted worst-first, since that is what a leadership rollup wants to
+    # see at the top without having to sort it themselves.
+    counts = [row["issue_count"] for row in summary]
+    assert counts == sorted(counts, reverse=True)
+
+
+def test_issue_summary_labels_retired_parts_instead_of_dropping_them():
+    summary = client.get("/api/issues/summary").json()
+    active_ids = {p["part_id"] for p in client.get("/api/parts").json()}
+    retired = [row for row in summary if row["part_id"] not in active_ids]
+    assert len(retired) > 0
+    assert all("retired" in row["item_reference"] for row in retired)
+
+
+def test_issues_for_a_part_resolve_the_failure_mode_name():
+    part_id = client.get("/api/issues/summary").json()[0]["part_id"]
+    issues = client.get("/api/issues/%s" % part_id).json()
+    assert len(issues) > 0
+    assert all(row["part_id"] == part_id for row in issues)
+    assert all(row["failure_mode"] for row in issues)
+    # Newest first, matching what "history" implies.
+    dates = [row["report_date"] for row in issues]
+    assert dates == sorted(dates, reverse=True)
+
+
+def test_issues_for_an_issue_free_part_is_an_empty_list_not_an_error():
+    with_issues = {row["part_id"] for row in client.get("/api/issues/summary").json()}
+    all_parts = {p["part_id"] for p in client.get("/api/parts").json()}
+    quiet = all_parts - with_issues
+    if not quiet:
+        return  # every current part happens to have a filed issue - fine
+    response = client.get("/api/issues/%s" % next(iter(quiet)))
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_gaps_and_metrics_agree():
     gaps = client.get("/api/gaps").json()
     metrics = client.get("/api/gap-metrics").json()

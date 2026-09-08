@@ -1,13 +1,15 @@
 import { api } from "@/lib/api";
 import { Card, MetricTile } from "@/components/ui";
 import { BacktestChart } from "@/components/BacktestChart";
+import { IssueHistory } from "@/components/IssueHistory";
 
 export default async function CompanyPage() {
-  const [gapMetrics, backtest, sweep, gaps] = await Promise.all([
+  const [gapMetrics, backtest, sweep, gaps, issueSummary] = await Promise.all([
     api.gapMetrics(),
     api.backtest(),
     api.backtestSweep(),
     api.gaps(),
+    api.issueSummary(),
   ]);
 
   const { summary } = backtest;
@@ -113,6 +115,8 @@ export default async function CompanyPage() {
           </div>
         </Card>
       </div>
+
+      <IssueHistory summary={issueSummary} />
     </div>
   );
 }
