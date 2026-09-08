@@ -3,6 +3,19 @@
 Two services, deployed in order — the API first, because the frontend needs
 its URL baked in at build time.
 
+**Currently deployed:**
+
+| Service | URL |
+| --- | --- |
+| Frontend | <https://mechnari-web-909720820441.us-central1.run.app> |
+| API | <https://mechnari-api-909720820441.us-central1.run.app> |
+
+Every step below was run against project `project-b284a92b-1eec-4e4c-add`
+and verified live: all three role views return 200, the metrics match the
+local figures exactly (50/50 parts, 57% coverage, 15 safety gaps, +27 pts),
+and the copilot answers citing real 8D records with no API key anywhere —
+Vertex authenticates as the Cloud Run service account.
+
 ## Prerequisites
 
 - A Google Cloud project with billing enabled
@@ -12,6 +25,31 @@ its URL baked in at build time.
   ```bash
   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
   ```
+
+- **On a fresh project, grant the build service account its roles.** Cloud
+  Run source deploys upload to a staging bucket and build as the compute
+  service account; without these the deploy fails with
+  `does not have storage.objects.get access to the Google Cloud Storage
+  object`:
+
+  ```bash
+  PROJECT_ID=project-b284a92b-1eec-4e4c-add
+  PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+  SA=${PROJECT_NUMBER}-compute@developer.gserviceaccount.com
+  for ROLE in roles/cloudbuild.builds.builder roles/storage.objectViewer \
+              roles/artifactregistry.writer roles/logging.logWriter; do
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member="serviceAccount:$SA" --role="$ROLE"
+  done
+  ```
+
+### What gets uploaded
+
+`.gcloudignore` (root, and one in `web/`) controls this, and it matters:
+without it gcloud falls back to the **top-level** `.gitignore` only — it
+does not read nested ones like `web/.gitignore`. That meant `web/.next/`
+and `node_modules/` were uploaded, and the deploy died on the running dev
+server's lock file (`PermissionError: web\.next\dev\lock`).
 
 ### Model access: use Vertex AI, not an AI Studio key
 
@@ -91,32 +129,55 @@ curl https://mechnari-api-xxxxx-uc.a.run.app/api/health
 # {"status":"ok"}
 ```
 
-## 2. Deploy the frontend
+## 2. Deploy the frontend — build, then deploy
 
 `NEXT_PUBLIC_API_BASE` is compiled into the client bundle at build time, so
-it has to be the API's real URL from step 1 — not `localhost`. From `web/`:
+it has to be the API's real URL from step 1 — not `localhost`.
+
+**This needs two commands, not one.** `gcloud run deploy --source .` cannot
+supply it: `--set-build-env-vars` configures a *buildpacks* build and does
+**not** populate a Dockerfile's `ARG`. With a Dockerfile the ARG stays
+empty, the API base compiles to `""`, every request URL comes out relative,
+and server-side rendering fails with:
+
+```
+TypeError: Failed to parse URL from /api/gap-metrics
+```
+
+which returns 500 on every page. This only shows up in the cloud — local
+builds always work, because `.env.local` supplies the value.
+
+So build the image explicitly with the build arg (`web/cloudbuild.yaml`
+exists for this), then deploy that image. From the repository root:
 
 ```bash
-cd web
+API_URL=https://mechnari-api-xxxxx-uc.a.run.app
+IMAGE=us-central1-docker.pkg.dev/project-b284a92b-1eec-4e4c-add/cloud-run-source-deploy/mechnari-web:latest
+
+gcloud builds submit web \
+  --config web/cloudbuild.yaml \
+  --substitutions=_API_BASE=$API_URL,_IMAGE=$IMAGE
 
 gcloud run deploy mechnari-web \
-  --source . \
+  --image $IMAGE \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-build-env-vars NEXT_PUBLIC_API_BASE=https://mechnari-api-xxxxx-uc.a.run.app \
+  --set-env-vars COPILOTKIT_TELEMETRY_DISABLED=true,API_BASE_INTERNAL=$API_URL \
   --memory 512Mi
 ```
+
+`API_BASE_INTERNAL` is read at run time by the CopilotKit runtime route,
+which proxies to the AG-UI endpoint server-side.
 
 ## 3. Close the loop — CORS
 
 The API only accepts requests from `localhost:3000` until you tell it about
-the deployed frontend's real origin. Redeploy the API with that origin added:
+the deployed frontend's real origin. This is an env-var change, so use
+`services update` rather than redeploying — no rebuild needed:
 
 ```bash
-gcloud run deploy mechnari-api --source . --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
-  --memory 1Gi
+gcloud run services update mechnari-api --region us-central1 \
+  --update-env-vars ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app
 ```
 
 ## 4. Verify

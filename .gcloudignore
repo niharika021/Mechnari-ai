@@ -1,0 +1,36 @@
+# What `gcloud run deploy --source .` uploads for the API container.
+#
+# This file matters more than it looks: without it gcloud falls back to
+# the top-level .gitignore only - it does NOT read nested ones like
+# web/.gitignore - so web/.next/ and web/node_modules/ were being
+# uploaded, and the deploy died on the dev server's lock file
+# (PermissionError: web\.next\dev\lock).
+#
+# Everything the API actually needs is listed in the Dockerfile's COPY
+# lines; this just keeps the upload to roughly that.
+
+.git/
+.gitignore
+
+# The frontend is its own Cloud Run service, deployed from web/.
+web/
+
+# Local state and secrets
+.env
+.env.*
+!.env.example
+.mechnari_runtime/
+.claude/
+.streamlit/
+
+# Python build/cache artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Not needed in the runtime image
+test_*.py
+docs/
+*.md
+!requirements.txt

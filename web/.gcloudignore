@@ -1,0 +1,17 @@
+# What `gcloud run deploy --source .` uploads for the frontend container.
+#
+# node_modules and .next are rebuilt inside the Docker build, so shipping
+# them wastes minutes of upload and - in the case of .next/dev/lock while
+# a dev server is running - fails the deploy outright.
+
+.git/
+node_modules/
+.next/
+out/
+build/
+
+.env
+.env.*
+!.env.example
+
+*.md

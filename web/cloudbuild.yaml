@@ -1,0 +1,29 @@
+# Builds the frontend image with NEXT_PUBLIC_API_BASE baked in.
+#
+# This exists because `gcloud run deploy --source .` cannot do it:
+# --set-build-env-vars sets variables for a buildpacks build, and does NOT
+# populate a Dockerfile's ARG. With a Dockerfile the ARG stays empty, the
+# API base compiles to "", every request URL comes out relative, and the
+# server-side fetch dies with "Failed to parse URL from /api/gap-metrics"
+# - which is exactly how the first deploy failed.
+#
+# Next.js inlines NEXT_PUBLIC_* at build time by design, so the value has
+# to be present here, not at run time.
+#
+# Usage (from the repository root):
+#   gcloud builds submit web \
+#     --config web/cloudbuild.yaml \
+#     --substitutions=_API_BASE=https://your-api-url,_IMAGE=<image tag>
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - NEXT_PUBLIC_API_BASE=${_API_BASE}
+      - -t
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+options:
+  logging: CLOUD_LOGGING_ONLY
