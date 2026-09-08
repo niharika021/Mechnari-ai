@@ -27,15 +27,15 @@ latest SDK with both `x-goog-api-key` and bearer auth. Vertex avoids that
 path entirely.
 
 ```bash
-gcloud services enable aiplatform.googleapis.com --project mechnari-ai-82319
+gcloud services enable aiplatform.googleapis.com --project project-b284a92b-1eec-4e4c-add
 ```
 
 Grant the runtime service account model access (the default compute
 service account, unless you deploy with `--service-account`):
 
 ```bash
-PROJECT_NUMBER=$(gcloud projects describe mechnari-ai-82319 --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding mechnari-ai-82319 \
+PROJECT_NUMBER=$(gcloud projects describe project-b284a92b-1eec-4e4c-add --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding project-b284a92b-1eec-4e4c-add \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/aiplatform.user"
 ```
@@ -73,13 +73,13 @@ From the repository root — `gcloud run deploy --source .` builds the
 container in the cloud via Cloud Build, so no local Docker is required:
 
 ```bash
-gcloud config set project mechnari-ai-82319
+gcloud config set project project-b284a92b-1eec-4e4c-add
 
 gcloud run deploy mechnari-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=mechnari-ai-82319,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite \
   --memory 1Gi
 ```
 
@@ -115,7 +115,7 @@ the deployed frontend's real origin. Redeploy the API with that origin added:
 ```bash
 gcloud run deploy mechnari-api --source . --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=mechnari-ai-82319,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite,ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app \
   --memory 1Gi
 ```
 
