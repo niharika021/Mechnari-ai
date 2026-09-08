@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 /*
-  Mechnari.ai design tokens.
+  Mechnari.ai design tokens - light theme, warm gold/bronze accent.
 
-  Same values as the Streamlit app's injected CSS (see ../app.py) and the
-  build dossier / role-view mockup artifacts from earlier in this project -
-  one committed dark theme, not a new palette per surface. Petrol-teal
-  accent reserved for actions and identity; Action Priority owns
-  red/amber/green everywhere, kept out of the accent on purpose.
+  Same values feed the Streamlit app's injected CSS (see ../../app.py) so
+  the two frontends stay one committed look, not a palette per surface.
+  Accent (gold/bronze) is reserved for brand and interactive elements;
+  Action Priority owns red/orange/green and is kept a distinct hue from
+  the accent on purpose, so a "Medium" badge never reads as decoration.
 */
 :root {
-  --bg: #0b1210;
-  --bg-elevated: #101a17;
-  --surface: #16211d;
-  --surface-hover: #1c2925;
-  --border: #263631;
-  --border-strong: #37493f;
-  --ink: #e7eeec;
-  --ink-soft: #9fb0aa;
-  --ink-faint: #6d7e78;
-  --accent: #3fa895;
-  --accent-strong: #59c4b0;
-  --accent-ink: #06120f;
-  --accent-soft: #16302b;
-  --accent-line: #2e5c51;
-  --crit: #e4806a;
-  --crit-soft: #2e1811;
-  --warn: #e0ac55;
-  --warn-soft: #2e230a;
-  --ok: #7bc98d;
-  --ok-soft: #16261b;
+  --bg: #f6f4ee;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f0ece0;
+  --border: #e3ddcc;
+  --border-strong: #cbc2a8;
+  --ink: #20262c;
+  --ink-soft: #545f67;
+  --ink-faint: #808a8f;
+  --accent: #92600f;
+  --accent-strong: #6b4709;
+  --accent-ink: #ffffff;
+  --accent-soft: #faf0da;
+  --accent-line: #e2be72;
+  --crit: #b3261e;
+  --crit-soft: #fbeae7;
+  --warn: #c1560a;
+  --warn-soft: #fbebdc;
+  --ok: #2e7d4f;
+  --ok-soft: #e7f5ec;
   --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
   --font-body: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), "SFMono-Regular", Consolas, monospace;
@@ -62,7 +62,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -73,7 +73,7 @@ body {
 
 ::selection {
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--accent);
 }
 
 * {
