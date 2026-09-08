@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import agui_endpoint
 import backtest
 import data_layer
 import gap_detection
@@ -338,3 +339,23 @@ def reload_knowledge_base() -> Dict[str, bool]:
     data_layer.reload()
     retrieval.reload()
     return {"ok": True}
+
+
+@app.get("/api/copilot/health")
+def copilot_health() -> Dict[str, Any]:
+    """Whether the streaming copilot can be expected to work, so the
+    frontend can say something honest before opening an SSE stream that is
+    only going to fail on auth."""
+    check = agui_endpoint.api_key_works()
+    return {"api_key_present": agui_endpoint.api_key_present(),
+            "api_key_works": check["ok"],
+            "reason": check["reason"],
+            "agui_path": agui_endpoint.AGUI_PATH}
+
+
+# Mounted last, and deliberately at the end of this file: the AG-UI
+# endpoint streams Server-Sent Events for the CopilotKit frontend, which is
+# a different transport from every JSON route above. Same agent, same
+# tools, same rule that agents never write a score - only the delivery
+# differs. /api/copilot/ask stays as the synchronous fallback.
+agui_endpoint.mount(app)

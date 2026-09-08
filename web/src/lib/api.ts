@@ -294,6 +294,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
     }),
+  copilotHealth: () =>
+    request<{
+      api_key_present: boolean;
+      api_key_works: boolean;
+      reason: string;
+      agui_path: string;
+    }>("/api/copilot/health"),
   issueSummary: () => request<IssueSummaryRow[]>("/api/issues/summary"),
   issuesForPart: (partId: string) =>
     request<IssueRecord[]>(`/api/issues/${encodeURIComponent(partId)}`),

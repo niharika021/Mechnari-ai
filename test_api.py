@@ -194,6 +194,31 @@ def test_audit_of_an_unknown_part_is_404_not_500():
     assert client.get("/api/audit/TR-NOT-A-PART").status_code == 404
 
 
+def test_agui_endpoint_is_mounted():
+    """The AG-UI streaming endpoint the CopilotKit frontend talks to. Only
+    checks that it is registered and accepts POST - actually running it
+    calls Gemini, which a test suite should not depend on."""
+    paths = {r.path for r in api.app.routes if hasattr(r, "methods")}
+    assert "/api/ag-ui" in paths
+    route = next(r for r in api.app.routes
+                 if getattr(r, "path", None) == "/api/ag-ui")
+    assert "POST" in route.methods
+
+
+def test_copilot_health_reports_whether_the_key_actually_works():
+    body = client.get("/api/copilot/health").json()
+    # Presence and validity are different questions, and the second is the
+    # one the frontend needs - a key that is set but rejected looks
+    # identical to a working one otherwise.
+    assert set(body) >= {"api_key_present", "api_key_works", "reason", "agui_path"}
+    assert isinstance(body["api_key_present"], bool)
+    assert isinstance(body["api_key_works"], bool)
+    assert body["agui_path"] == "/api/ag-ui"
+    # A failing check must say why; a passing one has nothing to explain.
+    if not body["api_key_works"]:
+        assert body["reason"]
+
+
 def test_issue_summary_covers_active_and_retired_parts():
     summary = client.get("/api/issues/summary").json()
     import data_layer

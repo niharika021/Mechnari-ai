@@ -23,6 +23,10 @@ RUN npm run build
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# CopilotKit's runtime reports usage telemetry to its vendor unless told
+# not to. Off by default here - this app's premise is proprietary warranty
+# data, so nothing about its use should leave the deployment.
+ENV COPILOTKIT_TELEMETRY_DISABLED=true
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

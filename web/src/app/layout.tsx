@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import "@copilotkit/react-ui/styles.css";
 import "./globals.css";
 import { RoleNav } from "@/components/RoleNav";
-import { CopilotChat } from "@/components/CopilotChat";
+import { CopilotProvider } from "@/components/CopilotProvider";
+import { MechnariCopilot } from "@/components/MechnariCopilot";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -37,11 +39,16 @@ export default function RootLayout({
       className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable}`}
     >
       <body className="min-h-screen bg-bg text-ink antialiased">
-        <div className="mx-auto max-w-[1240px] px-6 pb-16 pt-6">
-          <RoleNav />
-          {children}
-        </div>
-        <CopilotChat />
+        {/* Client wrapper around CopilotKit's provider: it relays to the
+            AG-UI endpoint on the FastAPI service, and surfaces stream
+            errors, which the popup itself renders silently. */}
+        <CopilotProvider>
+          <div className="mx-auto max-w-[1240px] px-6 pb-16 pt-6">
+            <RoleNav />
+            {children}
+          </div>
+          <MechnariCopilot />
+        </CopilotProvider>
       </body>
     </html>
   );

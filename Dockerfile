@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY taxonomy.py data_layer.py gap_detection.py risk_engine.py retrieval.py \
-     backtest.py queue_store.py mechnari_tools.py api.py ./
+     backtest.py queue_store.py mechnari_tools.py agui_endpoint.py api.py ./
 COPY mechnari_agent/ ./mechnari_agent/
 COPY data/ ./data/
 
