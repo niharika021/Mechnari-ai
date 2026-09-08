@@ -11,6 +11,7 @@ Streamlit keeps working unchanged, calling the same modules in-process.
 Run with:  uvicorn api:app --reload --port 8000
 """
 
+import os
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -28,13 +29,19 @@ from mechnari_agent import agent as mechnari_agent
 
 app = FastAPI(title="Mechnari.ai API", version="1.0.0")
 
-# The Next.js dev server. Widened in production to the actual deployed
-# origin, never to "*" - this API can trigger a knowledge-base reload and
-# read the draft queue, neither of which should be reachable cross-origin
-# from an untrusted page.
+# The Next.js dev server by default. The deployed frontend origin is added
+# via ALLOWED_ORIGINS (comma-separated) as a Cloud Run env var - never "*",
+# because this API can trigger a knowledge-base reload and read the draft
+# queue, neither of which should be reachable cross-origin from an
+# untrusted page.
+_extra_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", *_extra_origins],
     allow_methods=["*"],
     allow_headers=["*"],
 )

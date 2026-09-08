@@ -1,0 +1,33 @@
+# Mechnari.ai frontend - deployed to Cloud Run as its own service.
+#
+# NEXT_PUBLIC_API_BASE is baked into the client bundle at build time (that
+# is how Next.js env vars work), so it has to be supplied as a build arg
+# pointing at the *already-deployed* API service's URL - deploy api first.
+
+# ---- deps: install once, cached across builds that don't touch package*.json
+FROM node:20-slim AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ---- builder: compile with the real API URL inlined
+FROM node:20-slim AS builder
+WORKDIR /app
+ARG NEXT_PUBLIC_API_BASE
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# ---- runner: just the standalone server, no dev dependencies
+FROM node:20-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Cloud Run injects PORT; Next.js's standalone server reads it directly.
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "server.js"]
