@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   api,
   ApiError,
@@ -27,15 +28,12 @@ import {
   TextInput,
 } from "@/components/ui";
 import { DfmeaSheet } from "@/components/DfmeaSheet";
-import { ActionTracker } from "@/components/ActionTracker";
 import { MyReports } from "@/components/MyReports";
 import {
   deleteReport,
-  getReport,
   listReports,
   saveNewReport,
   storageAvailable,
-  updateReport,
   type ReportSummary,
 } from "@/lib/reportStore";
 
@@ -131,6 +129,7 @@ export function PartIntake({
   // A package is the same operation repeated, so it is one mode switch
   // rather than two different forms. "existing" is genuinely different:
   // it reads the DFMEA already on file instead of drafting a new one.
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("single");
   const [systemPackage, setSystemPackage] = useState(systemPackages[0] ?? "");
   const [rows, setRows] = useState<Row[]>([{ ...EXAMPLE, key: nextKey++ }]);
@@ -185,32 +184,14 @@ export function PartIntake({
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [storageOk, setStorageOk] = useState(true);
   const [reportId, setReportId] = useState<string | null>(null);
-  const [reportView, setReportView] = useState<"actions" | "sheet">("actions");
 
   useEffect(() => {
     setStorageOk(storageAvailable());
     setReports(listReports());
   }, []);
 
-  /** Action edits are written straight through - there is no save button,
-   *  because a save button is a way to lose work. */
-  function updateResult(next: SheetResult) {
-    setResult(next);
-    if (reportId) {
-      updateReport(reportId, { result: next });
-      setReports(listReports());
-    }
-  }
-
   function openStored(id: string) {
-    const stored = getReport(id);
-    if (!stored) return;
-    setReview(null);
-    setFound(stored.result);
-    setResult(stored.result);
-    setReportId(id);
-    setReportView("actions");
-    setError(null);
+    router.push(`/design/report/${id}`);
   }
 
   function removeStored(id: string) {
@@ -484,73 +465,15 @@ export function PartIntake({
           reanalysing={reanalysing}
           onBack={() => setReview(null)}
           onGenerate={(states) => {
-            const sheet = approvedSheet(states);
+            const stored = saveNewReport(approvedSheet(states), systemPackage);
             setReview(null);
-            setResult(sheet);
-            const stored = saveNewReport(sheet, systemPackage);
-            setReportId(stored.id);
-            setReports(listReports());
-            setReportView("actions");
+            // The report has its own address now; the intake form's job is
+            // done once it exists.
+            router.push(`/design/report/${stored.id}`);
           }}
         />
       ) : null}
-      {result ? (
-        <div className="flex flex-col gap-4">
-          <Card className="px-5 py-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="font-display text-[15px] font-semibold text-ink">
-                  Report generated
-                  {reportId ? (
-                    <span className="ml-2 font-mono text-[11px] font-normal text-ink-faint">
-                      {reportId}
-                    </span>
-                  ) : null}
-                </h3>
-                <p className="mt-0.5 text-xs text-ink-faint">
-                  {reportId
-                    ? "Saved in this browser. Work the actions now or come back to it — nothing is lost on reload."
-                    : "Not saved — this browser is blocking local storage."}
-                </p>
-              </div>
-              <div className="flex gap-1 rounded-[9px] border border-border bg-bg-elevated p-1">
-                <ModeButton
-                  active={reportView === "actions"}
-                  onClick={() => setReportView("actions")}
-                >
-                  Actions
-                </ModeButton>
-                <ModeButton
-                  active={reportView === "sheet"}
-                  onClick={() => setReportView("sheet")}
-                >
-                  Full form sheet
-                </ModeButton>
-              </div>
-            </div>
-          </Card>
-
-          {reportView === "actions" ? (
-            <ActionTracker result={result} onChange={updateResult} />
-          ) : null}
-
-          <DfmeaSheet
-            result={result}
-            approved={!!found}
-            systemPackage={systemPackage}
-            collapsed={reportView === "actions"}
-            onSubmitted={(draftIds) => {
-              if (!reportId) return;
-              updateReport(reportId, {
-                submittedAt: new Date().toISOString(),
-                draftIds,
-              });
-              setReports(listReports());
-            }}
-          />
-        </div>
-      ) : null}
-      {existing ? <ExistingDfmeaView data={existing} /> : null}
+      {result ? <DfmeaSheet result={result} systemPackage={systemPackage} /> : null}
     </div>
   );
 }

@@ -22,17 +22,34 @@ export function DfmeaSheet({
   result,
   approved = false,
   systemPackage = "",
-  collapsed = false,
   onSubmitted,
+  onRowChange,
 }: {
   result: SheetResult;
   approved?: boolean;
   systemPackage?: string;
-  /** Header and submit only - the full table is shown on its own tab. */
-  collapsed?: boolean;
   onSubmitted?: (draftIds: string[]) => void;
+  /**
+   * Supplied when the report is being worked rather than just read. The
+   * action columns become editable in place - which is where they belong,
+   * because that is where they are on the paper form. A separate actions
+   * screen split one document into two views of itself.
+   */
+  onRowChange?: (
+    itemIndex: number,
+    modeId: string,
+    patch: Partial<SheetRow>,
+  ) => void;
 }) {
   const [showEvidence, setShowEvidence] = useState(true);
+
+  const allRows = result.items.flatMap((item) => item.rows);
+  const actionable = allRows.filter((r) => r.recommended_action?.trim());
+  const actionableRows = actionable.length;
+  const closedActions = actionable.filter((r) => r.completed_date).length;
+  const openHighActions = actionable.filter(
+    (r) => !r.completed_date && r.action_priority === "H",
+  ).length;
   const [submit, setSubmit] = useState<
     | { status: "idle" }
     | { status: "sending" }
@@ -95,16 +112,28 @@ export function DfmeaSheet({
               {result.high_rows} High priority · {result.safety_rows} at
               severity 9+ · {result.rows_with_evidence} of {result.total_rows}{" "}
               rows carry a warranty record. Occurrence is measured from claims,
-              not estimated. Responsibility and target dates are left blank on
-              purpose — those are yours to commit to.
+              not estimated.
+              {onRowChange ? (
+                <>
+                  {" "}
+                  <strong className="text-ink">
+                    {closedActions} of {actionableRows} actions closed
+                  </strong>
+                  {openHighActions > 0 ? (
+                    <span className="text-crit">
+                      {" "}
+                      · {openHighActions} still open at High priority
+                    </span>
+                  ) : null}
+                  . The action columns are editable in the sheet below.
+                </>
+              ) : null}
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
-            {collapsed ? null : (
-              <Button onClick={() => setShowEvidence((v) => !v)}>
-                {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
-              </Button>
-            )}
+            <Button onClick={() => setShowEvidence((v) => !v)}>
+              {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
+            </Button>
             <Button onClick={() => downloadCsv(result)}>⬇ Export CSV</Button>
             {approved && submit.status !== "sent" ? (
               <Button
@@ -146,16 +175,19 @@ export function DfmeaSheet({
         ) : null}
       </Card>
 
-      {collapsed
-        ? null
-        : result.items.map((block, i) => (
-            <ItemBlock
-              key={`${block.part_number}-${i}`}
-              block={block}
-              showEvidence={showEvidence}
-              approved={approved}
-            />
-          ))}
+      {result.items.map((block, i) => (
+        <ItemBlock
+          key={`${block.part_number}-${i}`}
+          block={block}
+          showEvidence={showEvidence}
+          approved={approved}
+          onRowChange={
+            onRowChange
+              ? (modeId, patch) => onRowChange(i, modeId, patch)
+              : undefined
+          }
+        />
+      ))}
     </div>
   );
 }
@@ -164,10 +196,12 @@ function ItemBlock({
   block,
   showEvidence,
   approved,
+  onRowChange,
 }: {
   block: SheetItemBlock;
   showEvidence: boolean;
   approved: boolean;
+  onRowChange?: (modeId: string, patch: Partial<SheetRow>) => void;
 }) {
   if (block.status !== "success") {
     return (
@@ -258,7 +292,7 @@ function ItemBlock({
               <Group span={5}>Failure cause &amp; prevention controls</Group>
               <Group span={3}>Detection controls</Group>
               <Group span={2}>Priority</Group>
-              <Group span={4}>Action details</Group>
+              <Group span={5}>Action details</Group>
               <Group span={5}>Reassessment of risk</Group>
               {showEvidence ? <Group span={3}>Evidence</Group> : null}
               {approved ? <Group span={1}>Source</Group> : null}
@@ -283,6 +317,7 @@ function ItemBlock({
               <Th>Responsibility</Th>
               <Th>Target date</Th>
               <Th>Action taken</Th>
+              <Th num>Completed</Th>
               <Th num>Sev</Th>
               <Th num>Occ</Th>
               <Th num>Det</Th>
@@ -305,6 +340,7 @@ function ItemBlock({
                 row={row}
                 showEvidence={showEvidence}
                 approved={approved}
+                onRowChange={onRowChange}
               />
             ))}
           </tbody>
@@ -318,11 +354,16 @@ function SheetTableRow({
   row,
   showEvidence,
   approved,
+  onRowChange,
 }: {
   row: SheetRow;
   showEvidence: boolean;
   approved: boolean;
+  onRowChange?: (modeId: string, patch: Partial<SheetRow>) => void;
 }) {
+  const patch = onRowChange
+    ? (p: Partial<SheetRow>) => onRowChange(row.mode_id, p)
+    : null;
   const improved =
     row.reassessed_action_priority !== row.action_priority ||
     row.reassessed_occurrence !== row.occurrence ||
@@ -353,9 +394,49 @@ function SheetTableRow({
       </Td>
       <Td num>{row.rpn_legacy}</Td>
       <Td>{row.recommended_action}</Td>
-      <Td>{row.responsibility || <Blank />}</Td>
-      <Td>{row.target_completion_date || <Blank />}</Td>
-      <Td>{row.action_taken || <Blank />}</Td>
+      {patch ? (
+        <>
+          <Td>
+            <CellInput
+              value={row.responsibility}
+              onChange={(v) => patch({ responsibility: v })}
+              placeholder="Owner"
+            />
+          </Td>
+          <Td>
+            <CellInput
+              type="date"
+              value={row.target_completion_date?.slice(0, 10) ?? ""}
+              onChange={(v) => patch({ target_completion_date: v })}
+            />
+          </Td>
+          <Td>
+            <CellTextArea
+              value={row.action_taken}
+              onChange={(v) => patch({ action_taken: v })}
+              placeholder="What was actually done"
+            />
+          </Td>
+          <Td num>
+            <CompletionCell row={row} patch={patch} />
+          </Td>
+        </>
+      ) : (
+        <>
+          <Td>{row.responsibility || <Blank />}</Td>
+          <Td>{row.target_completion_date || <Blank />}</Td>
+          <Td>{row.action_taken || <Blank />}</Td>
+          <Td num>
+            {row.completed_date ? (
+              <span className="font-mono text-[10.5px] text-ok">
+                {formatStamp(row.completed_date)}
+              </span>
+            ) : (
+              <Blank />
+            )}
+          </Td>
+        </>
+      )}
       <Td num>{row.reassessed_severity}</Td>
       <Td num tone={improved ? "ok" : undefined}>{row.reassessed_occurrence}</Td>
       <Td num tone={improved ? "ok" : undefined}>{row.reassessed_detection}</Td>
@@ -464,6 +545,111 @@ function Td({
 
 function Blank() {
   return <span className="text-ink-faint">—</span>;
+}
+
+/** Compact enough to live inside a sheet cell without widening the column. */
+function CellInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: "text" | "date";
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-[11.5px] text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+    />
+  );
+}
+
+function CellTextArea({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={2}
+      className="w-full resize-y rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-[11.5px] leading-snug text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+    />
+  );
+}
+
+/**
+ * The COMPLETED DATE cell, which is the one that carries weight: stamping
+ * it is the engineer saying the work is done, and Quality reads it as
+ * exactly that. Reopenable, because work gets recorded early and
+ * corrected - a stamp that could not be undone would teach people to
+ * leave it blank instead.
+ */
+function CompletionCell({
+  row,
+  patch,
+}: {
+  row: SheetRow;
+  patch: (p: Partial<SheetRow>) => void;
+}) {
+  if (row.completed_date) {
+    return (
+      <span className="block">
+        <span className="block font-mono text-[10.5px] leading-tight text-ok">
+          {formatStamp(row.completed_date)}
+        </span>
+        <button
+          type="button"
+          onClick={() => patch({ completed_date: "" })}
+          className="mt-0.5 text-[10px] font-semibold text-ink-faint hover:text-ink"
+        >
+          reopen
+        </button>
+        {!row.action_taken?.trim() ? (
+          <span className="mt-0.5 block text-[9.5px] leading-tight text-warn">
+            nothing recorded
+          </span>
+        ) : null}
+      </span>
+    );
+  }
+  if (!row.recommended_action?.trim()) return <Blank />;
+  return (
+    <button
+      type="button"
+      onClick={() => patch({ completed_date: new Date().toISOString() })}
+      className="whitespace-nowrap rounded-[5px] border border-border-strong px-1.5 py-1 text-[10px] font-semibold text-ink-soft hover:border-ok hover:text-ok"
+    >
+      ✓ mark done
+    </button>
+  );
+}
+
+function formatStamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 const CSV_COLUMNS: { key: keyof SheetRow; label: string }[] = [
