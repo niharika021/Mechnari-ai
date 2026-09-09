@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { DesignEngineerForm } from "./DesignEngineerForm";
+import { PartIntake } from "./PartIntake";
 
 export default async function DesignEngineerPage() {
   const [partTypes, systemPackages] = await Promise.all([
@@ -11,12 +11,14 @@ export default async function DesignEngineerPage() {
     <div>
       <h2 className="font-display text-lg font-bold text-ink">New Part Intake</h2>
       <p className="mt-1 max-w-[80ch] text-[13px] text-ink-faint">
-        Describe the part you&apos;re designing. Mechnari identifies what kind of
-        part it is, pulls the failure modes the company has already proven on
-        parts like it, and drafts a starting DFMEA - evidence on every row, and
-        what single change would bring a High row down.
+        Enter a single part or a whole package. Mechnari works out what kind of
+        part each one is, finds the parts the company has already built like it,
+        pulls what actually went wrong with those from the warranty record, and
+        drafts the DFMEA in the AIAG-VDA form sheet layout — an 8D reference on
+        every row, Occurrence measured from real claims rather than estimated,
+        and the reassessed risk each recommended action would actually achieve.
       </p>
-      <DesignEngineerForm partTypes={partTypes} systemPackages={systemPackages} />
+      <PartIntake partTypes={partTypes} systemPackages={systemPackages} />
     </div>
   );
 }

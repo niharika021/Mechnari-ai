@@ -154,6 +154,93 @@ export type GapFinding = {
   system_package: string;
 };
 
+// One row of the AIAG-VDA DFMEA form sheet. Field names match the sheet's
+// columns so the table renderer needs no translation layer.
+export type SheetRow = {
+  part_number: string;
+  item_interface: string;
+  elementary_function: string;
+  material: string;
+  system_package: string;
+
+  failure_mode: string;
+  potential_effect: string;
+  system_level: string;
+  severity: number;
+
+  potential_cause: string;
+  drawing_spec: string;
+  pes: string;
+  design_control_prevention: string;
+  occurrence: number;
+
+  detection_control: string;
+  test_reference: string;
+  detection: number;
+
+  action_priority: "H" | "M" | "L";
+  rpn_legacy: number;
+
+  recommended_action: string;
+  responsibility: string;
+  target_completion_date: string;
+  action_taken: string;
+  completed_date: string;
+
+  evidence_ids: string;
+  learned_from: string;
+  field_reports: number;
+  field_claims: number;
+  claims_per_1000: number | null;
+  scope_level: string;
+  mode_id: string;
+
+  // Filled from the AP levers, not estimated - see dfmea_sheet.py.
+  reassessed_severity: number;
+  reassessed_occurrence: number;
+  reassessed_detection: number;
+  reassessed_action_priority: "H" | "M" | "L";
+  reassessed_rpn: number;
+  reassessment_basis: string;
+};
+
+export type SheetItemBlock = {
+  status: "success" | "no_match" | "insufficient_input";
+  reason?: string;
+  part_number: string;
+  item_interface?: string;
+  part_type_id?: string;
+  part_type_name?: string;
+  family_name?: string;
+  confidence?: number;
+  confirmed?: boolean;
+  confident?: boolean;
+  type_reason?: string;
+  safety_rows?: number;
+  similar_parts?: Neighbour[];
+  own_history?: IssueRecord[];
+  rows: SheetRow[];
+};
+
+export type SheetResult = {
+  items: SheetItemBlock[];
+  total_rows: number;
+  high_rows: number;
+  safety_rows: number;
+  rows_with_evidence: number;
+  ap_table_verified: boolean;
+};
+
+export type SheetItemInput = {
+  part_number?: string;
+  description?: string;
+  function?: string;
+  material?: string;
+  system_package?: string;
+  part_type_id?: string;
+  existing_part_id?: string;
+};
+
 export type IssueSummaryRow = {
   part_id: string;
   item_reference: string;
@@ -293,6 +380,11 @@ export const api = {
     request<{ status: string; answer?: string; reason?: string }>("/api/copilot/ask", {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
+    }),
+  dfmeaSheet: (items: SheetItemInput[]) =>
+    request<SheetResult>("/api/dfmea-sheet", {
+      method: "POST",
+      body: JSON.stringify({ items }),
     }),
   copilotHealth: () =>
     request<{

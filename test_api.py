@@ -194,6 +194,95 @@ def test_audit_of_an_unknown_part_is_404_not_500():
     assert client.get("/api/audit/TR-NOT-A-PART").status_code == 404
 
 
+def test_dfmea_sheet_fills_the_form_sheet_columns():
+    body = client.post("/api/dfmea-sheet", json={"items": [{
+        "part_number": "87654321",
+        "description": SAMPLE_PART["part_name"],
+        "function": SAMPLE_PART["function"],
+        "material": SAMPLE_PART["material"],
+        "system_package": "Fuel Routings",
+    }]}).json()
+    assert body["total_rows"] > 0
+    block = body["items"][0]
+    assert block["status"] == "success"
+    assert block["part_number"] == "87654321"
+
+    for row in block["rows"]:
+        # The columns an engineer reads off the sheet.
+        for column in ("failure_mode", "potential_effect", "potential_cause",
+                       "design_control_prevention", "detection_control",
+                       "recommended_action", "drawing_spec"):
+            assert row[column], (column, row["mode_id"])
+        assert row["pes"] in {"Y", "N"}
+        assert row["action_priority"] in {"H", "M", "L"}
+        assert row["rpn_legacy"] == row["severity"] * row["occurrence"] * row["detection"]
+
+
+def test_dfmea_sheet_leaves_commitment_columns_empty():
+    """Responsibility, target date and action taken are commitments. The
+    tool must not invent an owner or a date nobody agreed to."""
+    body = client.post("/api/dfmea-sheet", json={"items": [{
+        "description": SAMPLE_PART["part_name"],
+        "function": SAMPLE_PART["function"],
+    }]}).json()
+    for row in body["items"][0]["rows"]:
+        assert row["responsibility"] == ""
+        assert row["target_completion_date"] == ""
+        assert row["action_taken"] == ""
+        assert row["completed_date"] == ""
+
+
+def test_dfmea_sheet_reassessment_never_lowers_severity():
+    """Severity is fixed by the failure effect. An action can cut how often
+    a failure happens or how well it is caught, but if the effect still
+    reaches the operator the severity is unchanged."""
+    body = client.post("/api/dfmea-sheet", json={"items": [{
+        "description": SAMPLE_PART["part_name"],
+        "function": SAMPLE_PART["function"],
+        "material": SAMPLE_PART["material"],
+    }]}).json()
+    rows = body["items"][0]["rows"]
+    assert len(rows) > 0
+    for row in rows:
+        assert row["reassessed_severity"] == row["severity"]
+        assert row["reassessed_occurrence"] <= row["occurrence"]
+        assert row["reassessed_detection"] <= row["detection"]
+        assert row["reassessment_basis"]
+
+
+def test_dfmea_sheet_handles_a_package_of_parts():
+    body = client.post("/api/dfmea-sheet", json={"items": [
+        {"part_number": "A1", "description": "EPDM Fuel Return Line",
+         "function": "Return diesel to the tank", "material": "EPDM rubber"},
+        {"part_number": "B2", "description": "Fuel Filter Mounting Bracket",
+         "function": "Support the filter head against vibration",
+         "material": "Cast aluminium"},
+    ]}).json()
+    assert len(body["items"]) == 2
+    assert [b["part_number"] for b in body["items"]] == ["A1", "B2"]
+    # Different kinds of part must not be handed the same failure modes.
+    types = {b["part_type_id"] for b in body["items"]}
+    assert len(types) == 2, types
+    assert body["total_rows"] == sum(len(b["rows"]) for b in body["items"])
+
+
+def test_dfmea_sheet_rejects_empty_and_oversized_requests():
+    assert client.post("/api/dfmea-sheet", json={"items": []}).status_code == 400
+    too_many = [{"description": "x", "function": "y"} for _ in range(26)]
+    assert client.post("/api/dfmea-sheet", json={"items": too_many}).status_code == 400
+
+
+def test_dfmea_sheet_reports_an_undescribed_item_without_failing_the_batch():
+    body = client.post("/api/dfmea-sheet", json={"items": [
+        {"part_number": "GOOD", "description": SAMPLE_PART["part_name"],
+         "function": SAMPLE_PART["function"]},
+        {"part_number": "EMPTY"},
+    ]}).json()
+    statuses = {b["part_number"]: b["status"] for b in body["items"]}
+    assert statuses["GOOD"] == "success"
+    assert statuses["EMPTY"] == "insufficient_input"
+
+
 def test_agui_endpoint_is_mounted():
     """The AG-UI streaming endpoint the CopilotKit frontend talks to. Only
     checks that it is registered and accepts POST - actually running it

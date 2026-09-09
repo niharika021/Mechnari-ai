@@ -22,6 +22,7 @@ from pydantic import BaseModel
 import agui_endpoint
 import backtest
 import data_layer
+import dfmea_sheet
 import gap_detection
 import queue_store
 import retrieval
@@ -135,6 +136,37 @@ def propose_dfmea(req: ProposeRequest) -> Dict[str, Any]:
         "neighbours": _records(proposal["neighbours"]),
         "candidates": candidates,
     }
+
+
+class SheetItem(BaseModel):
+    part_number: str = ""
+    description: str = ""
+    function: str = ""
+    material: str = ""
+    system_package: str = ""
+    part_type_id: str = ""
+    existing_part_id: str = ""
+
+
+class SheetRequest(BaseModel):
+    # One entry for a single part, several for a package/assembly. The
+    # shape is the same either way so the frontend does not need two
+    # request paths for what is one operation repeated.
+    items: List[SheetItem]
+
+
+@app.post("/api/dfmea-sheet")
+def dfmea_sheet_route(req: SheetRequest) -> Dict[str, Any]:
+    if not req.items:
+        raise HTTPException(400, "Send at least one part.")
+    if len(req.items) > 25:
+        raise HTTPException(400, "At most 25 parts per package in one request.")
+    try:
+        return dfmea_sheet.build([item.model_dump() for item in req.items])
+    except data_layer.DatasetError as exc:
+        raise _dataset_error(exc)
+    except KeyError:
+        raise HTTPException(400, "Unknown part_type_id.")
 
 
 class LeverRequest(BaseModel):
