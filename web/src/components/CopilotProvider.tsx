@@ -22,6 +22,14 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
       // CopilotKit's dev console overlays a debug button in the corner -
       // useful while developing, noise in a demo.
       showDevConsole={false}
+      // Since 1.70 there is a second, separate debug surface: the web
+      // inspector, which showDevConsole does not gate. It opens a large
+      // panel over the middle of the page - directly on top of the intake
+      // form the copilot is filling in, which is the one thing a viewer
+      // needs to be able to see. It is development-only and can never
+      // render in production, so this changes nothing about the deployed
+      // site; it is here so the local run looks like the deployed one.
+      enableInspector={false}
     >
       {children}
     </CopilotKit>

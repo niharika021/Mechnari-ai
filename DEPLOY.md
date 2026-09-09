@@ -117,7 +117,7 @@ gcloud run deploy mechnari-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.5-flash-lite \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.7-flash \
   --memory 1Gi
 ```
 

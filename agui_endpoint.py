@@ -21,9 +21,30 @@ import os
 import time
 from typing import Any, Dict
 
-from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
+from ag_ui_adk import ADKAgent, AGUIToolset, add_adk_fastapi_endpoint
 
 from mechnari_agent import agent as mechnari_agent
+
+# Frontend tools do not arrive on their own. ag-ui-adk walks the agent tree
+# looking for an AGUIToolset placeholder and swaps in a per-run
+# ClientProxyToolset built from the tools the browser declared; an agent
+# with no placeholder simply never sees them. Without this line the model
+# was told nothing about goToView or fillPartIntake, so every "switch to
+# the company view" turned into an apology or into whatever backend tool
+# read closest - which looked like the model preferring its own tools and
+# was really the model not having the choice.
+#
+# Root only, deliberately. The sub-agents answer questions about scores and
+# gaps; none of them should be driving the interface, and keeping the
+# placeholder off them is what makes the instruction "do not transfer for a
+# UI request" true rather than merely asked for.
+#
+# New list rather than .append(): KNOWLEDGE_BASE_TOOLS is a shared module
+# constant, and `adk run` should not inherit a web-only placeholder.
+mechnari_agent.root_agent.tools = [
+    *mechnari_agent.root_agent.tools,
+    AGUIToolset(),
+]
 
 # There is no per-user auth in this build - the three role views are tabs,
 # not accounts - so every AG-UI conversation runs as one service user, the

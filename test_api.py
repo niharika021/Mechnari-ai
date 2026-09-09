@@ -526,6 +526,43 @@ def test_agui_endpoint_is_mounted():
     assert "POST" in route.methods
 
 
+def test_the_root_agent_carries_the_frontend_tool_placeholder():
+    """Without an AGUIToolset in the root agent's tools, the browser's tools
+    are never given to the model - ag-ui-adk builds the per-run
+    ClientProxyToolset by *substituting* that placeholder, so an agent
+    without one simply never learns the frontend tools exist.
+
+    This is worth a test because of how the failure presents. Nothing
+    errors. The model answers in prose, or reaches for whichever backend
+    tool reads closest - 'switch to the company view' came back as an
+    apology, 'open the DFMEA for TR-FL-001' called get_part_profile - which
+    looks exactly like a model that prefers its own tools, and sends you off
+    tuning the instruction and swapping models instead of fixing one line of
+    wiring.
+
+    Root only, deliberately: the sub-agents explain scores and gaps and have
+    no business driving the interface. That is also what makes the
+    instruction 'do not transfer for a UI request' true rather than merely
+    asked for."""
+    from ag_ui_adk import AGUIToolset
+
+    import agui_endpoint
+    from mechnari_agent import agent as mechnari_agent
+
+    assert any(isinstance(t, AGUIToolset)
+               for t in mechnari_agent.root_agent.tools), (
+        "root_agent has no AGUIToolset - the frontend's tools will not reach "
+        "the model and every UI request degrades silently into chat prose")
+
+    for sub in mechnari_agent.root_agent.sub_agents:
+        assert not any(isinstance(t, AGUIToolset)
+                       for t in getattr(sub, "tools", [])), (
+            f"{sub.name} carries a frontend-tool placeholder; UI actions "
+            "belong to the coordinator alone")
+
+    assert agui_endpoint.AGUI_PATH == "/api/ag-ui"
+
+
 def test_copilot_health_reports_whether_the_key_actually_works():
     body = client.get("/api/copilot/health").json()
     # Presence and validity are different questions, and the second is the

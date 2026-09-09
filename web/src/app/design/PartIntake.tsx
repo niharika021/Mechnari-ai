@@ -37,6 +37,7 @@ import {
   type AnyReportSummary,
 } from "@/lib/reportStore";
 import { useAuth } from "@/lib/auth";
+import { CopilotActions, type IntakeFields } from "@/components/CopilotActions";
 
 type Row = {
   key: number;
@@ -287,8 +288,113 @@ export function PartIntake({
     }
   }
 
+  /**
+   * What the copilot may do here.
+   *
+   * These reuse the same functions the buttons call, so an agent-driven
+   * build is the identical code path as a clicked one - there is no
+   * second, less-tested route through the app for the agent to take.
+   */
+  const firstRow = rows[0];
+  const copilotHandlers = {
+    fillIntake: (fields: IntakeFields) => {
+      if (!firstRow) return;
+      update(firstRow.key, {
+        ...(fields.part_number !== undefined
+          ? { part_number: fields.part_number }
+          : {}),
+        ...(fields.description !== undefined
+          ? { description: fields.description }
+          : {}),
+        ...(fields.function !== undefined ? { function: fields.function } : {}),
+        ...(fields.material !== undefined ? { material: fields.material } : {}),
+      });
+      if (fields.system_package && systemPackages.includes(fields.system_package)) {
+        setSystemPackage(fields.system_package);
+      }
+    },
+    build: () => {
+      // Same submit the button runs; the synthetic event only exists
+      // because handleSubmit takes one to preventDefault.
+      void handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+    },
+    reanalyseAs: (partTypeName: string) => {
+      const match = partTypes.find(
+        (pt) =>
+          pt.part_type_name.toLowerCase() === partTypeName.toLowerCase().trim() ||
+          pt.part_type_name.toLowerCase().includes(partTypeName.toLowerCase().trim()),
+      );
+      if (!match || !review?.[0]) return false;
+      void reanalyse(review[0].partNumber, match.part_type_id);
+      return true;
+    },
+    openExisting: (partIdOrName: string) => {
+      const needle = partIdOrName.toLowerCase().trim();
+      const match = parts.find(
+        (p) =>
+          p.part_id.toLowerCase() === needle ||
+          p.item_reference.toLowerCase().includes(needle),
+      );
+      if (!match) return false;
+      switchMode("existing");
+      setExistingPartId(match.part_id);
+      void api.existingDfmea(match.part_id).then(setExisting).catch(() => {
+        setError("Could not load that part's DFMEA.");
+      });
+      return true;
+    },
+    declineRow: (modeId: string, reason: string) => {
+      if (!review) return false;
+      let found = false;
+      setReview((prev) =>
+        prev
+          ? prev.map((state) => ({
+              ...state,
+              rows: state.rows.map((r) => {
+                if (r.mode_id !== modeId) return r;
+                found = true;
+                return { ...r, include: false, decline_reason: reason };
+              }),
+            }))
+          : prev,
+      );
+      return found;
+    },
+    context: {
+      stage: review ? "reviewing findings" : mode === "existing" ? "reading an existing DFMEA" : "entering part details",
+      mode,
+      system_package: systemPackage,
+      intake: firstRow
+        ? {
+            part_number: firstRow.part_number,
+            description: firstRow.description,
+            function: firstRow.function,
+            material: firstRow.material,
+          }
+        : null,
+      findings: review?.[0]
+        ? {
+            identified_as: review[0].partTypeName,
+            confidence: review[0].confidence,
+            rows: review[0].rows.map((r) => ({
+              mode_id: r.mode_id,
+              failure_mode: r.failure_mode,
+              severity: r.severity,
+              occurrence: r.occurrence,
+              detection: r.detection,
+              action_priority: r.action_priority,
+              included: r.include,
+              evidence_ids: r.evidence_ids,
+            })),
+          }
+        : null,
+    },
+  };
+
   return (
     <div className="mt-5 flex flex-col gap-6">
+      <CopilotActions handlers={copilotHandlers} />
+
       <MyReports
         reports={reports}
         storageOk={storageOk}
