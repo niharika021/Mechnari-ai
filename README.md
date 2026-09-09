@@ -4,7 +4,8 @@
 [![Agents](https://img.shields.io/badge/Agents-Google%20ADK%202.x-4285F4.svg)](https://google.github.io/adk-docs/)
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js%20%2B%20FastAPI-000000.svg)](https://nextjs.org/)
 [![Standard](https://img.shields.io/badge/Standard-AIAG--VDA%20Action%20Priority-0F6B63.svg)](https://www.aiag.org/)
-[![Tests](https://img.shields.io/badge/tests-103%20passing-2F6B3C.svg)](#-tests)
+[![Tests](https://img.shields.io/badge/tests-137%20passing-2F6B3C.svg)](#-tests)
+[![Live](https://img.shields.io/badge/live-app.mechnari.in-1a73e8.svg)](https://app.mechnari.in)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Mechnari.ai treats a manufacturer's own warranty history as the primary knowledge
@@ -27,6 +28,10 @@ consistent with each other or with what the last program already learned.
 > automated. The defensible claim is the inverse: *you have already seen this
 > failure, and this DFMEA did not check for it.* That is checkable against an 8D
 > number and it survives an audit.
+
+**Live: <https://app.mechnari.in>** — three role views, signed out by default.
+Sign in with Google only to keep reports against your account; nothing else is
+gated. Deployed on Cloud Run (see [DEPLOY.md](DEPLOY.md)).
 
 ---
 
@@ -99,8 +104,19 @@ graph TD
     QE([Quality Engineer]) --> WEB
     CO([Company / Leadership]) --> WEB
     WEB <--> API[FastAPI - api.py, no arithmetic of its own]
+    WEB <-->|AG-UI over CopilotKit v2| AGUI[agui_endpoint.py]
     ST([Streamlit fallback]) --> ENG
     API --> ENG
+    API --> STORE
+    AGUI --> ADK
+
+    subgraph STORE[Persistence]
+        RS[report_store.py - reports by owner_uid]
+        QS[queue_store.py - draft review queue]
+        AU[auth.py - Firebase token verification]
+    end
+
+    STORE --> FS[(Firestore, JSON file fallback)]
 
     subgraph ENG[Deterministic engines]
         RET[retrieval.py - TF-IDF cosine, head-noun weighted]
@@ -122,6 +138,18 @@ test suite and shapes the return value as JSON. It computes nothing. The Next.js
 frontend talks only to that boundary; Streamlit keeps calling the same modules
 in-process, unchanged. **Neither frontend can produce a number the engines did not
 produce, because neither frontend contains the arithmetic.**
+
+The copilot reaches the browser over the **AG-UI** protocol and can act on the
+interface, not only describe it — fill the intake form from a spoken part
+description, run the analysis, re-analyse with a corrected part type, open a
+DFMEA already on file, switch role views. Three things it must refuse, and has
+no tool for on either side: setting a Severity, Occurrence or Detection score;
+marking an action complete; naming who owns an action. Severity comes from the
+organisation's effect registry and Occurrence is counted from warranty claims,
+so editing either would turn evidence back into opinion; completion and
+ownership are claims about the real world only an engineer can make. Leaving a
+row out is the middle case — a judgement with audit consequences — so the agent
+proposes it and the engineer approves it inline.
 
 ### Why not RPN
 
@@ -160,12 +188,18 @@ and do not want the same screen.
 | Route | Role | What it does |
 | --- | --- | --- |
 | `/design` | Design Engineer | Describe a part that need not exist yet; get candidate rows with the 8D records behind them, and on every High row the single change in Occurrence or Detection that would actually move its Action Priority — computed against the AP table, not suggested |
-| `/quality` | Quality Engineer | A review queue of submitted drafts, each linkable by URL; declined High rows show as *considered and declined* rather than missing. The same audit suite runs against parts already on file |
+| `/quality` | Quality Engineer | A review queue of submitted drafts, each linkable by URL; declined High rows show as *considered and declined* rather than missing. Quality reads the full form sheet, takes the actions and marks them done — the closure date and time are stamped into the report. The same audit suite runs against parts already on file |
 | `/company` | Company & Leadership | Coverage, open safety gaps by subsystem, and the backtest curve — the evidence for the spend, not row detail |
 
 The split is what makes the declined-row trail possible: an engineer who leaves a
 High row out is recorded as having decided, not as having missed it. That is the
 artefact an auditor asks for.
+
+Output is the **AIAG-VDA form sheet** itself — 29 columns, an 8D reference on
+every row, Occurrence measured from real claims rather than estimated, and the
+reassessed risk each recommended action would actually achieve. Responsibility,
+target date, action taken and completion are left deliberately empty: they are
+commitments, and the system does not invent them.
 
 ---
 
@@ -210,7 +244,10 @@ Then set `GOOGLE_CLOUD_PROJECT` in `.env` to that project.
 > Model names do not carry over: Vertex serves versioned publisher models
 > and 404s on AI Studio's floating aliases (`gemini-flash-latest`).
 > Availability is regional — `gemini-3.5-flash-lite` serves from `global`
-> but not from `us-central1`.
+> but not from `us-central1`. This deployment runs
+> **`gemini-3.7-flash`** from `global`; note that the `-lite` variant of
+> 3.7 does not exist, so `gemini-3.7-flash-lite` 404s while the plain
+> name resolves. Set it with `MECHNARI_MODEL`.
 
 ### Run it — Next.js frontend
 
@@ -250,7 +287,7 @@ The generator is seeded, so the figures in this README reproduce exactly.
 
 ## 🧪 Tests
 
-**103 tests across 7 suites, all passing.** Each file runs standalone or under
+**137 tests across 8 suites, all passing.** Each file runs standalone or under
 pytest:
 
 ```bash
@@ -259,13 +296,14 @@ for f in test_*.py; do py "$f"; done
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
+| `test_api.py` | 39 | Route wiring, JSON-safety, 404-not-500, queue round trip, form-sheet assembly, and that the root agent carries the frontend-tool placeholder |
 | `test_risk_engine.py` | 23 | S/O/D derivation, AP band lookup, lever finding |
-| `test_api.py` | 17 | Route wiring, JSON-safety, 404-not-500, queue round trip |
 | `test_retrieval.py` | 17 | Describe/similarity, type inference, proposals |
 | `test_mechnari_tools.py` | 13 | ADK tool surface — including that no agent can write a score |
 | `test_backtest.py` | 12 | Temporal holdout, unknowable exclusion, claim weighting |
 | `test_gap_detection.py` | 12 | Type ∪ family applicability, severity consistency |
-| `test_queue_store.py` | 9 | Draft queue atomicity and corruption recovery |
+| `test_queue_store.py` | 11 | Draft queue atomicity, corruption recovery, Firestore fallback |
+| `test_report_store.py` | 10 | Report ownership — missing returns None, not-yours raises |
 
 ---
 
@@ -280,13 +318,18 @@ Mechnari-ai/
 ├── risk_engine.py           # S/O/D, AIAG-VDA Action Priority, AP levers
 ├── retrieval.py             # TF-IDF retrieval, type inference, DFMEA proposal
 ├── backtest.py              # Temporal holdout + cold-start harnesses
-├── queue_store.py           # Draft review queue (JSON, atomic writes)
+├── queue_store.py           # Draft review queue (Firestore, JSON file fallback)
+├── report_store.py          # Generated reports, owned by verified account
+├── dfmea_sheet.py           # AIAG-VDA form-sheet assembly
+├── auth.py                  # Firebase token verification; signed out is valid
+├── agui_endpoint.py         # AG-UI endpoint over the same root agent
 ├── mechnari_agent/agent.py  # Google ADK 2.x root agent, sub_agents, Workflow
 ├── mechnari_tools.py        # Plain-function tools handed to the agents
 ├── api.py                   # FastAPI wrapper - thin, computes nothing
 ├── app.py                   # Streamlit fallback UI
-├── web/                     # Next.js frontend (three role views)
-├── test_*.py                # 7 suites, 103 tests
+├── web/                     # Next.js frontend (three role views, CopilotKit v2)
+├── DEPLOY.md                # Cloud Run deployment, and the traps in it
+├── test_*.py                # 8 suites, 137 tests
 ├── docs/build-dossier.html  # Concept and build report
 ├── intro.md                 # Plain-language introduction
 ├── schema.sql               # BigQuery DDL
@@ -311,14 +354,29 @@ Stated here rather than discovered in review.
   the effect it had on the part that taught it, so a coolant drain valve can
   inherit an AC valve's cab-climate effect. Re-evaluating effect per target part is
   the known fix.
+- **Reports made signed out stay in that browser.** They are held in
+  `localStorage` and tagged *this browser* in the list. Signing in keeps new
+  reports with the account; it does not retroactively adopt the old ones, because
+  claiming them would mean guessing that whoever is holding the browser is
+  whoever just authenticated.
+- **Saving a report against an account has not been exercised end to end.**
+  Google sign-in is confirmed working against the live domain, and the ownership
+  rules are covered by `test_report_store.py`, but no report has yet been written
+  to Firestore under a real `owner_uid`. Treat that path as untested rather than
+  as working.
 
 ## 🗺️ Roadmap
 
 1. Verify the Action Priority cells against the AIAG-VDA handbook and lift the provisional label
-2. Export to the AIAG-VDA form sheet, so output lands in the format engineers already use
-3. Replace synthetic data with a pilot company's anonymised warranty set; re-run the backtest unchanged
-4. Migrate the CSV layer to Postgres with real multi-tenant auth
-5. Close the loop: when a new claim arrives, flag which shipped DFMEAs predicted low risk for that mode
+2. Replace synthetic data with a pilot company's anonymised warranty set; re-run the backtest unchanged
+3. Migrate the CSV layer to Postgres with real multi-tenant auth
+4. Close the loop: when a new claim arrives, flag which shipped DFMEAs predicted low risk for that mode
+5. Migrate reports made while signed out into an account on first sign-in
+
+Shipped since the first cut: the AIAG-VDA form sheet as the actual output, the
+human-in-the-loop review between findings and report, the Quality action-closure
+handoff, Firestore persistence, optional Google sign-in, and a copilot that acts
+on the interface rather than describing it.
 
 ---
 
