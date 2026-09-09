@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, type SheetResult, type SheetRow } from "@/lib/api";
+import {
+  api,
+  type Neighbour,
+  type PartType,
+  type SheetResult,
+  type SheetRow,
+} from "@/lib/api";
+import { AnalysisOverview } from "@/components/AnalysisOverview";
 import { ApBadge, Button, Callout, Card, MetricTile } from "@/components/ui";
 
 /**
@@ -47,6 +54,15 @@ export type ReviewState = {
   partNumber: string;
   itemInterface: string;
   partTypeName: string;
+  // The basis the rows were generated from. Kept because it is the thing
+  // most worth checking first: the part type decides which failure modes
+  // are even proposed, and it is often an inference rather than a fact.
+  partTypeId: string;
+  familyName: string;
+  confidence: number;
+  confirmed: boolean;
+  typeReason: string;
+  neighbours: Neighbour[];
   rows: ReviewRow[];
 };
 
@@ -57,6 +73,12 @@ export function toReviewState(result: SheetResult): ReviewState[] {
       partNumber: block.part_number,
       itemInterface: block.item_interface ?? "",
       partTypeName: block.part_type_name ?? "",
+      partTypeId: block.part_type_id ?? "",
+      familyName: block.family_name ?? "",
+      confidence: block.confidence ?? 0,
+      confirmed: block.confirmed ?? false,
+      typeReason: block.type_reason ?? "",
+      neighbours: block.similar_parts ?? [],
       rows: block.rows.map((row) => ({
         ...row,
         include: true,
@@ -129,14 +151,34 @@ function blankEngineerRow(state: ReviewState): ReviewRow {
 
 export function DfmeaReview({
   initial,
+  partTypes,
+  apTableVerified,
   onGenerate,
   onBack,
+  onReanalyse,
+  reanalysing = false,
 }: {
   initial: ReviewState[];
+  partTypes: PartType[];
+  apTableVerified: boolean;
   onGenerate: (states: ReviewState[]) => void;
   onBack: () => void;
+  onReanalyse: (partNumber: string, partTypeId: string) => void;
+  reanalysing?: boolean;
 }) {
   const [states, setStates] = useState<ReviewState[]>(initial);
+
+  // A re-analysis replaces the findings wholesale, so the review resets to
+  // them rather than trying to merge edits onto rows that may no longer
+  // exist. Losing edits is the correct behaviour here - they were made
+  // against a basis the engineer has just rejected.
+  const seeded = useRef(initial);
+  useEffect(() => {
+    if (initial !== seeded.current) {
+      seeded.current = initial;
+      setStates(initial);
+    }
+  }, [initial]);
   const [rescoring, setRescoring] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -301,6 +343,18 @@ export function DfmeaReview({
               {state.itemInterface}
             </h4>
             <span className="text-xs text-ink-faint">{state.partTypeName}</span>
+          </div>
+
+          <div className="mt-3">
+            <AnalysisOverview
+              state={state}
+              partTypes={partTypes}
+              apTableVerified={apTableVerified}
+              reanalysing={reanalysing}
+              onReanalyse={(partTypeId) =>
+                onReanalyse(state.partNumber, partTypeId)
+              }
+            />
           </div>
 
           <div className="mt-3 flex flex-col gap-2.5">

@@ -167,6 +167,47 @@ export function PartIntake({
     }
   }
 
+  const [reanalysing, setReanalysing] = useState(false);
+
+  /**
+   * The engineer corrected the part type. Re-run that part with the type
+   * confirmed, and splice the fresh findings in place.
+   *
+   * Only the corrected part is re-run: in a package the other parts were
+   * identified independently and re-running them would discard review work
+   * for no reason.
+   */
+  async function reanalyse(partNumber: string, partTypeId: string) {
+    const source = describable.find((r) => r.part_number === partNumber);
+    if (!source) return;
+    setReanalysing(true);
+    setError(null);
+    try {
+      const fresh = await api.dfmeaSheet([{
+        part_number: source.part_number,
+        description: source.description,
+        function: source.function,
+        material: source.material,
+        system_package: systemPackage,
+        part_type_id: partTypeId,
+      }]);
+      const [replacement] = toReviewState(fresh);
+      if (!replacement) {
+        setError("That part type produced no applicable failure modes.");
+        return;
+      }
+      setReview((prev) =>
+        prev
+          ? prev.map((s) => (s.partNumber === partNumber ? replacement : s))
+          : prev,
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reach the API.");
+    } finally {
+      setReanalysing(false);
+    }
+  }
+
   const describable = rows.filter(
     (r) => r.description.trim() || r.function.trim() || r.material.trim(),
   );
@@ -377,6 +418,10 @@ export function PartIntake({
       {review ? (
         <DfmeaReview
           initial={review}
+          partTypes={partTypes}
+          apTableVerified={found?.ap_table_verified ?? false}
+          onReanalyse={reanalyse}
+          reanalysing={reanalysing}
           onBack={() => setReview(null)}
           onGenerate={(states) => {
             setReview(null);
