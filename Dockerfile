@@ -13,8 +13,17 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY taxonomy.py data_layer.py gap_detection.py risk_engine.py retrieval.py \
-     backtest.py queue_store.py mechnari_tools.py agui_endpoint.py api.py ./
+# Every module, not a hand-written list of them. The list version went
+# stale the moment new modules appeared and failed the deploy with
+# "ModuleNotFoundError: No module named 'auth'" - auth.py, report_store.py
+# and dfmea_sheet.py had all been added without it. A manifest that has no
+# mechanism to stay correct will drift, and it drifts silently until the
+# container will not start.
+#
+# What must NOT ship is excluded in .dockerignore instead: tests, the
+# frontend, local state, secrets. That is one place to look, and adding a
+# module cannot break it.
+COPY *.py ./
 COPY mechnari_agent/ ./mechnari_agent/
 COPY data/ ./data/
 

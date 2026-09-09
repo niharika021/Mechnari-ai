@@ -13,8 +13,20 @@ RUN npm ci
 # ---- builder: compile with the real API URL inlined
 FROM node:20-slim AS builder
 WORKDIR /app
+# Every NEXT_PUBLIC_* value has to be present at build time - Next.js
+# inlines them into the client bundle, so setting them at run time does
+# nothing. Unset Firebase values simply hide the sign-in button; the app
+# works signed out.
 ARG NEXT_PUBLIC_API_BASE
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
 ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+ENV NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
