@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CopilotSidebar } from "@copilotkit/react-ui";
+import { CopilotSidebar } from "@copilotkit/react-core/v2";
 import { api } from "@/lib/api";
 
 const READY_INITIAL =
@@ -19,11 +19,18 @@ const READY_INITIAL =
  * conversation are on screen together, which is the point - the agent's
  * actions are visible as they happen rather than described afterwards.
  *
- * The instructions below spell out what the agent must refuse. That is
- * framing, not enforcement: the real guarantee is that no tool exists for
- * setting a score or stamping a completion, on the frontend
- * (CopilotActions.tsx) or the backend (test_mechnari_tools.py). Saying it
- * here just means the refusal comes with a reason instead of an apology.
+ * v2 has no `instructions` prop, and the rules that used to live here have
+ * moved to the ADK agent's own instruction in mechnari_agent/agent.py.
+ * That is where they belonged: they were a second copy of rules the
+ * backend agent already states, and two copies of a rule is one copy too
+ * many for a rule about not fabricating numbers. Nothing was dropped -
+ * `_UI_ACTIONS_RULE` and `_NUMBERS_RULE` carry it, and they now apply to
+ * every caller of the agent rather than only to this sidebar.
+ *
+ * What is enforced rather than instructed: no tool exists for setting a
+ * score or stamping a completion, on the frontend (CopilotActions.tsx) or
+ * the backend (test_mechnari_tools.py). An agent cannot take an action it
+ * has no tool for, whatever it is asked or told.
  */
 export function MechnariCopilot() {
   const [unavailable, setUnavailable] = useState<string | null>(null);
@@ -47,38 +54,18 @@ export function MechnariCopilot() {
 
   return (
     <CopilotSidebar
+      // Which agent to talk to is the chat's business in v2, not the
+      // provider's. Must match the key in the runtime's `agents` map.
+      agentId="mechnari"
       defaultOpen={false}
-      clickOutsideToClose={false}
-      instructions={
-        "You are Mechnari's DFMEA copilot, working alongside a mechanical " +
-        "design engineer.\n\n" +
-        "You can act on the interface, not just talk: fill the intake form " +
-        "from what the engineer describes, run the analysis, re-analyse " +
-        "with a corrected part type, open the DFMEA already on file for a " +
-        "part, and switch role views. Prefer doing over instructing - if " +
-        "the engineer describes a part, fill the form and say so rather " +
-        "than telling them which boxes to type in.\n\n" +
-        "You must refuse three things, and you have no tools for them: " +
-        "changing a Severity, Occurrence or Detection score; marking an " +
-        "action complete; naming who owns an action. Severity comes from " +
-        "the organisation's effect registry and Occurrence is counted from " +
-        "warranty claims, so editing them would turn evidence back into " +
-        "opinion. Completion and ownership are claims about the real world " +
-        "that only the engineer can make. When asked for any of these, call " +
-        "explainWhyICannotChangeScores rather than apologising vaguely.\n\n" +
-        "Leaving a row out of the DFMEA is the engineer's judgement, so " +
-        "propose it with proposeDeclineRow and let them approve it.\n\n" +
-        "When explaining findings, always cite the 8D or warranty record a " +
-        "claim rests on, and never state a score you did not read from a " +
-        "tool result. If you do not have it, say so and name the tool that " +
-        "would."
-      }
       labels={{
-        title: "Ask Mechnari",
-        initial: unavailable
+        modalHeaderTitle: "Ask Mechnari",
+        welcomeMessageText: unavailable
           ? `⚠️ ${unavailable} I can't answer or act until that's fixed — every score, gap and backtest figure in the app is unaffected, because none of them go through this key.`
           : READY_INITIAL,
-        placeholder: unavailable ? "Copilot unavailable…" : "Ask, or describe a part…",
+        chatInputPlaceholder: unavailable
+          ? "Copilot unavailable…"
+          : "Ask, or describe a part…",
       }}
     />
   );

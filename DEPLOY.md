@@ -154,9 +154,14 @@ exists for this), then deploy that image. From the repository root:
 API_URL=https://mechnari-api-xxxxx-uc.a.run.app
 IMAGE=us-central1-docker.pkg.dev/project-b284a92b-1eec-4e4c-add/cloud-run-source-deploy/mechnari-web:latest
 
+# The four Firebase values are NEXT_PUBLIC_*, so they are compiled in at
+# build time exactly like the API base - passing them at run time does
+# nothing. Omitting them is not an error: the build succeeds and the app
+# works, just permanently signed out with the sign-in button hidden, which
+# is a confusing thing to debug later. Copy them from web/.env.local.
 gcloud builds submit web \
   --config web/cloudbuild.yaml \
-  --substitutions=_API_BASE=$API_URL,_IMAGE=$IMAGE
+  --substitutions=_API_BASE=$API_URL,_IMAGE=$IMAGE,_FB_API_KEY=$FB_API_KEY,_FB_AUTH_DOMAIN=$FB_AUTH_DOMAIN,_FB_PROJECT_ID=$FB_PROJECT_ID,_FB_APP_ID=$FB_APP_ID
 
 gcloud run deploy mechnari-web \
   --image $IMAGE \

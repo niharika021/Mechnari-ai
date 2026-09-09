@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
-import "@copilotkit/react-ui/styles.css";
+import "@copilotkit/react-ui/v2/styles.css";
 import "./globals.css";
 import { RoleNav } from "@/components/RoleNav";
 import { AuthProvider } from "@/lib/auth";
