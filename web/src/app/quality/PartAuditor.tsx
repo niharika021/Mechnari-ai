@@ -38,13 +38,13 @@ export function PartAuditor({ parts }: { parts: Part[] }) {
         <div className="flex flex-col gap-2.5">
           {result.severity_findings.length === 0 ? (
             <Callout tone="ok">
-              ✓ Severity matches the organization standard for every effect on
+              Severity matches the organization standard for every effect on
               this part.
             </Callout>
           ) : (
             result.severity_findings.map((f, i) => (
               <Callout tone="crit" key={i}>
-                ⚠ <strong>{f.failure_mode}</strong>: {f.finding} (scored S=
+                <strong>{f.failure_mode}</strong>: {f.finding} (scored S=
                 {f.severity}, standard S={f.standard_severity} for {f.effect_description})
               </Callout>
             ))
@@ -52,12 +52,12 @@ export function PartAuditor({ parts }: { parts: Part[] }) {
 
           {result.occurrence_findings.length === 0 ? (
             <Callout tone="ok">
-              ✓ Occurrence on file is consistent with the warranty record.
+              Occurrence on file is consistent with the warranty record.
             </Callout>
           ) : (
             result.occurrence_findings.map((f, i) => (
               <Callout tone="warn" key={i}>
-                ~ <strong>{f.failure_mode}</strong>: filed O={f.occurrence},{" "}
+                <strong>{f.failure_mode}</strong>: filed O={f.occurrence},{" "}
                 {f.finding.toLowerCase()} to O={f.derived_occurrence} ({f.evidence_scope},{" "}
                 {f.evidence_ids})
               </Callout>
@@ -66,12 +66,12 @@ export function PartAuditor({ parts }: { parts: Part[] }) {
 
           {result.gaps.length === 0 ? (
             <Callout tone="ok">
-              ✓ Coverage complete - every catalogued mode for this part&apos;s
+              Coverage complete — every catalogued mode for this part&apos;s
               type and family is analysed.
             </Callout>
           ) : (
             <Callout tone="crit">
-              ⚠ {result.gaps.length} catalogued failure mode(s) not yet
+              {result.gaps.length} catalogued failure mode(s) not yet
               analysed, {result.gaps.filter((g) => g.standard_severity >= 9).length} at
               severity 9+.
             </Callout>

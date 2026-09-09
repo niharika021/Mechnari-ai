@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconCheck } from "@/components/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, type Draft } from "@/lib/api";
 import { Button, Callout, Card, Spinner, StatusPill, TextArea } from "@/components/ui";
@@ -43,7 +44,7 @@ function draftToSheet(draft: Draft): SheetResult {
 /** Where a row came from. A blank source means the draft predates the
  *  review step - not that nobody checked it. */
 function RowSource({ provenance }: { provenance?: string }) {
-  if (!provenance) return <span className="text-[11px] text-ink-faint">-</span>;
+  if (!provenance) return <span className="text-micro text-ink-faint">-</span>;
   const label =
     provenance === "engineer_added"
       ? "Engineer's own"
@@ -58,7 +59,7 @@ function RowSource({ provenance }: { provenance?: string }) {
         : "bg-ok-soft text-ok";
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-wide ${tone}`}
+      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-wide ${tone}`}
     >
       {label}
     </span>
@@ -123,7 +124,7 @@ export function QueueBrowser({
     <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
       <Card className="max-h-[520px] overflow-y-auto">
         {queue.length === 0 ? (
-          <p className="p-4 text-[13px] text-ink-faint">
+          <p className="p-4 text-sm text-ink-faint">
             No drafts submitted yet - use the Design Engineer tab to send one.
           </p>
         ) : (
@@ -156,17 +157,17 @@ export function QueueBrowser({
 
       <Card className="px-5 py-4">
         {!activeId ? (
-          <p className="text-[13px] text-ink-faint">
+          <p className="text-sm text-ink-faint">
             Select a submitted draft on the left, or audit an existing part below.
           </p>
         ) : loadingDraft ? (
           <Spinner />
         ) : !draft ? (
-          <p className="text-[13px] text-ink-faint">That draft could not be found.</p>
+          <p className="text-sm text-ink-faint">That draft could not be found.</p>
         ) : (
           <div className="flex flex-col gap-4">
             <div>
-              <h4 className="font-display text-[15px] font-semibold text-ink">
+              <h4 className="font-display text-lg font-semibold text-ink">
                 {draft.draft_id} — {draft.part_name}
               </h4>
               <p className="text-xs text-ink-faint">
@@ -200,7 +201,7 @@ export function QueueBrowser({
                 <h5 className="text-sm font-semibold text-ink">
                   Accepted rows ({draft.accepted_rows.length})
                 </h5>
-                <div className="flex gap-1 rounded-[8px] border border-border bg-bg-elevated p-1">
+                <div className="flex gap-1 rounded-md border border-border bg-bg-elevated p-1">
                   <button
                     type="button"
                     onClick={() => setView("summary")}
@@ -228,10 +229,10 @@ export function QueueBrowser({
               {view === "full" ? (
                 <DfmeaSheet result={draftToSheet(draft)} approved readOnly />
               ) : (
-              <div className="overflow-x-auto rounded-[8px] border border-border">
-                <table className="w-full text-left text-[13px]">
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-bg-elevated font-mono text-[10.5px] uppercase tracking-wide text-ink-faint">
+                    <tr className="border-b border-border bg-sunken font-mono text-micro uppercase tracking-wide text-ink-faint">
                       <th className="px-3 py-2">Failure Mode</th>
                       <th className="px-3 py-2">S</th>
                       <th className="px-3 py-2">O</th>
@@ -249,12 +250,12 @@ export function QueueBrowser({
                           {/* The reasons the engineer gave, carried through the
                               handoff precisely so a reviewer sees them. */}
                           {r.occurrence_override_reason ? (
-                            <span className="mt-1 block text-[11px] leading-snug text-warn">
+                            <span className="mt-1 block text-micro leading-snug text-warn">
                               Occ override: {r.occurrence_override_reason}
                             </span>
                           ) : null}
                           {r.severity_dispute_note ? (
-                            <span className="mt-1 block text-[11px] leading-snug text-warn">
+                            <span className="mt-1 block text-micro leading-snug text-warn">
                               Sev disputed: {r.severity_dispute_note}
                             </span>
                           ) : null}
@@ -268,7 +269,7 @@ export function QueueBrowser({
                             "is the analysis plausible" to "has it happened". */}
                         <td className="px-3 py-2">
                           {r.completed_date ? (
-                            <span className="block font-mono text-[11px] text-ok">
+                            <span className="block font-mono text-micro text-ok">
                               {new Date(r.completed_date).toLocaleString(undefined, {
                                 month: "short",
                                 day: "2-digit",
@@ -276,17 +277,17 @@ export function QueueBrowser({
                                 minute: "2-digit",
                               })}
                               {r.action_taken ? (
-                                <span className="mt-0.5 block font-sans text-[11px] leading-snug text-ink-soft">
+                                <span className="mt-0.5 block font-sans text-micro leading-snug text-ink-soft">
                                   {r.action_taken}
                                 </span>
                               ) : (
-                                <span className="mt-0.5 block font-sans text-[11px] text-warn">
+                                <span className="mt-0.5 block font-sans text-micro text-warn">
                                   no record of what changed
                                 </span>
                               )}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-ink-faint">open</span>
+                            <span className="text-micro text-ink-faint">open</span>
                           )}
                         </td>
                         <td className="px-3 py-2">
@@ -311,7 +312,7 @@ export function QueueBrowser({
                 ↩️ Return with Comments
               </Button>
               <Button variant="primary" onClick={() => act("approved")} className="flex-1">
-                ✅ Approve
+                <IconCheck size={15} /> Approve
               </Button>
             </div>
           </div>

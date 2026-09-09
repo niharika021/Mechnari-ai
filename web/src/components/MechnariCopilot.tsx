@@ -61,7 +61,7 @@ export function MechnariCopilot() {
       labels={{
         modalHeaderTitle: "Ask Mechnari",
         welcomeMessageText: unavailable
-          ? `⚠️ ${unavailable} I can't answer or act until that's fixed — every score, gap and backtest figure in the app is unaffected, because none of them go through this key.`
+          ? `${unavailable} I can't answer or act until that's fixed — every score, gap and backtest figure in the app is unaffected, because none of them go through this key.`
           : READY_INITIAL,
         chatInputPlaceholder: unavailable
           ? "Copilot unavailable…"

@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { PageHeader } from "@/components/RoleNav";
 import { Card, MetricTile } from "@/components/ui";
 import { BacktestChart } from "@/components/BacktestChart";
 import { IssueHistory } from "@/components/IssueHistory";
@@ -26,16 +27,12 @@ export default async function CompanyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-display text-lg font-bold text-ink">Program Health</h2>
-        <p className="mt-1 max-w-[80ch] text-[13px] text-ink-faint">
-          Rollup, not row detail. What the deterministic engines catch across
-          the whole program, and the evidence that they&apos;d have caught it
-          without Mechnari.
-        </p>
-      </div>
+      <PageHeader
+        title="Program Health"
+        purpose="Rollup across the program, with the backtest behind it."
+      />
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
         {[
           <MetricTile
             key="1"
@@ -74,7 +71,7 @@ export default async function CompanyPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <Card className="px-5 py-4">
-          <h3 className="font-display text-[15px] font-semibold text-ink">
+          <h3 className="font-display text-lg font-semibold text-ink">
             Would this have caught what manual review missed?
           </h3>
           <div className="mt-3">
@@ -90,12 +87,12 @@ export default async function CompanyPage() {
         </Card>
 
         <Card className="px-5 py-4">
-          <h3 className="font-display text-[15px] font-semibold text-ink">
+          <h3 className="font-display text-lg font-semibold text-ink">
             Open safety gaps by system package
           </h3>
           <div className="mt-3 flex flex-col gap-2.5">
             {packageRows.length === 0 ? (
-              <p className="text-[13px] text-ink-faint">No safety-severity gaps open.</p>
+              <p className="text-sm text-ink-faint">No safety-severity gaps open.</p>
             ) : (
               packageRows.map(([pkg, count]) => (
                 <div key={pkg} className="grid grid-cols-[1fr_auto] items-center gap-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconChevronDown, IconDocument, IconRun } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import {
   api,
@@ -395,16 +396,26 @@ export function PartIntake({
     <div className="mt-5 flex flex-col gap-6">
       <CopilotActions handlers={copilotHandlers} />
 
-      <MyReports
-        reports={reports}
-        storageOk={storageOk}
-        onOpen={openStored}
-        onDelete={removeStored}
-      />
+      {/*
+        Order is the point here, and it took a measurement to get right.
 
+        Removing the marketing hero was supposed to bring the first form
+        control up from 620px on a 698px viewport. It did not: the header
+        shrank to 53px, and the control stayed at 620, because the form
+        was third on the page - behind an explanation and behind the list
+        of past reports. Deleting the hero just gave that space to the
+        two blocks above the form.
+
+        So: the form first, because drafting a DFMEA is the entire reason
+        this view exists. Past reports second, where "reopen what I was
+        working on" is still one glance away but is not standing in front
+        of today's work. The explanation last and collapsed - it answers
+        "should I trust this?", asked once by someone evaluating the
+        tool, not by an engineer on their fourth draft of the week.
+      */}
       <Card className="px-5 pb-4 pt-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="flex gap-1 rounded-[9px] border border-border bg-bg-elevated p-1">
+          <div className="flex gap-1 rounded-md border border-border bg-bg-elevated p-1">
             <ModeButton active={mode === "single"} onClick={() => switchMode("single")}>
               Single part
             </ModeButton>
@@ -441,7 +452,7 @@ export function PartIntake({
               </Select>
             </Field>
             <Button type="submit" variant="primary" disabled={loading} className="w-fit">
-              {loading ? "Loading…" : "\u{1F4C4} Open the DFMEA on file"}
+              {loading ? "Loading…" : <><IconDocument size={15} /> Open the DFMEA on file</>}
             </Button>
           </form>
         ) : (
@@ -465,13 +476,13 @@ export function PartIntake({
                 key={row.key}
                 className={
                   mode === "package"
-                    ? "rounded-[9px] border border-border bg-bg-elevated px-4 py-3.5"
+                    ? "rounded-md border border-border bg-bg-elevated px-4 py-3.5"
                     : ""
                 }
               >
                 {mode === "package" ? (
                   <div className="mb-2.5 flex items-center justify-between">
-                    <span className="font-mono text-[10.5px] uppercase tracking-wider text-ink-faint">
+                    <span className="font-mono text-micro uppercase tracking-wider text-ink-faint">
                       Part {i + 1} of {rows.length}
                     </span>
                     {rows.length > 1 ? (
@@ -553,18 +564,51 @@ export function PartIntake({
               </Button>
             ) : null}
             <Button type="submit" variant="primary" disabled={loading}>
-              {loading
-                ? "Building the DFMEA…"
-                : `\u{1F50D} Build DFMEA${
-                    mode === "package" && describable.length > 1
-                      ? ` for ${describable.length} parts`
-                      : ""
-                  }`}
+              {loading ? (
+                "Building the DFMEA…"
+              ) : (
+                <>
+                  <IconRun size={15} />
+                  Build DFMEA
+                  {mode === "package" && describable.length > 1
+                    ? ` for ${describable.length} parts`
+                    : ""}
+                </>
+              )}
             </Button>
           </div>
         </form>
         )}
       </Card>
+
+      <MyReports
+        reports={reports}
+        storageOk={storageOk}
+        onOpen={openStored}
+        onDelete={removeStored}
+      />
+
+      {/* Native <details>, not state: it works before hydration, is
+          keyboard-operable and announced to screen readers for free, and
+          the browser deliberately remembers nothing between loads -
+          which is right for something read once. */}
+      <details className="group rounded-lg border border-border bg-panel">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:text-ink">
+          <IconChevronDown
+            size={14}
+            className="shrink-0 -rotate-90 transition-transform group-open:rotate-0"
+          />
+          How this works
+        </summary>
+        <p className="max-w-[76ch] border-t border-border px-4 py-3 text-sm leading-relaxed text-ink-soft">
+          Mechnari works out what kind of part each one is, finds what the
+          company has already built like it, pulls what actually went wrong
+          from the warranty record, and lays the result out in the AIAG-VDA
+          form sheet — an 8D reference on every row, Occurrence measured from
+          real claims rather than estimated, and the reassessed risk each
+          recommended action would actually achieve.
+        </p>
+      </details>
 
       {loading ? <Spinner /> : null}
       {error ? <Callout tone="crit">{error}</Callout> : null}
@@ -607,7 +651,7 @@ function ModeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[7px] px-3.5 py-2 text-sm font-semibold transition-colors ${
+      className={`rounded-md px-3.5 py-2 text-sm font-semibold transition-colors ${
         active ? "bg-accent-soft text-accent-strong" : "text-ink-soft hover:text-ink"
       }`}
     >

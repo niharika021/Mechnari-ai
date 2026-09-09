@@ -44,10 +44,10 @@ export function IssueHistory({ summary }: { summary: IssueSummaryRow[] }) {
     <Card className="px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h3 className="font-display text-[15px] font-semibold text-ink">
+          <h3 className="font-display text-lg font-semibold text-ink">
             Warranty &amp; field issue history
           </h3>
-          <p className="mt-1 max-w-[70ch] text-xs leading-relaxed text-ink-faint">
+          <p className="mt-0.5 max-w-[70ch] text-sm text-ink-faint">
             Every 8D on record, against every part that has ever had one - active
             on the BOM today or retired. {summary.length} parts, {totalIssues}{" "}
             issues, {totalClaims.toLocaleString()} claims behind them. Search by
@@ -58,14 +58,14 @@ export function IssueHistory({ summary }: { summary: IssueSummaryRow[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search part ID or name…"
-          className="w-full max-w-[240px] rounded-[8px] border border-border-strong bg-bg-elevated px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+          className="w-full max-w-[240px] rounded-md border border-border-strong bg-panel px-3 py-2 text-body text-ink placeholder:text-ink-faint focus:border-accent"
         />
       </div>
 
-      <div className="mt-3.5 overflow-x-auto rounded-[8px] border border-border">
-        <table className="w-full text-left text-[13px]">
+      <div className="mt-3.5 overflow-x-auto rounded-md border border-border">
+        <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg-elevated font-mono text-[10.5px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border bg-sunken font-mono text-micro uppercase text-ink-faint">
               <th className="px-3 py-2">Part</th>
               <th className="px-3 py-2">Issues</th>
               <th className="px-3 py-2">Claims</th>
@@ -120,7 +120,7 @@ function PartRow({
         <td className="px-3 py-2">
           <span className="mr-1.5 inline-block w-3 text-ink-faint">{open ? "▾" : "▸"}</span>
           <span className="font-semibold text-ink">{row.item_reference}</span>
-          <span className="ml-1.5 font-mono text-xs text-ink-faint">{row.part_id}</span>
+          <span className="ml-1.5 font-mono text-micro text-ink-faint">{row.part_id}</span>
         </td>
         <td className="px-3 py-2 font-mono">{row.issue_count}</td>
         <td className="px-3 py-2 font-mono">{row.total_claims}</td>
@@ -138,10 +138,10 @@ function PartRow({
                 {(issues ?? []).map((issue) => (
                   <div
                     key={issue.issue_id}
-                    className="rounded-[8px] border border-border bg-surface px-3 py-2.5 text-[12.5px]"
+                    className="rounded-md border border-border bg-panel px-3 py-2.5 text-sm"
                   >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="font-mono text-xs font-semibold text-accent">
+                      <span className="font-mono text-label font-semibold text-accent">
                         {issue.issue_id}
                       </span>
                       <span className="text-ink-faint">

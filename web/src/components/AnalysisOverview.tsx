@@ -57,7 +57,7 @@ export function AnalysisOverview({
 
   return (
     <Card className="px-5 py-4">
-      <h4 className="font-display text-[14px] font-semibold text-ink">
+      <h4 className="font-display text-body font-semibold text-ink">
         What this analysis is based on
       </h4>
       <p className="mt-1 max-w-[82ch] text-xs leading-relaxed text-ink-faint">
@@ -67,10 +67,10 @@ export function AnalysisOverview({
       </p>
 
       {/* ---- 1. What kind of part, and how sure ---- */}
-      <div className="mt-4 rounded-[9px] border border-border bg-bg-elevated px-4 py-3.5">
+      <div className="mt-4 rounded-md border border-border bg-bg-elevated px-4 py-3.5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-[260px] flex-1">
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            <div className="mb-1 font-mono text-micro uppercase tracking-wider text-ink-faint">
               Identified as
             </div>
             <Select value={chosenType} onChange={(e) => setChosenType(e.target.value)}>
@@ -84,7 +84,7 @@ export function AnalysisOverview({
             </Select>
           </div>
           <div className="text-right">
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            <div className="mb-1 font-mono text-micro uppercase tracking-wider text-ink-faint">
               Confidence
             </div>
             <span
@@ -125,8 +125,8 @@ export function AnalysisOverview({
 
       {/* ---- 2. Where the history came from ---- */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-[9px] border border-border bg-bg-elevated px-4 py-3.5">
-          <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+        <div className="rounded-md border border-border bg-bg-elevated px-4 py-3.5">
+          <div className="mb-2 font-mono text-micro uppercase tracking-wider text-ink-faint">
             Similar parts found in the warranty record
           </div>
           {state.neighbours.length === 0 ? (
@@ -137,29 +137,29 @@ export function AnalysisOverview({
           ) : (
             <ul className="flex flex-col gap-1.5">
               {state.neighbours.map((n) => (
-                <li key={n.part_id} className="flex items-baseline gap-2 text-[12.5px]">
+                <li key={n.part_id} className="flex items-baseline gap-2 text-label">
                   <span className="w-11 shrink-0 font-mono text-accent">
                     {n.similarity.toFixed(3)}
                   </span>
                   <span className="flex-1 text-ink">{n.item_reference}</span>
-                  <span className="font-mono text-[10px] text-ink-faint">
+                  <span className="font-mono text-micro text-ink-faint">
                     {n.part_id}
                   </span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          <p className="mt-2 text-micro leading-snug text-ink-faint">
             Similarity is cosine distance on the part description, function and
             material. It ranks candidates; it does not decide anything on its own.
           </p>
         </div>
 
-        <div className="rounded-[9px] border border-border bg-bg-elevated px-4 py-3.5">
-          <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+        <div className="rounded-md border border-border bg-bg-elevated px-4 py-3.5">
+          <div className="mb-2 font-mono text-micro uppercase tracking-wider text-ink-faint">
             Evidence behind the proposal
           </div>
-          <dl className="flex flex-col gap-1.5 text-[12.5px]">
+          <dl className="flex flex-col gap-1.5 text-label">
             <Stat label="Failure modes proposed" value={rows.length} />
             <Stat label="Distinct 8D / warranty records" value={records.size} />
             <Stat label="Field claims behind them" value={claims.toLocaleString()} />
@@ -182,11 +182,11 @@ export function AnalysisOverview({
       </div>
 
       {/* ---- 3. The standards this rests on ---- */}
-      <div className="mt-3 rounded-[9px] border border-border bg-bg-elevated px-4 py-3.5">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+      <div className="mt-3 rounded-md border border-border bg-bg-elevated px-4 py-3.5">
+        <div className="mb-2 font-mono text-micro uppercase tracking-wider text-ink-faint">
           Standards and rules applied
         </div>
-        <ul className="flex flex-col gap-1.5 text-[12.5px] leading-relaxed text-ink-soft">
+        <ul className="flex flex-col gap-1.5 text-label leading-relaxed text-ink-soft">
           <li>
             <strong className="text-ink">Ranking: AIAG-VDA Action Priority</strong> (2019),
             read severity-first — not RPN. Multiplication misranks risk, so RPN is

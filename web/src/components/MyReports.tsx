@@ -36,23 +36,22 @@ export function MyReports({
 
   return (
     <Card className="px-5 py-4">
-      <h3 className="font-display text-[15px] font-semibold text-ink">
+      <h2 className="font-display text-lg font-semibold text-ink">
         My reports — {reports.length}
-      </h3>
-      <p className="mt-1 max-w-[80ch] text-xs leading-relaxed text-ink-faint">
-        Reopen one to keep working its actions. Sending to Quality does not
-        remove it — you keep your copy. Reports marked{" "}
-        <span className="font-mono text-[10px] uppercase text-ink-faint">
-          this browser
-        </span>{" "}
-        were made signed out and stay on this machine; signing in keeps new
-        ones with your account instead.
+      </h2>
+      {/* One line, not five. The two caveats that used to be spelled out
+          here - that sending to Quality leaves you your copy, and what
+          the "this browser" tag means - are both already answered at the
+          point they matter: the tag itself, and the submit button. Copy
+          that restates what the interface shows is copy nobody reads. */}
+      <p className="mt-0.5 text-sm text-ink-faint">
+        Reopen one to keep working its actions.
       </p>
 
-      <div className="mt-3 overflow-hidden rounded-[8px] border border-border">
-        <table className="w-full text-left text-[13px]">
+      <div className="mt-3 overflow-hidden rounded-md border border-border">
+        <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg-elevated font-mono text-[10px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border bg-sunken font-mono text-micro uppercase text-ink-faint">
               <th className="px-3 py-2">Report</th>
               <th className="px-3 py-2">Rows</th>
               <th className="px-3 py-2">Updated</th>
@@ -65,21 +64,21 @@ export function MyReports({
               <tr key={r.id} className="border-b border-border last:border-none">
                 <td className="px-3 py-2">
                   <span className="font-semibold text-ink">{r.title}</span>
-                  <span className="ml-2 font-mono text-[10px] text-ink-faint">
+                  <span className="ml-2 font-mono text-micro text-ink-faint">
                     {r.id}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-ink-faint">
+                  <span className="mt-0.5 block text-micro text-ink-faint">
                     {r.systemPackage}
                     {r.partCount > 1 ? ` · ${r.partCount} parts` : ""}
                     {!r.remote ? (
-                      <span className="ml-1.5 rounded-full bg-surface-hover px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide">
+                      <span className="ml-1.5 rounded-full bg-sunken px-1.5 py-0.5 font-mono text-micro uppercase">
                         this browser
                       </span>
                     ) : null}
                   </span>
                 </td>
                 <td className="px-3 py-2 font-mono">{r.rowCount}</td>
-                <td className="px-3 py-2 font-mono text-[11.5px] text-ink-soft">
+                <td className="px-3 py-2 font-mono text-label text-ink-soft">
                   {new Date(r.updatedAt).toLocaleString(undefined, {
                     month: "short",
                     day: "2-digit",
@@ -91,7 +90,7 @@ export function MyReports({
                   {r.submittedAt ? (
                     <span className="inline-flex flex-col gap-0.5">
                       <StatusPill status="approved" />
-                      <span className="font-mono text-[9.5px] text-ink-faint">
+                      <span className="font-mono text-micro text-ink-faint">
                         {r.draftIds.join(", ")}
                       </span>
                     </span>
@@ -105,7 +104,7 @@ export function MyReports({
                     <button
                       type="button"
                       onClick={() => onDelete(r.id)}
-                      className="text-xs font-semibold text-ink-faint hover:text-crit"
+                      className="text-label font-semibold text-ink-faint hover:text-crit"
                     >
                       Delete
                     </button>

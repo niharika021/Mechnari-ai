@@ -46,7 +46,7 @@ export function BacktestChart({ sweep }: { sweep: BacktestSummary[] }) {
           x2={width - padRight}
           y1={y(t)}
           y2={y(t)}
-          stroke="var(--border)"
+          stroke="var(--color-border)"
           strokeWidth={1}
         />
       ))}
@@ -57,28 +57,28 @@ export function BacktestChart({ sweep }: { sweep: BacktestSummary[] }) {
           y={y(t) + 4}
           textAnchor="end"
           fontFamily="var(--font-mono)"
-          fontSize={10}
-          fill="var(--ink-faint)"
+          fontSize={11}
+          fill="var(--color-ink-faint)"
         >
           {Math.round(t * 100)}%
         </text>
       ))}
 
-      <polygon points={bandPoints} fill="var(--accent-soft)" opacity={0.7} />
+      <polygon points={bandPoints} fill="var(--color-accent-soft)" opacity={0.7} />
       <polyline
         points={dfmeaPoints}
         fill="none"
-        stroke="var(--ink-soft)"
+        stroke="var(--color-ink-soft)"
         strokeWidth={2}
         strokeDasharray="5 4"
       />
-      <polyline points={mechnariPoints} fill="none" stroke="var(--accent)" strokeWidth={2.5} />
+      <polyline points={mechnariPoints} fill="none" stroke="var(--color-accent)" strokeWidth={2.5} />
 
       {sweep.map((s, i) => (
-        <circle key={`d${i}`} cx={x(i)} cy={y(s.dfmea_recall)} r={3} fill="var(--ink-soft)" />
+        <circle key={`d${i}`} cx={x(i)} cy={y(s.dfmea_recall)} r={3} fill="var(--color-ink-soft)" />
       ))}
       {sweep.map((s, i) => (
-        <circle key={`m${i}`} cx={x(i)} cy={y(s.mechnari_recall)} r={3.5} fill="var(--accent)" />
+        <circle key={`m${i}`} cx={x(i)} cy={y(s.mechnari_recall)} r={3.5} fill="var(--color-accent)" />
       ))}
 
       <text
@@ -87,7 +87,7 @@ export function BacktestChart({ sweep }: { sweep: BacktestSummary[] }) {
         fontFamily="var(--font-mono)"
         fontSize={11}
         fontWeight={600}
-        fill="var(--accent)"
+        fill="var(--color-accent)"
       >
         Mechnari
       </text>
@@ -97,7 +97,7 @@ export function BacktestChart({ sweep }: { sweep: BacktestSummary[] }) {
         fontFamily="var(--font-mono)"
         fontSize={11}
         fontWeight={600}
-        fill="var(--ink-soft)"
+        fill="var(--color-ink-soft)"
       >
         Manual DFMEA
       </text>
@@ -109,8 +109,8 @@ export function BacktestChart({ sweep }: { sweep: BacktestSummary[] }) {
           y={height - padBottom + 20}
           textAnchor="middle"
           fontFamily="var(--font-mono)"
-          fontSize={9.5}
-          fill="var(--ink-faint)"
+          fontSize={11}
+          fill="var(--color-ink-faint)"
         >
           {s.cutoff}
         </text>

@@ -5,9 +5,13 @@ import { useAuth } from "@/lib/auth";
 /**
  * Sign-in, presented as an offer rather than a demand.
  *
- * Signed out is a first-class state here: the label says what signing in
- * gets you ("keep your reports"), not that you must. Nothing behind it is
- * inaccessible - only ownership is.
+ * Signed out is a first-class state here: nothing behind this is
+ * inaccessible, only ownership of reports is. The reason to sign in used
+ * to be spelled out beside the button as two stacked lines of 11px text
+ * ("Sign in to keep / your reports"). In a 52px application bar that
+ * wrapped line was the tallest thing in the row and set the bar's
+ * height, so it now lives in the button's `title` - one line, on hover,
+ * where someone wondering why would look.
  */
 export function SignIn() {
   const { user, loading, configured, signIn, signOut } = useAuth();
@@ -15,60 +19,52 @@ export function SignIn() {
   if (!configured) return null;
 
   if (loading) {
-    return (
-      <span className="font-mono text-[11px] text-ink-faint">checking…</span>
-    );
+    return <span className="font-mono text-micro text-ink-faint">checking…</span>;
   }
 
   if (user) {
     return (
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         {user.photoURL ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.photoURL}
             alt=""
-            width={26}
-            height={26}
+            width={24}
+            height={24}
             className="rounded-full border border-border"
           />
         ) : null}
-        <div className="leading-tight">
-          <div className="text-[12.5px] font-semibold text-ink">{user.name}</div>
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-[11px] text-ink-faint hover:text-ink"
-          >
-            Sign out
-          </button>
-        </div>
+        <span className="hidden max-w-[13ch] truncate text-label font-semibold text-ink sm:block">
+          {user.name}
+        </span>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="rounded-md px-2 py-1 text-label text-ink-faint transition-colors hover:bg-panel-hover hover:text-ink"
+        >
+          Sign out
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="hidden text-[11px] leading-snug text-ink-faint sm:block">
-        Sign in to keep
-        <br />
-        your reports
-      </span>
-      <button
-        type="button"
-        onClick={() => signIn()}
-        className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-accent hover:text-accent-strong"
-      >
-        <GoogleMark />
-        Sign in with Google
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => signIn()}
+      title="Sign in to keep your reports across devices"
+      className="flex items-center gap-2 rounded-md border border-border-strong bg-panel px-2.5 py-1.5 text-label font-semibold text-ink transition-colors hover:border-accent hover:text-accent-strong"
+    >
+      <GoogleMark />
+      <span className="hidden sm:inline">Sign in</span>
+    </button>
   );
 }
 
 function GoogleMark() {
   return (
-    <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
       <path
         fill="#4285F4"
         d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"

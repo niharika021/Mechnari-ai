@@ -19,12 +19,12 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
           <span className="font-mono text-sm font-semibold text-accent">
             {data.part_id}
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-ink">
+          <h3 className="font-display text-lg font-semibold text-ink">
             {data.item_reference}
           </h3>
           <span className="text-xs text-ink-faint">{data.part_type_name}</span>
         </div>
-        <p className="mt-1.5 max-w-[85ch] text-[13px] text-ink-soft">
+        <p className="mt-1.5 max-w-[85ch] text-sm text-ink-soft">
           {data.elementary_function}
         </p>
         <p className="mt-1 text-xs text-ink-faint">
@@ -32,12 +32,12 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
           {data.drawing_spec ? ` · ${data.drawing_spec}` : ""}
         </p>
         {data.analyzed_by ? (
-          <p className="mt-2 font-mono text-[11px] text-ink-faint">
+          <p className="mt-2 font-mono text-micro text-ink-faint">
             On file: analysed by {data.analyzed_by} on {data.analysis_date} ({data.revision})
           </p>
         ) : null}
 
-        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
           <div className="bg-bg">
             <MetricTile
               label="Rows on file"
@@ -76,7 +76,7 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
         </Callout>
       ) : (
         <Card className="px-5 py-4">
-          <h4 className="font-display text-[14px] font-semibold text-ink">
+          <h4 className="font-display text-body font-semibold text-ink">
             DFMEA on file — {data.filed_rows.length} row
             {data.filed_rows.length === 1 ? "" : "s"}
           </h4>
@@ -85,10 +85,10 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
             them at now. Where the two differ the row is flagged — the filed
             document is not edited, the disagreement is.
           </p>
-          <div className="mt-3 overflow-x-auto rounded-[8px] border border-border">
-            <table className="min-w-[1500px] border-collapse text-left text-[12px]">
+          <div className="mt-3 overflow-x-auto rounded-md border border-border">
+            <table className="min-w-[1500px] border-collapse text-left text-label">
               <thead>
-                <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
+                <tr className="border-b border-border bg-sunken font-mono text-micro uppercase tracking-wide text-ink-faint">
                   <th className="border-r border-border px-2 py-2">Failure mode</th>
                   <th className="border-r border-border px-2 py-2">Effect</th>
                   <th className="border-r border-border px-2 py-2">Cause</th>
@@ -101,7 +101,7 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
                   </th>
                   <th className="px-2 py-2">8D records</th>
                 </tr>
-                <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
+                <tr className="border-b border-border bg-sunken font-mono text-micro uppercase tracking-wide text-ink-faint">
                   <th className="border-r border-border px-2 py-1"></th>
                   <th className="border-r border-border px-2 py-1"></th>
                   <th className="border-r border-border px-2 py-1"></th>
@@ -129,7 +129,7 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
 
       {data.missing_rows.length > 0 ? (
         <Card className="px-5 py-4">
-          <h4 className="font-display text-[14px] font-semibold text-ink">
+          <h4 className="font-display text-body font-semibold text-ink">
             Applicable but never analysed — {data.missing_rows.length} row
             {data.missing_rows.length === 1 ? "" : "s"}
           </h4>
@@ -142,10 +142,10 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
             {data.missing_rows.map((gap) => (
               <div
                 key={gap.failure_mode}
-                className="rounded-[8px] border border-border bg-surface px-3 py-2.5"
+                className="rounded-md border border-border bg-surface px-3 py-2.5"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="text-[13px] font-semibold text-ink">
+                  <span className="text-sm font-semibold text-ink">
                     {gap.failure_mode}
                   </span>
                   <span
@@ -155,7 +155,7 @@ export function ExistingDfmeaView({ data }: { data: ExistingDfmea }) {
                   >
                     S{gap.standard_severity}
                   </span>
-                  <span className="ml-auto font-mono text-[10px] text-ink-faint">
+                  <span className="ml-auto font-mono text-micro text-ink-faint">
                     {gap.evidence_ids}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ function FiledTableRow({ row }: { row: FiledRow }) {
           <ApBadge ap={row.evidence_action_priority} />
         </td>
 
-        <td className="px-2 py-2 font-mono text-[10px] text-ink-soft">
+        <td className="px-2 py-2 font-mono text-micro text-ink-soft">
           {row.evidence_ids}
           {row.evidence_scope ? (
             <span className="mt-0.5 block text-ink-faint">{row.evidence_scope}</span>
@@ -216,8 +216,8 @@ function FiledTableRow({ row }: { row: FiledRow }) {
       </tr>
       {row.disagrees ? (
         <tr className="border-b border-border bg-warn-soft">
-          <td colSpan={13} className="px-2 py-1.5 text-[11.5px] leading-relaxed text-warn">
-            ⚠ {row.disagreement_notes}
+          <td colSpan={13} className="px-2 py-1.5 text-label leading-relaxed text-warn">
+            {row.disagreement_notes}
           </td>
         </tr>
       ) : null}

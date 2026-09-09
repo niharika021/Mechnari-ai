@@ -3,54 +3,119 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignIn } from "@/components/SignIn";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  IconChart,
+  IconClipboardCheck,
+  IconDrafting,
+} from "@/components/icons";
 
 const ROLES = [
-  { href: "/design", icon: "\u{1F6E0}\u{FE0F}", label: "Design Engineer" },
-  { href: "/quality", icon: "\u{1F50D}", label: "Quality Engineer" },
-  { href: "/company", icon: "\u{1F4CA}", label: "Company & Leadership" },
+  { href: "/design", Icon: IconDrafting, label: "Design", full: "Design Engineer" },
+  { href: "/quality", Icon: IconClipboardCheck, label: "Quality", full: "Quality Engineer" },
+  { href: "/company", Icon: IconChart, label: "Program", full: "Company & Leadership" },
 ] as const;
 
+/**
+ * The application bar.
+ *
+ * What this replaces: a 197px marketing hero card - eyebrow, tagline
+ * headline, value-proposition paragraph - re-rendered on every page
+ * load, with the role tabs below it at `position: static` so the only
+ * navigation in the app scrolled away. Measured on the deployed site,
+ * the first control an engineer could touch sat 617px down a 698px
+ * viewport: 88% of the first screen spent before any work could start.
+ *
+ * A design engineer opens this several times a day. They do not need to
+ * be told what the product is; they need to reach the form. So the
+ * pitch is gone from the working views entirely, and the bar is sticky,
+ * 52px, and carries only what is needed to move and to sign in.
+ *
+ * The role labels shorten to one word ("Design", "Quality", "Program")
+ * with the full title in `title`. Three four-word tabs was a line of
+ * text pretending to be navigation.
+ */
 export function RoleNav() {
   const pathname = usePathname();
 
   return (
-    <>
-      <div className="mb-[22px] rounded-[10px] border border-border border-l-4 border-l-accent bg-gradient-to-br from-surface to-bg-elevated px-6 py-5">
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
-          Enterprise DFMEA Risk Copilot
-        </div>
-        <h1 className="mt-1.5 font-display text-[1.65rem] font-bold text-ink">
-          Mechnari.ai — Grounded in Your Own Warranty History
-        </h1>
-        <p className="mt-2 max-w-[74ch] text-sm leading-relaxed text-ink-soft">
-          Three views of the same deterministic core - Design Engineer, Quality
-          Engineer, and Company &amp; Leadership - because drafting, auditing and
-          reporting on risk are different jobs.
-        </p>
-      </div>
+    <header className="sticky top-0 z-40 border-b border-border bg-panel/95 backdrop-blur-sm">
+      <div className="mx-auto flex h-[52px] max-w-[1240px] items-center gap-4 px-6">
+        <Link
+          href="/design"
+          className="flex shrink-0 items-center gap-2"
+          title="Mechnari.ai — DFMEA risk copilot"
+        >
+          {/* The mark: a severity bar stepping up. It means something
+              here rather than being a decorative glyph. */}
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden focusable="false">
+            <rect x="3" y="14" width="4" height="7" rx="1" fill="var(--color-ok)" />
+            <rect x="10" y="9" width="4" height="12" rx="1" fill="var(--color-warn)" />
+            <rect x="17" y="3" width="4" height="18" rx="1" fill="var(--color-crit)" />
+          </svg>
+          <span className="font-display text-lg font-bold tracking-tight text-ink">
+            Mechnari
+          </span>
+        </Link>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <nav className="flex w-fit gap-1 rounded-[10px] border border-border bg-surface p-1">
-        {ROLES.map((role) => {
-          const active = pathname?.startsWith(role.href);
-          return (
-            <Link
-              key={role.href}
-              href={role.href}
-              className={`flex items-center gap-2 rounded-[7px] px-4 py-2.5 text-sm font-semibold transition-colors ${
-                active
-                  ? "bg-accent-soft text-accent-strong"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              <span aria-hidden>{role.icon}</span>
-              {role.label}
-            </Link>
-          );
-        })}
-      </nav>
-        <SignIn />
+        <nav className="flex items-center gap-0.5" aria-label="Role views">
+          {ROLES.map(({ href, Icon, label, full }) => {
+            const active = pathname?.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                title={full}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold transition-colors ${
+                  active
+                    ? "bg-accent-soft text-accent-strong"
+                    : "text-ink-soft hover:bg-panel-hover hover:text-ink"
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          <SignIn />
+        </div>
       </div>
-    </>
+    </header>
+  );
+}
+
+/**
+ * The per-view header that replaced each page's h2-plus-paragraph.
+ *
+ * `purpose` is capped at one short line on purpose. The design view used
+ * to open with an 85-word paragraph explaining what Mechnari does to a
+ * part; that belongs where someone is deciding whether to trust the
+ * tool, not above a form they use daily. Long-form explanation moved
+ * into the empty states, which is where it is actually read.
+ */
+export function PageHeader({
+  title,
+  purpose,
+  actions,
+}: {
+  title: string;
+  purpose: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-1">
+      <div>
+        <h1 className="font-display text-title font-bold tracking-tight text-ink">
+          {title}
+        </h1>
+        <p className="mt-0.5 text-sm text-ink-faint">{purpose}</p>
+      </div>
+      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+    </div>
   );
 }

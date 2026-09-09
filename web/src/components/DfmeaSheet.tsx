@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconCheck, IconSend } from "@/components/icons";
 import { api, ApiError, type SheetItemBlock, type SheetResult, type SheetRow } from "@/lib/api";
 import { ApBadge, Button, Callout, Card } from "@/components/ui";
 
@@ -105,12 +106,12 @@ export function DfmeaSheet({
       <Card className="px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="font-display text-[15px] font-semibold text-ink">
+            <h3 className="font-display text-lg font-semibold text-ink">
               {approved ? "DFMEA report" : "Draft DFMEA"} — {result.total_rows} rows
               across {result.items.length} part
               {result.items.length === 1 ? "" : "s"}
               {approved ? (
-                <span className="ml-2 rounded-full bg-ok-soft px-2 py-0.5 align-middle font-mono text-[9.5px] uppercase tracking-wide text-ok">
+                <span className="ml-2 rounded-full bg-ok-soft px-2 py-0.5 align-middle font-mono text-micro uppercase tracking-wide text-ok">
                   engineer reviewed
                 </span>
               ) : null}
@@ -150,7 +151,7 @@ export function DfmeaSheet({
               >
                 {submit.status === "sending"
                   ? "Sending…"
-                  : "\u{1F4E4} Send to Quality Review"}
+                  : <><IconSend size={15} /> Send to Quality Review</>}
               </Button>
             ) : null}
           </div>
@@ -225,7 +226,7 @@ function ItemBlock({
         <span className="font-mono text-sm font-semibold text-accent">
           {block.part_number || "(no part number)"}
         </span>
-        <span className="font-display text-[15px] font-semibold text-ink">
+        <span className="font-display text-lg font-semibold text-ink">
           {block.item_interface}
         </span>
         <span className="text-xs text-ink-faint">
@@ -290,10 +291,10 @@ function ItemBlock({
         </div>
       ) : null}
 
-      <div className="mt-3 overflow-x-auto rounded-[8px] border border-border">
-        <table className={`${approved ? "min-w-[2600px]" : "min-w-[2400px]"} border-collapse text-left text-[12px]`}>
+      <div className="mt-3 overflow-x-auto rounded-md border border-border">
+        <table className={`${approved ? "min-w-[2600px]" : "min-w-[2400px]"} border-collapse text-left text-label`}>
           <thead>
-            <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border bg-sunken font-mono text-micro uppercase tracking-wide text-ink-faint">
               <Group span={2}>Item &amp; function</Group>
               <Group span={3}>Failure mode &amp; effects</Group>
               <Group span={5}>Failure cause &amp; prevention controls</Group>
@@ -304,7 +305,7 @@ function ItemBlock({
               {showEvidence ? <Group span={3}>Evidence</Group> : null}
               {approved ? <Group span={1}>Source</Group> : null}
             </tr>
-            <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border bg-sunken font-mono text-micro uppercase tracking-wide text-ink-faint">
               <Th>Item / interface</Th>
               <Th>Elementary function</Th>
               <Th>Potential failure mode</Th>
@@ -383,7 +384,7 @@ function SheetTableRow({
       <Td strong>{row.failure_mode}</Td>
       <Td>
         {row.potential_effect}
-        <span className="mt-0.5 block font-mono text-[9.5px] text-ink-faint">
+        <span className="mt-0.5 block font-mono text-micro text-ink-faint">
           {row.system_level}
         </span>
       </Td>
@@ -435,7 +436,7 @@ function SheetTableRow({
           <Td>{row.action_taken || <Blank />}</Td>
           <Td num>
             {row.completed_date ? (
-              <span className="font-mono text-[10.5px] text-ok">
+              <span className="font-mono text-micro text-ok">
                 {formatStamp(row.completed_date)}
               </span>
             ) : (
@@ -484,17 +485,17 @@ function ProvenanceTag({ row }: { row: SheetRow }) {
   return (
     <>
       <span
-        className={`inline-block rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide ${tone}`}
+        className={`inline-block rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-wide ${tone}`}
       >
         {label}
       </span>
       {row.occurrence_override_reason ? (
-        <span className="mt-1 block text-[10px] leading-snug text-warn">
+        <span className="mt-1 block text-micro leading-snug text-warn">
           Occ override: {row.occurrence_override_reason}
         </span>
       ) : null}
       {row.severity_dispute_note ? (
-        <span className="mt-1 block text-[10px] leading-snug text-warn">
+        <span className="mt-1 block text-micro leading-snug text-warn">
           Sev disputed: {row.severity_dispute_note}
         </span>
       ) : null}
@@ -506,7 +507,7 @@ function Group({ span, children }: { span: number; children: React.ReactNode }) 
   return (
     <th
       colSpan={span}
-      className="border-b border-r border-border px-2 py-1.5 text-center text-[9px] tracking-[0.1em] text-accent-strong last:border-r-0"
+      className="border-b border-r border-border px-2 py-1.5 text-center text-micro tracking-[0.1em] text-accent-strong last:border-r-0"
     >
       {children}
     </th>
@@ -543,7 +544,7 @@ function Td({
     <td
       className={`border-r border-border px-2 py-2 last:border-r-0 ${
         num ? "text-center font-mono whitespace-nowrap" : ""
-      } ${mono ? "font-mono text-[10px]" : ""} ${strong ? "font-semibold text-ink" : "text-ink-soft"} ${toneClass}`}
+      } ${mono ? "font-mono text-micro" : ""} ${strong ? "font-semibold text-ink" : "text-ink-soft"} ${toneClass}`}
     >
       {children}
     </td>
@@ -572,7 +573,7 @@ function CellInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-[11.5px] text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+      className="w-full rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-label text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
     />
   );
 }
@@ -592,7 +593,7 @@ function CellTextArea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={2}
-      className="w-full resize-y rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-[11.5px] leading-snug text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+      className="w-full resize-y rounded-[5px] border border-border bg-bg-elevated px-1.5 py-1 text-label leading-snug text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
     />
   );
 }
@@ -614,18 +615,18 @@ function CompletionCell({
   if (row.completed_date) {
     return (
       <span className="block">
-        <span className="block font-mono text-[10.5px] leading-tight text-ok">
+        <span className="block font-mono text-micro leading-tight text-ok">
           {formatStamp(row.completed_date)}
         </span>
         <button
           type="button"
           onClick={() => patch({ completed_date: "" })}
-          className="mt-0.5 text-[10px] font-semibold text-ink-faint hover:text-ink"
+          className="mt-0.5 text-micro font-semibold text-ink-faint hover:text-ink"
         >
           reopen
         </button>
         {!row.action_taken?.trim() ? (
-          <span className="mt-0.5 block text-[9.5px] leading-tight text-warn">
+          <span className="mt-0.5 block text-micro leading-tight text-warn">
             nothing recorded
           </span>
         ) : null}
@@ -637,9 +638,9 @@ function CompletionCell({
     <button
       type="button"
       onClick={() => patch({ completed_date: new Date().toISOString() })}
-      className="whitespace-nowrap rounded-[5px] border border-border-strong px-1.5 py-1 text-[10px] font-semibold text-ink-soft hover:border-ok hover:text-ok"
+      className="whitespace-nowrap rounded-[5px] border border-border-strong px-1.5 py-1 text-micro font-semibold text-ink-soft hover:border-ok hover:text-ok"
     >
-      ✓ mark done
+      <IconCheck size={12} /> mark done
     </button>
   );
 }

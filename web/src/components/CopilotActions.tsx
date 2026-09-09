@@ -212,17 +212,17 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
     }),
     render: ({ args, respond, status }) => {
       if (status === "complete") {
-        return <span className="text-[12px] text-ink-faint">Handled.</span>;
+        return <span className="text-label text-ink-faint">Handled.</span>;
       }
       return (
-        <div className="rounded-[9px] border border-warn bg-warn-soft px-3 py-2.5 text-[12.5px]">
+        <div className="rounded-md border border-warn bg-warn-soft px-3 py-2.5 text-label">
           <strong className="block pb-1 text-ink">Leave this row out?</strong>
           <p className="text-ink-soft">{args.failure_mode}</p>
           <p className="mt-1 text-ink-soft">
             <span className="font-semibold">Reason to record:</span>{" "}
             {args.reason}
           </p>
-          <p className="mt-1.5 text-[11.5px] text-warn">
+          <p className="mt-1.5 text-label text-warn">
             Quality will read this as considered and rejected, not missed.
           </p>
           <div className="mt-2 flex gap-2">
@@ -242,7 +242,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
                     : "The engineer approved it, but that row is no longer in the findings.",
                 );
               }}
-              className="rounded-[6px] bg-accent px-2.5 py-1 text-[12px] font-semibold text-accent-ink disabled:opacity-50"
+              className="rounded-[6px] bg-accent px-2.5 py-1 text-label font-semibold text-accent-ink disabled:opacity-50"
             >
               Yes, leave it out
             </button>
@@ -254,7 +254,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
                   "The engineer declined to remove it. The row stays in the DFMEA.",
                 )
               }
-              className="rounded-[6px] border border-border-strong px-2.5 py-1 text-[12px] font-semibold text-ink disabled:opacity-50"
+              className="rounded-[6px] border border-border-strong px-2.5 py-1 text-label font-semibold text-ink disabled:opacity-50"
             >
               No, keep it
             </button>

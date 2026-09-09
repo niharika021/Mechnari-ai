@@ -289,7 +289,7 @@ export function DfmeaReview({
       <Card className="px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="font-display text-[15px] font-semibold text-ink">
+            <h3 className="font-display text-lg font-semibold text-ink">
               Review before the report — {allRows.length} rows found
             </h3>
             <p className="mt-1 max-w-[82ch] text-xs leading-relaxed text-ink-faint">
@@ -300,13 +300,13 @@ export function DfmeaReview({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {rescoring ? (
-              <span className="font-mono text-[10.5px] text-ink-faint">rescoring…</span>
+              <span className="font-mono text-micro text-ink-faint">rescoring…</span>
             ) : null}
             <Button onClick={onBack}>← Change the inputs</Button>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
           <div className="bg-bg">
             <MetricTile label="Included" value={`${included.length}/${allRows.length}`} />
           </div>
@@ -339,7 +339,7 @@ export function DfmeaReview({
             <span className="font-mono text-sm font-semibold text-accent">
               {state.partNumber || "(no part number)"}
             </span>
-            <h4 className="font-display text-[14px] font-semibold text-ink">
+            <h4 className="font-display text-body font-semibold text-ink">
               {state.itemInterface}
             </h4>
             <span className="text-xs text-ink-faint">{state.partTypeName}</span>
@@ -397,7 +397,7 @@ export function DfmeaReview({
           </div>
         ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-[70ch] text-[13px] text-ink-soft">
+          <p className="max-w-[70ch] text-sm text-ink-soft">
             {included.length} row{included.length === 1 ? "" : "s"} will go into the
             report, each recording whether it came from the evidence, from your
             edit, or from your own assessment. You are not signing it off here -
@@ -430,7 +430,7 @@ function ReviewRowCard({
 
   return (
     <div
-      className={`rounded-[9px] border bg-surface ${
+      className={`rounded-md border bg-surface ${
         row.include ? "border-border" : "border-border-strong opacity-60"
       }`}
     >
@@ -448,14 +448,14 @@ function ReviewRowCard({
           className="flex flex-1 items-center gap-2 text-left"
         >
           <span className="w-3 text-ink-faint">{open ? "▾" : "▸"}</span>
-          <span className="flex-1 text-[13px] font-semibold text-ink">
+          <span className="flex-1 text-sm font-semibold text-ink">
             {row.failure_mode || (
               <span className="text-warn">Describe this failure mode…</span>
             )}
           </span>
           {row.provenance !== "proposed" ? (
             <span
-              className={`rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-wide ${
+              className={`rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-wide ${
                 row.provenance === "engineer_added"
                   ? "bg-accent-soft text-accent-strong"
                   : "bg-warn-soft text-warn"
@@ -464,7 +464,7 @@ function ReviewRowCard({
               {row.provenance === "engineer_added" ? "yours" : "edited"}
             </span>
           ) : null}
-          <span className="font-mono text-[11px] text-ink-soft">
+          <span className="font-mono text-micro text-ink-soft">
             S{row.severity} O{row.occurrence} D{row.detection}
           </span>
           <ApBadge ap={row.action_priority} />
@@ -486,7 +486,7 @@ function ReviewRowCard({
               {row.evidence_ids ? (
                 <>
                   {" · "}
-                  <span className="font-mono text-[10.5px]">{row.evidence_ids}</span>
+                  <span className="font-mono text-micro">{row.evidence_ids}</span>
                 </>
               ) : null}
             </p>
@@ -552,13 +552,13 @@ function ReviewRowCard({
             <div>
               <LabelRow label="Severity" note="from the effect registry" />
               <div className="flex items-center gap-2">
-                <span className="rounded-[7px] border border-border bg-bg-elevated px-3 py-2 font-mono text-sm text-ink">
+                <span className="rounded-md border border-border bg-bg-elevated px-3 py-2 font-mono text-sm text-ink">
                   {row.severity}
                 </span>
                 <button
                   type="button"
                   onClick={() => onPatch({ severity_disputed: !row.severity_disputed })}
-                  className={`text-[11px] font-semibold ${
+                  className={`text-micro font-semibold ${
                     row.severity_disputed ? "text-warn" : "text-ink-faint hover:text-ink"
                   }`}
                 >
@@ -570,7 +570,7 @@ function ReviewRowCard({
                   value={row.severity_dispute_note}
                   onChange={(e) => onPatch({ severity_dispute_note: e.target.value })}
                   placeholder="Why the registry severity looks wrong for this effect"
-                  className="mt-1.5 w-full rounded-[7px] border border-warn bg-warn-soft px-2.5 py-1.5 text-[12px] text-ink placeholder:text-ink-faint focus:outline-none"
+                  className="mt-1.5 w-full rounded-md border border-warn bg-warn-soft px-2.5 py-1.5 text-label text-ink placeholder:text-ink-faint focus:outline-none"
                 />
               ) : null}
             </div>
@@ -589,7 +589,7 @@ function ReviewRowCard({
                 onChange={(e) =>
                   onPatch({ occurrence: clamp(e.target.value, row.occurrence) }, "occurrence")
                 }
-                className={`w-full rounded-[7px] border bg-bg-elevated px-3 py-2 font-mono text-sm text-ink focus:outline-none ${
+                className={`w-full rounded-md border bg-bg-elevated px-3 py-2 font-mono text-sm text-ink focus:outline-none ${
                   overridden ? "border-warn" : "border-border-strong focus:border-accent"
                 }`}
               />
@@ -598,7 +598,7 @@ function ReviewRowCard({
                   value={row.occurrence_override_reason}
                   onChange={(e) => onPatch({ occurrence_override_reason: e.target.value })}
                   placeholder="Required: why the claims rate does not apply"
-                  className="mt-1.5 w-full rounded-[7px] border border-warn bg-warn-soft px-2.5 py-1.5 text-[12px] text-ink placeholder:text-ink-faint focus:outline-none"
+                  className="mt-1.5 w-full rounded-md border border-warn bg-warn-soft px-2.5 py-1.5 text-label text-ink placeholder:text-ink-faint focus:outline-none"
                 />
               ) : null}
             </div>
@@ -613,7 +613,7 @@ function ReviewRowCard({
                 onChange={(e) =>
                   onPatch({ detection: clamp(e.target.value, row.detection) }, "detection")
                 }
-                className="w-full rounded-[7px] border border-border-strong bg-bg-elevated px-3 py-2 font-mono text-sm text-ink focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-border-strong bg-bg-elevated px-3 py-2 font-mono text-sm text-ink focus:border-accent focus:outline-none"
               />
             </div>
           </div>
@@ -628,7 +628,7 @@ function ReviewRowCard({
                 value={row.decline_reason}
                 onChange={(e) => onPatch({ decline_reason: e.target.value })}
                 placeholder="e.g. this interface does not exist on the new design"
-                className={`w-full rounded-[7px] border bg-bg-elevated px-3 py-2 text-[12.5px] text-ink placeholder:text-ink-faint focus:outline-none ${
+                className={`w-full rounded-md border bg-bg-elevated px-3 py-2 text-label text-ink placeholder:text-ink-faint focus:outline-none ${
                   row.action_priority === "H" && !row.decline_reason.trim()
                     ? "border-warn"
                     : "border-border-strong focus:border-accent"
@@ -651,10 +651,10 @@ function clamp(raw: string, fallback: number): number {
 function LabelRow({ label, note }: { label: string; note?: string }) {
   return (
     <div className="mb-1 flex items-baseline gap-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+      <span className="font-mono text-micro uppercase tracking-wider text-ink-faint">
         {label}
       </span>
-      {note ? <span className="text-[10px] text-ink-faint">({note})</span> : null}
+      {note ? <span className="text-micro text-ink-faint">({note})</span> : null}
     </div>
   );
 }
@@ -678,7 +678,7 @@ function EditField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full resize-y rounded-[7px] border border-border-strong bg-bg-elevated px-2.5 py-1.5 text-[12.5px] leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+        className="w-full resize-y rounded-md border border-border-strong bg-bg-elevated px-2.5 py-1.5 text-label leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
       />
     </div>
   );

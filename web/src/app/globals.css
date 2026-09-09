@@ -1,81 +1,279 @@
 @import "tailwindcss";
 
 /*
-  Mechnari.ai design tokens - light theme, warm gold/bronze accent.
+  Mechnari.ai design tokens.
 
   Same values feed the Streamlit app's injected CSS (see ../../app.py) so
   the two frontends stay one committed look, not a palette per surface.
-  Accent (gold/bronze) is reserved for brand and interactive elements;
-  Action Priority owns red/orange/green and is kept a distinct hue from
-  the accent on purpose, so a "Medium" badge never reads as decoration.
+
+  --- Why the accent is blue ------------------------------------------
+  The accent was a warm gold, and gold sits ~30 degrees from the amber
+  that Action Priority "Medium" uses. On a DFMEA row the two competed:
+  a gold button and an amber badge read as the same kind of thing, so
+  the eye could not tell "you can click this" from "this part might
+  hurt someone". No amount of luminance separation fixes a shared hue
+  family when the two meanings are that far apart.
+
+  A steel blue is the whole fix. It shares no hue with any severity
+  colour, so red / amber / green now belong to Action Priority and
+  status ALONE - never decoration, never anything else in the app - and
+  a badge can never be mistaken for a control.
+
+  Treatment reinforces it: interactive elements are blue FILL with
+  light text; Action Priority is a tinted chip with a coloured border
+  and coloured text, never a fill. "Can I click this?" is answered by
+  the treatment before the colour is even read.
+
+  --- Why there is no --ink / --color-ink indirection ------------------
+  These are declared once, as --color-* inside @theme, and the theme
+  blocks below redefine those same names. The obvious-looking structure
+  - raw --ink tokens plus `@theme inline { --color-ink: var(--ink) }` -
+  was tried here and is silently broken: `inline` resolves the value at
+  build time, so `text-ink` compiled to the literal light hex. Dark mode
+  then "worked" in the most dangerous way possible. The ground went
+  dark, every token on :root flipped correctly, and the text did not
+  move: h1 computed to rgb(23,28,34) on an rgb(18,22,26) background, a
+  contrast ratio of 1.06. Invisible, with nothing in the build or the
+  console to say so.
+
+  So: one layer, no `inline`. Utilities emit var(--color-*), and a theme
+  block overriding var(--color-*) actually reaches them.
+
+  --- Surfaces --------------------------------------------------------
+  Four tiers, because a single card style made everything the same
+  weight and so nothing read as primary. Only `raised` gets a shadow,
+  and only the form sheet and modals may use it.
+
+  --- Type ------------------------------------------------------------
+  Seven steps. There used to be nine sizes in play including 12/12.5/13
+  and 24/26.4 - differences too small to read as hierarchy, which
+  flattens a page instead of ordering it. Each step below is far enough
+  from its neighbour to be legible as a level.
+
+  --- Contrast --------------------------------------------------------
+  Every text token below clears WCAG AA (4.5:1) against the surface it
+  is used on, in both themes. --color-ink-faint began at #78828b, which
+  measured 3.61:1 on the light ground and was carrying the one-line
+  purpose text under every page title.
 */
-:root {
-  --bg: #f6f4ee;
-  --bg-elevated: #ffffff;
-  --surface: #ffffff;
-  --surface-hover: #f0ece0;
-  --border: #e3ddcc;
-  --border-strong: #cbc2a8;
-  --ink: #20262c;
-  --ink-soft: #545f67;
-  --ink-faint: #808a8f;
-  --accent: #92600f;
-  --accent-strong: #6b4709;
-  --accent-ink: #ffffff;
-  --accent-soft: #faf0da;
-  --accent-line: #e2be72;
-  --crit: #b3261e;
-  --crit-soft: #fbeae7;
-  --warn: #c1560a;
-  --warn-soft: #fbebdc;
-  --ok: #2e7d4f;
-  --ok-soft: #e7f5ec;
+
+@theme {
+  /* Surfaces, light. The neutrals carry a slight blue bias toward the
+     accent rather than being pure grey, and deliberately avoid the warm
+     cream they used to be - cream belonged to the gold accent and now
+     reads as an unrelated second temperature. */
+  --color-ground: #f3f6f9;
+  --color-panel: #ffffff;
+  --color-panel-hover: #edf1f6;
+  --color-sunken: #e8edf2;
+  --color-raised: #ffffff;
+
+  --color-border: #dce3ea;
+  --color-border-strong: #b9c4cf;
+
+  --color-ink: #171c22;
+  --color-ink-soft: #48525b;
+  --color-ink-faint: #5f6a73;
+
+  /* Brand + interactive. Shares no hue with any severity colour. */
+  --color-accent: #17549e;
+  --color-accent-strong: #103c72;
+  --color-accent-hover: #1b62b8;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #e9f0fa;
+  --color-accent-line: #a6c6ea;
+
+  /* Action Priority + status. Reserved - see note above. */
+  --color-crit: #a81f18;
+  --color-crit-soft: #fdecea;
+  --color-crit-line: #eab6b1;
+  --color-warn: #9a4405;
+  --color-warn-soft: #fdeedd;
+  --color-warn-line: #f0c391;
+  --color-ok: #1f6b41;
+  --color-ok-soft: #e6f4eb;
+  --color-ok-line: #a8d4ba;
+
+  --color-focus: #1e6fd9;
+
+  /* Aliases kept so the sheet and review components keep working while
+     the shell moves to the new names. Deliberate: those two files are
+     ~1400 lines of tested behaviour and are not worth re-verifying on a
+     submission deadline for a rename. */
+  --color-bg: #f3f6f9;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #edf1f6;
+
   --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
   --font-body: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), "SFMono-Regular", Consolas, monospace;
+
+  /* Seven steps, each far enough from its neighbour to read as a level. */
+  --text-micro: 11px;
+  --text-micro--line-height: 1.45;
+  --text-micro--letter-spacing: 0.06em;
+  --text-label: 12px;
+  --text-label--line-height: 1.5;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.55;
+  --text-body: 14px;
+  --text-body--line-height: 1.6;
+  --text-lg: 17px;
+  --text-lg--line-height: 1.4;
+  --text-title: 21px;
+  --text-title--line-height: 1.28;
+  --text-display: 27px;
+  --text-display--line-height: 1.18;
+
+  --shadow-raised: 0 1px 2px rgb(20 30 40 / 0.06), 0 8px 24px -8px rgb(20 30 40 / 0.16);
 }
 
-@theme inline {
-  --color-bg: var(--bg);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-ink-faint: var(--ink-faint);
-  --color-accent: var(--accent);
-  --color-accent-strong: var(--accent-strong);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-soft: var(--accent-soft);
-  --color-accent-line: var(--accent-line);
-  --color-crit: var(--crit);
-  --color-crit-soft: var(--crit-soft);
-  --color-warn: var(--warn);
-  --color-warn-soft: var(--warn-soft);
-  --color-ok: var(--ok);
-  --color-ok-soft: var(--ok-soft);
-  --font-display: var(--font-display);
-  --font-body: var(--font-body);
-  --font-mono: var(--font-mono);
+/*
+  Dark theme. Guarded so an explicit light choice beats a dark OS, and
+  repeated under [data-theme="dark"] so the toggle wins in both
+  directions. Only tokens are redefined here - no component ever gets
+  its only colour definition inside a theme block, or it renders one
+  theme's text on the other theme's ground.
+
+  Not a naive inversion: the accent is lifted well above its light-mode
+  value because #17549e on a dark ground is nearly black, and the AP
+  tints become low-alpha washes rather than pale pastels.
+*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #12161a;
+    --color-panel: #1a1f25;
+    --color-panel-hover: #21272e;
+    --color-sunken: #161a1f;
+    --color-raised: #1f252c;
+
+    --color-border: #29313a;
+    --color-border-strong: #3e4954;
+
+    --color-ink: #e8e6e0;
+    --color-ink-soft: #aeb6bc;
+    --color-ink-faint: #949da4;
+
+    --color-accent: #6ba6e8;
+    --color-accent-strong: #97c3f1;
+    --color-accent-hover: #84b6ee;
+    --color-accent-ink: #08131f;
+    --color-accent-soft: #13243a;
+    --color-accent-line: #2b4a70;
+
+    --color-crit: #f5a09a;
+    --color-crit-soft: #2e1a18;
+    --color-crit-line: #6d322d;
+    --color-warn: #f0a662;
+    --color-warn-soft: #2d1f11;
+    --color-warn-line: #6b4622;
+    --color-ok: #7fd0a0;
+    --color-ok-soft: #15251c;
+    --color-ok-line: #2f5940;
+
+    --color-focus: #6aa9f0;
+
+    --color-bg: #12161a;
+    --color-bg-elevated: #1a1f25;
+    --color-surface: #1a1f25;
+    --color-surface-hover: #21272e;
+
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -8px rgb(0 0 0 / 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-ground: #12161a;
+  --color-panel: #1a1f25;
+  --color-panel-hover: #21272e;
+  --color-sunken: #161a1f;
+  --color-raised: #1f252c;
+
+  --color-border: #29313a;
+  --color-border-strong: #3e4954;
+
+  --color-ink: #e8e6e0;
+  --color-ink-soft: #aeb6bc;
+  --color-ink-faint: #949da4;
+
+  --color-accent: #6ba6e8;
+  --color-accent-strong: #97c3f1;
+  --color-accent-hover: #84b6ee;
+  --color-accent-ink: #08131f;
+  --color-accent-soft: #13243a;
+  --color-accent-line: #2b4a70;
+
+  --color-crit: #f5a09a;
+  --color-crit-soft: #2e1a18;
+  --color-crit-line: #6d322d;
+  --color-warn: #f0a662;
+  --color-warn-soft: #2d1f11;
+  --color-warn-line: #6b4622;
+  --color-ok: #7fd0a0;
+  --color-ok-soft: #15251c;
+  --color-ok-line: #2f5940;
+
+  --color-focus: #6aa9f0;
+
+  --color-bg: #12161a;
+  --color-bg-elevated: #1a1f25;
+  --color-surface: #1a1f25;
+  --color-surface-hover: #21272e;
+
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -8px rgb(0 0 0 / 0.6);
 }
 
 html {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 body {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--color-ground);
+  color: var(--color-ink);
   font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/*
+  Numbers that sit in columns must line up. S/O/D, claim counts and AP
+  values were proportional before, so a 7 and a 1 took different widths
+  and the columns visibly wobbled.
+*/
+.tnum,
+table,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  One visible focus ring for everything, keyboard-only. Inputs used to
+  signal focus by changing border colour alone, which is close to
+  invisible against the border they already had.
+*/
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
 }
 
 * {
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

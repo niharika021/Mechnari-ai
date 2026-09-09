@@ -76,7 +76,7 @@ export default function ReportPage() {
   }
 
   if (!loaded || authLoading) {
-    return <p className="text-[13px] text-ink-faint">Loading…</p>;
+    return <p className="text-sm text-ink-faint">Loading…</p>;
   }
 
   if (!report) {
@@ -105,7 +105,7 @@ export default function ReportPage() {
       <Card className="px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-wider text-ink-faint">
+            <div className="font-mono text-micro uppercase tracking-wider text-ink-faint">
               DFMEA report {report.id}
             </div>
             <h2 className="mt-0.5 font-display text-lg font-bold text-ink">
@@ -132,7 +132,7 @@ export default function ReportPage() {
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <div className="text-right">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+              <div className="font-mono text-micro uppercase tracking-wider text-ink-faint">
                 Actions closed
               </div>
               <div

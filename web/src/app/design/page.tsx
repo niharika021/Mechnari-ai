@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { PageHeader } from "@/components/RoleNav";
 import { PartIntake } from "./PartIntake";
 
 export default async function DesignEngineerPage() {
@@ -10,16 +11,15 @@ export default async function DesignEngineerPage() {
 
   return (
     <div>
-      <h2 className="font-display text-lg font-bold text-ink">Part Intake</h2>
-      <p className="mt-1 max-w-[80ch] text-[13px] text-ink-faint">
-        Draft a DFMEA for a new part or a whole package, or open the one already
-        on file for an existing part. Mechnari works out what kind of part each
-        one is, finds what the company has already built like it, pulls what
-        actually went wrong from the warranty record, and lays the result out in
-        the AIAG-VDA form sheet — an 8D reference on every row, Occurrence
-        measured from real claims rather than estimated, and the reassessed risk
-        each recommended action would actually achieve.
-      </p>
+      {/* The 85-word explanation that used to sit here has moved into
+          PartIntake's own "How this works" disclosure. It described what
+          Mechnari does to a part - genuinely useful the first time, read
+          zero times by an engineer on their fourth draft of the week, and
+          it pushed the first form control 617px down a 698px viewport. */}
+      <PageHeader
+        title="Part Intake"
+        purpose="Draft a DFMEA, or open one already on file."
+      />
       <PartIntake
         partTypes={partTypes}
         systemPackages={systemPackages}
