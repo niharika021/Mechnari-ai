@@ -169,6 +169,18 @@ def dfmea_sheet_route(req: SheetRequest) -> Dict[str, Any]:
         raise HTTPException(400, "Unknown part_type_id.")
 
 
+@app.get("/api/dfmea-sheet/{part_id}")
+def dfmea_sheet_existing(part_id: str) -> Dict[str, Any]:
+    """The DFMEA already on file for a part, what the warranty record says
+    about it now, and which applicable modes it never covered."""
+    try:
+        return dfmea_sheet.build_for_existing(part_id)
+    except data_layer.DatasetError as exc:
+        raise _dataset_error(exc)
+    except KeyError:
+        raise HTTPException(404, "Unknown part_id: %s" % part_id)
+
+
 class LeverRequest(BaseModel):
     severity: int
     occurrence: int

@@ -196,7 +196,7 @@ def test_audit_of_an_unknown_part_is_404_not_500():
 
 def test_dfmea_sheet_fills_the_form_sheet_columns():
     body = client.post("/api/dfmea-sheet", json={"items": [{
-        "part_number": "87654321",
+        "part_number": "EXAMPLE-0001",
         "description": SAMPLE_PART["part_name"],
         "function": SAMPLE_PART["function"],
         "material": SAMPLE_PART["material"],
@@ -205,7 +205,7 @@ def test_dfmea_sheet_fills_the_form_sheet_columns():
     assert body["total_rows"] > 0
     block = body["items"][0]
     assert block["status"] == "success"
-    assert block["part_number"] == "87654321"
+    assert block["part_number"] == "EXAMPLE-0001"
 
     for row in block["rows"]:
         # The columns an engineer reads off the sheet.
@@ -281,6 +281,49 @@ def test_dfmea_sheet_reports_an_undescribed_item_without_failing_the_batch():
     statuses = {b["part_number"]: b["status"] for b in body["items"]}
     assert statuses["GOOD"] == "success"
     assert statuses["EMPTY"] == "insufficient_input"
+
+
+def test_existing_dfmea_shows_filed_and_evidence_readings_side_by_side():
+    part_id = client.get("/api/parts").json()[0]["part_id"]
+    body = client.get("/api/dfmea-sheet/%s" % part_id).json()
+    assert body["part_id"] == part_id
+    assert body["rows_applicable"] >= body["rows_analysed"]
+    assert 0 <= body["coverage_pct"] <= 100
+    assert len(body["filed_rows"]) == body["rows_analysed"]
+
+    for row in body["filed_rows"]:
+        # Both readings are kept: the filed value is what somebody signed,
+        # the evidence value is what the claims show. Replacing the first
+        # with the second would destroy the finding.
+        for column in ("severity", "occurrence", "detection", "action_priority",
+                       "evidence_severity", "evidence_occurrence",
+                       "evidence_detection", "evidence_action_priority"):
+            assert row[column] is not None, column
+        differs = (
+            row["evidence_severity"] != row["severity"]
+            or row["evidence_occurrence"] != row["occurrence"]
+            or row["evidence_detection"] != row["detection"]
+            or row["evidence_action_priority"] != row["action_priority"]
+        )
+        # A flagged row must explain itself, and an unflagged one must not
+        # carry a phantom note.
+        assert row["disagrees"] == bool(row["disagreement_notes"])
+        if row["disagrees"]:
+            assert differs, row["mode_id"]
+
+
+def test_existing_dfmea_missing_rows_are_the_gaps_for_that_part():
+    import gap_detection
+
+    part_id = client.get("/api/parts").json()[0]["part_id"]
+    body = client.get("/api/dfmea-sheet/%s" % part_id).json()
+    expected = gap_detection.detect_gaps(part_id)
+    assert len(body["missing_rows"]) == len(expected)
+    assert all(row["evidence_ids"] for row in body["missing_rows"])
+
+
+def test_existing_dfmea_of_an_unknown_part_is_404():
+    assert client.get("/api/dfmea-sheet/TR-NOT-A-PART").status_code == 404
 
 
 def test_agui_endpoint_is_mounted():

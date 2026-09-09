@@ -241,6 +241,62 @@ export type SheetItemInput = {
   existing_part_id?: string;
 };
 
+// A row of the DFMEA already on file. Carries both readings: the numbers
+// as filed (what somebody signed) and what the warranty record says now.
+export type FiledRow = {
+  mode_id: string;
+  item_interface: string;
+  elementary_function: string;
+  failure_mode: string;
+  potential_effect: string;
+  potential_cause: string;
+  design_control_prevention: string;
+  recommended_action: string;
+
+  severity: number;
+  occurrence: number;
+  detection: number;
+  action_priority: "H" | "M" | "L";
+  rpn_legacy: number;
+
+  evidence_severity: number;
+  evidence_occurrence: number;
+  evidence_detection: number;
+  evidence_action_priority: "H" | "M" | "L";
+  disagrees: boolean;
+  disagreement_notes: string;
+
+  evidence_ids: string;
+  evidence_scope: string;
+  claims_per_1000: number | null;
+  analyzed_by: string;
+  analysis_date: string;
+  revision: string;
+};
+
+export type ExistingDfmea = {
+  status: "success";
+  part_id: string;
+  item_reference: string;
+  elementary_function: string;
+  material: string;
+  system_package: string;
+  part_type_name: string;
+  family_name: string;
+  drawing_spec: string;
+  analyzed_by: string;
+  analysis_date: string;
+  revision: string;
+  rows_analysed: number;
+  rows_applicable: number;
+  coverage_pct: number;
+  rows_disagreeing: number;
+  filed_rows: FiledRow[];
+  missing_rows: GapFinding[];
+  own_history: IssueRecord[];
+  ap_table_verified: boolean;
+};
+
 export type IssueSummaryRow = {
   part_id: string;
   item_reference: string;
@@ -381,6 +437,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
     }),
+  existingDfmea: (partId: string) =>
+    request<ExistingDfmea>(`/api/dfmea-sheet/${encodeURIComponent(partId)}`),
   dfmeaSheet: (items: SheetItemInput[]) =>
     request<SheetResult>("/api/dfmea-sheet", {
       method: "POST",

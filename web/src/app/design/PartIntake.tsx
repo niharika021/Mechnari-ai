@@ -4,10 +4,13 @@ import { useState } from "react";
 import {
   api,
   ApiError,
+  type ExistingDfmea,
+  type Part,
   type PartType,
   type SheetItemInput,
   type SheetResult,
 } from "@/lib/api";
+import { ExistingDfmeaView } from "@/components/ExistingDfmeaView";
 import {
   Button,
   Callout,
@@ -42,28 +45,36 @@ function blankRow(): Row {
 }
 
 const EXAMPLE: Omit<Row, "key"> = {
-  part_number: "87654321",
+  part_number: "EXAMPLE-0001",
   description: "EPDM Fuel Return Line",
   function: "Return unburnt diesel from the injector rail to the tank",
   material: "EPDM rubber with textile braid",
   part_type_id: "",
 };
 
+type Mode = "single" | "package" | "existing";
+
 export function PartIntake({
   partTypes,
   systemPackages,
+  parts,
 }: {
   partTypes: PartType[];
   systemPackages: string[];
+  parts: Part[];
 }) {
   // A package is the same operation repeated, so it is one mode switch
-  // rather than two different forms.
-  const [mode, setMode] = useState<"single" | "package">("single");
+  // rather than two different forms. "existing" is genuinely different:
+  // it reads the DFMEA already on file instead of drafting a new one.
+  const [mode, setMode] = useState<Mode>("single");
   const [systemPackage, setSystemPackage] = useState(systemPackages[0] ?? "");
   const [rows, setRows] = useState<Row[]>([{ ...EXAMPLE, key: nextKey++ }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SheetResult | null>(null);
+
+  const [existingPartId, setExistingPartId] = useState(parts[0]?.part_id ?? "");
+  const [existing, setExisting] = useState<ExistingDfmea | null>(null);
 
   const sortedTypes = [...partTypes].sort((a, b) =>
     a.part_type_name.localeCompare(b.part_type_name),
@@ -73,10 +84,27 @@ export function PartIntake({
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
-  function switchMode(next: "single" | "package") {
+  function switchMode(next: Mode) {
     setMode(next);
     setResult(null);
+    setExisting(null);
+    setError(null);
     if (next === "single") setRows((prev) => prev.slice(0, 1));
+  }
+
+  async function loadExisting(e: React.FormEvent) {
+    e.preventDefault();
+    if (!existingPartId) return;
+    setLoading(true);
+    setError(null);
+    setExisting(null);
+    try {
+      setExisting(await api.existingDfmea(existingPartId));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reach the API.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const describable = rows.filter(
@@ -120,14 +148,40 @@ export function PartIntake({
             <ModeButton active={mode === "package"} onClick={() => switchMode("package")}>
               Package / assembly
             </ModeButton>
+            <ModeButton active={mode === "existing"} onClick={() => switchMode("existing")}>
+              Existing part on file
+            </ModeButton>
           </div>
           <p className="text-xs text-ink-faint">
             {mode === "single"
-              ? "One new or existing part."
-              : `A package of parts analysed together - ${rows.length} in the list.`}
+              ? "One new part."
+              : mode === "package"
+                ? `A package of parts analysed together - ${rows.length} in the list.`
+                : "Read the DFMEA already on file for a part, and what is missing from it."}
           </p>
         </div>
 
+        {mode === "existing" ? (
+          <form onSubmit={loadExisting} className="flex flex-col gap-4">
+            <Field label="Part already on file">
+              <Select
+                value={existingPartId}
+                onChange={(e) => setExistingPartId(e.target.value)}
+              >
+                {[...parts]
+                  .sort((a, b) => a.part_id.localeCompare(b.part_id))
+                  .map((p) => (
+                    <option key={p.part_id} value={p.part_id}>
+                      {p.part_id} — {p.item_reference}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+            <Button type="submit" variant="primary" disabled={loading} className="w-fit">
+              {loading ? "Loading…" : "\u{1F4C4} Open the DFMEA on file"}
+            </Button>
+          </form>
+        ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Field label="System package this belongs to">
             <Select
@@ -176,7 +230,7 @@ export function PartIntake({
                     <TextInput
                       value={row.part_number}
                       onChange={(e) => update(row.key, { part_number: e.target.value })}
-                      placeholder="e.g. 87654321"
+                      placeholder="e.g. EXAMPLE-0001"
                     />
                   </Field>
                   <Field label="Part description">
@@ -246,11 +300,13 @@ export function PartIntake({
             </Button>
           </div>
         </form>
+        )}
       </Card>
 
       {loading ? <Spinner /> : null}
       {error ? <Callout tone="crit">{error}</Callout> : null}
       {result ? <DfmeaSheet result={result} /> : null}
+      {existing ? <ExistingDfmeaView data={existing} /> : null}
     </div>
   );
 }

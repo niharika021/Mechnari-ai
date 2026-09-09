@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 import data_layer
+import gap_detection
 import retrieval
 import risk_engine
 
@@ -226,6 +227,142 @@ def build_for_item(item: Dict[str, Any]) -> Dict[str, Any]:
         ).to_dict("records")[:5],
         "own_history": own_history,
         "rows": rows,
+    }
+
+
+def _filed_row(scored: pd.Series) -> Dict[str, Any]:
+    """One row of the DFMEA already on file, as filed, next to what the
+    warranty record says now.
+
+    Both readings are kept rather than the filed values being silently
+    replaced. The filed number is what somebody signed; the evidence
+    number is what the claims show. Showing the pair is the finding - and
+    it is what an auditor asks to see.
+    """
+    filed_sev = int(scored["severity_as_filed"])
+    filed_occ = int(scored["occurrence"])
+    filed_det = int(scored["detection"])
+    ev_sev = int(scored["severity_standard"])
+    ev_occ = int(scored["evidence_occurrence"])
+    ev_det = max(int(scored["detection"]), int(scored["detection_floor"]))
+
+    notes = []
+    if ev_sev != filed_sev:
+        notes.append(
+            "Severity filed as %d; the organisation standard for this effect is %d."
+            % (filed_sev, ev_sev)
+        )
+    if ev_occ != filed_occ:
+        direction = "understated" if ev_occ > filed_occ else "overstated"
+        notes.append(
+            "Occurrence filed as %d; the warranty record puts it at %d (%s)."
+            % (filed_occ, ev_occ, direction)
+        )
+    if int(scored["detection_floor"]) > filed_det:
+        notes.append(
+            "Detection filed as %d, but this mode has escaped to %s, which "
+            "floors Detection at %d."
+            % (filed_det, scored["worst_escape_stage"], int(scored["detection_floor"]))
+        )
+    if bool(scored["ap_changed"]):
+        notes.append(
+            "Action Priority moves from %s to %s once evidence replaces the "
+            "filed estimate." % (scored["ap_as_filed"], scored["ap_evidence_based"])
+        )
+
+    return {
+        "mode_id": scored["mode_id"],
+        "item_interface": scored["item_reference"],
+        "elementary_function": scored.get("elementary_function") or "",
+        "failure_mode": scored["failure_mode"],
+        "potential_effect": scored["effect_description"],
+        "potential_cause": scored["potential_cause"],
+        "design_control_prevention": scored["current_design_control"],
+        "recommended_action": scored["recommended_action"],
+
+        # As filed - what the signed document says.
+        "severity": filed_sev,
+        "occurrence": filed_occ,
+        "detection": filed_det,
+        "action_priority": scored["ap_as_filed"],
+        "rpn_legacy": int(scored["rpn_legacy"]),
+
+        # What the evidence says now.
+        "evidence_severity": ev_sev,
+        "evidence_occurrence": ev_occ,
+        "evidence_detection": ev_det,
+        "evidence_action_priority": scored["ap_evidence_based"],
+        "disagrees": bool(notes),
+        "disagreement_notes": " ".join(notes),
+
+        "evidence_ids": scored.get("evidence_ids") or "",
+        "evidence_scope": scored.get("evidence_scope") or "",
+        "claims_per_1000": (
+            None if pd.isna(scored.get("claims_per_1000"))
+            else round(float(scored["claims_per_1000"]), 2)
+        ),
+        "analyzed_by": scored["analyzed_by"],
+        "analysis_date": str(scored["analysis_date"])[:10],
+        "revision": scored["revision"],
+    }
+
+
+def build_for_existing(part_id: str) -> Dict[str, Any]:
+    """
+    The DFMEA already on file for a part, plus what is missing from it.
+
+    Answers "show me what we have for this part" - which is a different
+    question from drafting a new one, and the one asked when a part is
+    being carried over or revised rather than designed from scratch.
+    """
+    parts = data_layer.parts()
+    part_row = parts[parts["part_id"] == part_id]
+    if part_row.empty:
+        raise KeyError(part_id)
+    part = part_row.iloc[0]
+
+    scored = risk_engine.scored_worksheet(part_id)
+    filed_rows = [_filed_row(scored.iloc[i]) for i in range(len(scored))]
+    # scored_worksheet joins the catalog and the parts table but not the
+    # part's own function text, so fill it from the part itself.
+    for row in filed_rows:
+        row["elementary_function"] = part["elementary_function"]
+
+    # Applicable to this kind of part, but never analysed. Same shape as a
+    # drafted row, so it can be read straight into the sheet above.
+    gaps = gap_detection.detect_gaps(part_id)
+    missing_rows = gaps.astype(object).where(pd.notnull(gaps), None).to_dict("records")
+
+    history = data_layer.issue_history(part_id)
+    own_history = history.astype(object).where(
+        pd.notnull(history), None
+    ).to_dict("records")
+
+    analysed = len(filed_rows)
+    applicable = analysed + len(missing_rows)
+    return {
+        "status": "success",
+        "part_id": part_id,
+        "item_reference": part["item_reference"],
+        "elementary_function": part["elementary_function"],
+        "material": part["material_type"],
+        "system_package": part["system_package"],
+        "part_type_name": part["part_type_name"],
+        "family_name": part["family_name"],
+        "drawing_spec": part.get("drawing_spec_ref") or "",
+        "analyzed_by": filed_rows[0]["analyzed_by"] if filed_rows else "",
+        "analysis_date": filed_rows[0]["analysis_date"] if filed_rows else "",
+        "revision": filed_rows[0]["revision"] if filed_rows else "",
+        "rows_analysed": analysed,
+        "rows_applicable": applicable,
+        "coverage_pct": (
+            round(analysed / applicable * 100) if applicable else 100
+        ),
+        "rows_disagreeing": sum(1 for r in filed_rows if r["disagrees"]),
+        "filed_rows": filed_rows,
+        "missing_rows": missing_rows,
+        "own_history": own_history,
+        "ap_table_verified": risk_engine.AP_TABLE_VERIFIED,
     }
 
 
