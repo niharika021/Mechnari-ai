@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict
 import agui_endpoint
 import auth
 import backtest
+import bq_source
 import data_layer
 import dfmea_sheet
 import gap_detection
@@ -67,13 +68,36 @@ def health() -> dict:
     # to the file store is the precise failure this is meant to prevent:
     # on Cloud Run that file is per-instance and resets on scale-to-zero,
     # so the queue would look fine until it emptied itself.
+    # data_source is reported for the same reason, and it has already
+    # earned it: with the source set to bigquery but the project not
+    # resolvable, every table fell back to the CSVs and nothing said so.
+    # This reports what actually served the tables - "bigquery", "csv", or
+    # "mixed" when only some fell back - rather than what was configured.
     return {
         "status": "ok",
         "queue_backend": queue_store.backend(),
         "report_backend": report_store.backend(),
+        "data_source": data_layer.source(),
         # So the frontend can hide the sign-in button rather than offer one
         # that cannot work.
         "auth_available": auth.auth_available(),
+    }
+
+
+@app.get("/api/health/data")
+def health_data() -> dict:
+    """Which source served each knowledge-base table, and why.
+
+    Separate from /api/health because it is diagnostic detail rather than
+    a liveness signal, and because the note on a fallback carries the
+    BigQuery error text - useful when something is wrong, noise when
+    nothing is.
+    """
+    return {
+        "source": data_layer.source(),
+        "dataset": "%s.%s" % (bq_source.project() or "(no project)", bq_source.DATASET),
+        "configured_for_bigquery": bq_source.configured(),
+        "tables": data_layer.source_notes(),
     }
 
 

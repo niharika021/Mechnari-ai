@@ -13,15 +13,32 @@ failure_mode_catalog  failure modes keyed by TYPE or FAMILY, with provenance
 field_issues          warranty / 8D records, many per part
 dfmea_worksheet       the DFMEA on file today (part_id + mode_id + S/O/D)
 
-The CSVs are a stand-in for the Postgres tables in the target architecture.
-Every loader returns a DataFrame, so swapping the source for a real query
-later is a change inside this module only.
+Where the tables come from
+--------------------------
+BigQuery when `MECHNARI_DATA_SOURCE=bigquery` and a project is set,
+otherwise the CSVs in data/. That promise the previous version of this
+docstring made - "swapping the source for a real query later is a change
+inside this module only" - turned out to be true: `_read` is the only
+function that ever touched a file, so it is the only one that changed.
+
+The fallback is deliberate and one-directional. If BigQuery cannot serve
+a table for any reason - dataset absent, permission revoked, API
+unreachable - that table is read from the CSV instead and the reason is
+recorded in `source_notes()`. A warehouse being unavailable should not
+take the app down, which is the same posture `queue_store` takes with
+Firestore. The reverse is not offered: nothing writes back to BigQuery
+from here, because the knowledge base is loaded, not edited.
+
+Tests run on CSV. They do not set the env var, so no suite needs cloud
+credentials and the figures they assert stay reproducible offline.
 """
 
 import os
 from functools import lru_cache
 
 import pandas as pd
+
+import bq_source
 
 # Resolve data/ relative to this file so the app works from any cwd.
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,8 +68,14 @@ def missing_tables():
     return [name for name in TABLES if not os.path.exists(_path(name))]
 
 
-@lru_cache(maxsize=None)
-def _read(table: str) -> pd.DataFrame:
+# Which source actually served each table, and why, so /api/health can
+# report the truth rather than the configured intent. A table that fell
+# back is far more useful to see than a global flag that says "bigquery"
+# while the CSVs are doing the work.
+_NOTES: dict = {}
+
+
+def _read_csv(table: str) -> pd.DataFrame:
     path = _path(table)
     if not os.path.exists(path):
         raise DatasetError(
@@ -64,9 +87,55 @@ def _read(table: str) -> pd.DataFrame:
     return df
 
 
+@lru_cache(maxsize=None)
+def _read(table: str) -> pd.DataFrame:
+    if bq_source.configured():
+        try:
+            df = bq_source.read_table(table)
+            _NOTES[table] = "bigquery"
+            return df
+        except bq_source.BigQuerySourceError as exc:
+            # Recorded, not raised: the CSV below is a working knowledge
+            # base, so a warehouse problem degrades the provenance of the
+            # data rather than the availability of the app.
+            _NOTES[table] = "csv (bigquery unavailable: %s)" % exc
+    else:
+        _NOTES[table] = "csv"
+    return _read_csv(table)
+
+
+def source() -> str:
+    """"bigquery", "csv", "mixed", or "unavailable" - what actually served.
+
+    Reads the smallest table first if nothing has been read yet, rather
+    than reporting the configured intent. That distinction is the entire
+    point of this function, and reporting intent when the cache was cold
+    was a real bug: a freshly started Cloud Run instance answered
+    /api/health with "bigquery" before it had read a single table, which
+    is exactly the reassuring-but-unearned answer this exists to avoid.
+
+    part_types is 17 rows and is cached after the first read, so the cost
+    is one small read per process.
+    """
+    if not _NOTES:
+        try:
+            _read("part_types")
+        except DatasetError:
+            return "unavailable"
+    kinds = {"bigquery" if note == "bigquery" else "csv" for note in _NOTES.values()}
+    return kinds.pop() if len(kinds) == 1 else "mixed"
+
+
+def source_notes() -> dict:
+    """Per table, which source served it and why. Empty until first read."""
+    return dict(_NOTES)
+
+
 def reload():
-    """Drop cached tables - call after regenerating the CSVs."""
+    """Drop cached tables - call after regenerating the CSVs or reloading
+    BigQuery, so the next read picks the source up fresh."""
     _read.cache_clear()
+    _NOTES.clear()
 
 
 def part_types() -> pd.DataFrame:

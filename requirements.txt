@@ -1,6 +1,7 @@
 google-adk>=2.7,<3
 google-genai  # pulled in by google-adk; used for types.Content
 google-cloud-bigquery
+db-dtypes  # BigQuery DATE/TIME columns -> pandas; needed by to_dataframe()
 google-cloud-firestore  # review queue + reports (both fall back to a JSON file)
 firebase-admin  # verifies Google sign-in ID tokens (auth.py); sign-in is optional
 ag-ui-adk>=0.7,<1  # AG-UI protocol wrapper around the ADK agent (api.py mounts it)

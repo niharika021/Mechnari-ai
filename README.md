@@ -4,7 +4,8 @@
 [![Agents](https://img.shields.io/badge/Agents-Google%20ADK%202.x-4285F4.svg)](https://google.github.io/adk-docs/)
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js%20%2B%20FastAPI-000000.svg)](https://nextjs.org/)
 [![Standard](https://img.shields.io/badge/Standard-AIAG--VDA%20Action%20Priority-0F6B63.svg)](https://www.aiag.org/)
-[![Tests](https://img.shields.io/badge/tests-137%20passing-2F6B3C.svg)](#-tests)
+[![Data](https://img.shields.io/badge/data-BigQuery-669DF6.svg)](#-where-the-data-comes-from)
+[![Tests](https://img.shields.io/badge/tests-147%20passing-2F6B3C.svg)](#-tests)
 [![Live](https://img.shields.io/badge/live-app.mechnari.in-1a73e8.svg)](https://app.mechnari.in)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -126,7 +127,8 @@ graph TD
     end
 
     ENG --> DL[data_layer.py - normalised tables]
-    DL --> CSV[(8 CSV tables, organization_id-ready)]
+    DL -->|source of record| BQ[(BigQuery - mechnari_engineering)]
+    DL -->|fallback| CSV[(7 CSV tables, organization_id-ready)]
     ENG --> ADK[mechnari_agent - Google ADK 2.x]
     ADK -->|prose only, never scores| GEM[Gemini via google-genai]
 ```
@@ -177,6 +179,54 @@ inside a PTFE lumen is only real downstream of an air compressor, so it sits at
 **type** level. The first build keyed everything to part type and produced a
 finding telling an engineer to check a wire conduit for park-brake binding.
 Inheritance has to be narrow enough to stay true.
+
+---
+
+## 🗄️ Where the data comes from
+
+**BigQuery is the source of record; the CSVs are the fallback.** Set
+`MECHNARI_DATA_SOURCE=bigquery` and `data_layer` reads the seven knowledge-base
+tables out of the `mechnari_engineering` dataset. Unset, or on any BigQuery
+failure, it reads `data/*.csv` instead.
+
+```bash
+py bq_load.py            # create the dataset and load data/*.csv into it
+py bq_load.py --verify   # read it back and compare against the CSVs
+```
+
+**The tables are read whole, once per process — not queried per request.** The
+engines are not SQL workloads: retrieval is TF-IDF cosine over every part
+description, gap detection is a set difference, and the backtest re-runs
+retrieval across several temporal cutoffs. Those are iterative in-memory
+computations. Pushing them into SQL would mean rewriting the four modules the
+test suites cover, and would add a query round trip to every page for a dataset
+this size. So BigQuery supplies the data and `data_layer` caches it exactly as
+it cached the CSV — every engine downstream is unchanged and just as fast.
+`list_rows` is used rather than `SELECT *`, so a table read is a storage read
+and is not billed as a query.
+
+When a pilot company's real warranty history arrives — millions of claims
+rather than hundreds — that is the point to push aggregation down, and
+`bq_source.py` is the seam for it.
+
+**The switch is verified, not assumed.** Running the engines against both
+sources produces identical output on all 18 headline figures — 50 parts, 127
+gaps, 15 at S≥9, 57.3% mean coverage, 71.7% → 98.3% backtest recall, 228 claims
+behind the newly-caught, 73.2% cold-start recall. `bq_load.py --verify` compares
+row counts and column names table by table, and `/api/health` reports
+`data_source` as what actually served the tables — `bigquery`, `csv`, or `mixed`
+when only some fell back — rather than what was configured. `/api/health/data`
+breaks that down per table with the reason for any fallback.
+
+> That distinction caught a real bug. With the source set to `bigquery` but the
+> project not resolvable locally, every table fell back to CSV and the figures
+> were still correct — because the CSVs are correct. A flag reporting the
+> configured *intent* would have said "bigquery" while the CSVs did all the
+> work.
+
+Fallback is one-directional: nothing writes back to BigQuery, because the
+knowledge base is loaded, not edited. Tests run on CSV, so no suite needs cloud
+credentials and the figures above stay reproducible offline.
 
 ---
 
@@ -287,7 +337,7 @@ The generator is seeded, so the figures in this README reproduce exactly.
 
 ## 🧪 Tests
 
-**137 tests across 8 suites, all passing.** Each file runs standalone or under
+**147 tests across 9 suites, all passing.** Each file runs standalone or under
 pytest:
 
 ```bash
@@ -304,6 +354,7 @@ for f in test_*.py; do py "$f"; done
 | `test_gap_detection.py` | 12 | Type ∪ family applicability, severity consistency |
 | `test_queue_store.py` | 11 | Draft queue atomicity, corruption recovery, Firestore fallback |
 | `test_report_store.py` | 10 | Report ownership — missing returns None, not-yours raises |
+| `test_data_source.py` | 10 | BigQuery vs CSV selection, and that an unreachable warehouse degrades to the CSVs rather than failing |
 
 ---
 
@@ -313,7 +364,9 @@ for f in test_*.py; do py "$f"; done
 Mechnari-ai/
 ├── taxonomy.py              # Authoring source for the data model (families, types, effects)
 ├── generate_csv_data.py     # Seeded generator -> the 8 CSV tables
-├── data_layer.py            # Loads and joins the normalised tables
+├── data_layer.py            # Loads and joins the normalised tables (BigQuery, CSV fallback)
+├── bq_source.py             # Reads the knowledge base out of BigQuery
+├── bq_load.py               # Loads data/*.csv into BigQuery, and verifies it
 ├── gap_detection.py         # Applicable modes minus analysed modes
 ├── risk_engine.py           # S/O/D, AIAG-VDA Action Priority, AP levers
 ├── retrieval.py             # TF-IDF retrieval, type inference, DFMEA proposal
@@ -329,11 +382,11 @@ Mechnari-ai/
 ├── app.py                   # Streamlit fallback UI
 ├── web/                     # Next.js frontend (three role views, CopilotKit v2)
 ├── DEPLOY.md                # Cloud Run deployment, and the traps in it
-├── test_*.py                # 8 suites, 137 tests
+├── test_*.py                # 9 suites, 147 tests
 ├── docs/                    # Full documentation - start at docs/README.md
 ├── docs/build-dossier.html  # Concept and build report
 ├── intro.md                 # Plain-language introduction
-├── schema.sql               # BigQuery DDL
+├── schema.sql               # BigQuery DDL, generated from the CSVs
 └── data/                    # 8 normalised CSV tables
 ```
 
@@ -370,14 +423,14 @@ Stated here rather than discovered in review.
 
 1. Verify the Action Priority cells against the AIAG-VDA handbook and lift the provisional label
 2. Replace synthetic data with a pilot company's anonymised warranty set; re-run the backtest unchanged
-3. Migrate the CSV layer to Postgres with real multi-tenant auth
+3. Push aggregation down into BigQuery once the data is large enough to earn it
 4. Close the loop: when a new claim arrives, flag which shipped DFMEAs predicted low risk for that mode
 5. Migrate reports made while signed out into an account on first sign-in
 
 Shipped since the first cut: the AIAG-VDA form sheet as the actual output, the
 human-in-the-loop review between findings and report, the Quality action-closure
-handoff, Firestore persistence, optional Google sign-in, and a copilot that acts
-on the interface rather than describing it.
+handoff, Firestore persistence, optional Google sign-in, BigQuery as the source
+of record, and a copilot that acts on the interface rather than describing it.
 
 ---
 
