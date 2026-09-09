@@ -330,6 +330,7 @@ Mechnari-ai/
 ├── web/                     # Next.js frontend (three role views, CopilotKit v2)
 ├── DEPLOY.md                # Cloud Run deployment, and the traps in it
 ├── test_*.py                # 8 suites, 137 tests
+├── docs/                    # Full documentation - start at docs/README.md
 ├── docs/build-dossier.html  # Concept and build report
 ├── intro.md                 # Plain-language introduction
 ├── schema.sql               # BigQuery DDL
