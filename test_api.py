@@ -326,6 +326,30 @@ def test_existing_dfmea_of_an_unknown_part_is_404():
     assert client.get("/api/dfmea-sheet/TR-NOT-A-PART").status_code == 404
 
 
+def test_rescore_keeps_the_ap_table_in_the_engine():
+    """The review screen lets an engineer change Detection, which changes
+    Action Priority. That recalculation must come back to risk_engine - a
+    frontend doing its own band lookup would be a second, unversioned copy
+    of the AP table."""
+    import risk_engine
+
+    triples = [(9, 4, 3), (9, 4, 8), (2, 2, 2), (10, 6, 5)]
+    body = client.post("/api/rescore", json={
+        "rows": [{"severity": s, "occurrence": o, "detection": d}
+                 for s, o, d in triples],
+    }).json()
+    assert len(body) == len(triples)
+    for (s, o, d), scored in zip(triples, body):
+        assert scored["action_priority"] == risk_engine.action_priority(s, o, d)
+        assert scored["rpn_legacy"] == risk_engine.rpn(s, o, d)
+        assert scored["levers"] == risk_engine.find_ap_levers(s, o, d)["levers"]
+
+
+def test_rescore_rejects_an_oversized_batch():
+    rows = [{"severity": 5, "occurrence": 5, "detection": 5}] * 501
+    assert client.post("/api/rescore", json={"rows": rows}).status_code == 400
+
+
 def test_agui_endpoint_is_mounted():
     """The AG-UI streaming endpoint the CopilotKit frontend talks to. Only
     checks that it is registered and accepts POST - actually running it

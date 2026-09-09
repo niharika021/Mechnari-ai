@@ -202,6 +202,20 @@ export type SheetRow = {
   reassessed_action_priority: "H" | "M" | "L";
   reassessed_rpn: number;
   reassessment_basis: string;
+
+  // Set once an engineer has reviewed the row. Absent on a raw proposal,
+  // which is itself meaningful: a sheet without provenance has not been
+  // through anybody's judgement.
+  provenance?: "proposed" | "edited" | "engineer_added";
+  occurrence_override_reason?: string;
+  severity_dispute_note?: string;
+};
+
+export type DeclinedRow = {
+  failure_mode: string;
+  action_priority: "H" | "M" | "L";
+  severity: number;
+  reason: string;
 };
 
 export type SheetItemBlock = {
@@ -220,6 +234,10 @@ export type SheetItemBlock = {
   similar_parts?: Neighbour[];
   own_history?: IssueRecord[];
   rows: SheetRow[];
+  // Present after review: rows the engineer left out, with the reason.
+  // Kept so Quality can tell "considered and rejected" from "never
+  // looked at" - the distinction a manual sheet loses.
+  declined?: DeclinedRow[];
 };
 
 export type SheetResult = {
@@ -437,6 +455,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
     }),
+  rescore: (rows: { severity: number; occurrence: number; detection: number }[]) =>
+    request<{ action_priority: "H" | "M" | "L"; rpn_legacy: number; levers: ApLever[] }[]>(
+      "/api/rescore",
+      { method: "POST", body: JSON.stringify({ rows }) },
+    ),
   existingDfmea: (partId: string) =>
     request<ExistingDfmea>(`/api/dfmea-sheet/${encodeURIComponent(partId)}`),
   dfmeaSheet: (items: SheetItemInput[]) =>

@@ -18,7 +18,13 @@ import { ApBadge, Button, Callout, Card } from "@/components/ui";
  * levers, so it states what the recommended action actually achieves
  * rather than an estimate of it.
  */
-export function DfmeaSheet({ result }: { result: SheetResult }) {
+export function DfmeaSheet({
+  result,
+  approved = false,
+}: {
+  result: SheetResult;
+  approved?: boolean;
+}) {
   const [showEvidence, setShowEvidence] = useState(true);
 
   return (
@@ -27,8 +33,14 @@ export function DfmeaSheet({ result }: { result: SheetResult }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="font-display text-[15px] font-semibold text-ink">
-              Draft DFMEA — {result.total_rows} rows across{" "}
-              {result.items.length} part{result.items.length === 1 ? "" : "s"}
+              {approved ? "DFMEA" : "Draft DFMEA"} — {result.total_rows} rows
+              across {result.items.length} part
+              {result.items.length === 1 ? "" : "s"}
+              {approved ? (
+                <span className="ml-2 rounded-full bg-ok-soft px-2 py-0.5 align-middle font-mono text-[9.5px] uppercase tracking-wide text-ok">
+                  engineer approved
+                </span>
+              ) : null}
             </h3>
             <p className="mt-1 max-w-[80ch] text-xs leading-relaxed text-ink-faint">
               {result.high_rows} High priority · {result.safety_rows} at
@@ -59,7 +71,12 @@ export function DfmeaSheet({ result }: { result: SheetResult }) {
       </Card>
 
       {result.items.map((block, i) => (
-        <ItemBlock key={`${block.part_number}-${i}`} block={block} showEvidence={showEvidence} />
+        <ItemBlock
+          key={`${block.part_number}-${i}`}
+          block={block}
+          showEvidence={showEvidence}
+          approved={approved}
+        />
       ))}
     </div>
   );
@@ -68,9 +85,11 @@ export function DfmeaSheet({ result }: { result: SheetResult }) {
 function ItemBlock({
   block,
   showEvidence,
+  approved,
 }: {
   block: SheetItemBlock;
   showEvidence: boolean;
+  approved: boolean;
 }) {
   if (block.status !== "success") {
     return (
@@ -133,8 +152,27 @@ function ItemBlock({
         </p>
       ) : null}
 
+      {block.declined && block.declined.length > 0 ? (
+        <div className="mt-2.5">
+          <Callout tone="warn">
+            <strong className="block pb-1">
+              {block.declined.length} row(s) considered and left out by the
+              engineer — recorded, not missing:
+            </strong>
+            <ul className="flex flex-col gap-0.5">
+              {block.declined.map((d, i) => (
+                <li key={i}>
+                  {d.failure_mode || "(unnamed)"} (S{d.severity}, {d.action_priority})
+                  {d.reason ? ` — ${d.reason}` : ""}
+                </li>
+              ))}
+            </ul>
+          </Callout>
+        </div>
+      ) : null}
+
       <div className="mt-3 overflow-x-auto rounded-[8px] border border-border">
-        <table className="min-w-[2400px] border-collapse text-left text-[12px]">
+        <table className={`${approved ? "min-w-[2600px]" : "min-w-[2400px]"} border-collapse text-left text-[12px]`}>
           <thead>
             <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
               <Group span={2}>Item &amp; function</Group>
@@ -145,6 +183,7 @@ function ItemBlock({
               <Group span={4}>Action details</Group>
               <Group span={5}>Reassessment of risk</Group>
               {showEvidence ? <Group span={3}>Evidence</Group> : null}
+              {approved ? <Group span={1}>Source</Group> : null}
             </tr>
             <tr className="border-b border-border bg-bg-elevated font-mono text-[9.5px] uppercase tracking-wide text-ink-faint">
               <Th>Item / interface</Th>
@@ -178,11 +217,17 @@ function ItemBlock({
                   <Th num>Claims/1000</Th>
                 </>
               ) : null}
+              {approved ? <Th>Row source</Th> : null}
             </tr>
           </thead>
           <tbody>
             {block.rows.map((row) => (
-              <SheetTableRow key={row.mode_id} row={row} showEvidence={showEvidence} />
+              <SheetTableRow
+                key={row.mode_id}
+                row={row}
+                showEvidence={showEvidence}
+                approved={approved}
+              />
             ))}
           </tbody>
         </table>
@@ -191,7 +236,15 @@ function ItemBlock({
   );
 }
 
-function SheetTableRow({ row, showEvidence }: { row: SheetRow; showEvidence: boolean }) {
+function SheetTableRow({
+  row,
+  showEvidence,
+  approved,
+}: {
+  row: SheetRow;
+  showEvidence: boolean;
+  approved: boolean;
+}) {
   const improved =
     row.reassessed_action_priority !== row.action_priority ||
     row.reassessed_occurrence !== row.occurrence ||
@@ -239,7 +292,47 @@ function SheetTableRow({ row, showEvidence }: { row: SheetRow; showEvidence: boo
           <Td num>{row.claims_per_1000 ?? "—"}</Td>
         </>
       ) : null}
+      {approved ? (
+        <Td>
+          <ProvenanceTag row={row} />
+        </Td>
+      ) : null}
     </tr>
+  );
+}
+
+/** Where a row came from. An unmarked row is one nobody vouched for. */
+function ProvenanceTag({ row }: { row: SheetRow }) {
+  const label =
+    row.provenance === "engineer_added"
+      ? "Engineer's own"
+      : row.provenance === "edited"
+        ? "Evidence, engineer-edited"
+        : "Evidence, accepted";
+  const tone =
+    row.provenance === "engineer_added"
+      ? "bg-accent-soft text-accent-strong"
+      : row.provenance === "edited"
+        ? "bg-warn-soft text-warn"
+        : "bg-ok-soft text-ok";
+  return (
+    <>
+      <span
+        className={`inline-block rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide ${tone}`}
+      >
+        {label}
+      </span>
+      {row.occurrence_override_reason ? (
+        <span className="mt-1 block text-[10px] leading-snug text-warn">
+          Occ override: {row.occurrence_override_reason}
+        </span>
+      ) : null}
+      {row.severity_dispute_note ? (
+        <span className="mt-1 block text-[10px] leading-snug text-warn">
+          Sev disputed: {row.severity_dispute_note}
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -332,6 +425,9 @@ const CSV_COLUMNS: { key: keyof SheetRow; label: string }[] = [
   { key: "field_claims", label: "Field Claims" },
   { key: "claims_per_1000", label: "Claims per 1000 Units" },
   { key: "scope_level", label: "Inheritance Level" },
+  { key: "provenance", label: "Row Source" },
+  { key: "occurrence_override_reason", label: "Occurrence Override Reason" },
+  { key: "severity_dispute_note", label: "Severity Dispute Note" },
 ];
 
 function csvCell(value: unknown): string {

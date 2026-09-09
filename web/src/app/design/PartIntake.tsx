@@ -12,6 +12,11 @@ import {
 } from "@/lib/api";
 import { ExistingDfmeaView } from "@/components/ExistingDfmeaView";
 import {
+  DfmeaReview,
+  toReviewState,
+  type ReviewState,
+} from "@/components/DfmeaReview";
+import {
   Button,
   Callout,
   Card,
@@ -54,6 +59,55 @@ const EXAMPLE: Omit<Row, "key"> = {
 
 type Mode = "single" | "package" | "existing";
 
+/**
+ * The engineer's approved review, turned back into a sheet.
+ *
+ * Only included rows survive, and each one carries how it got there -
+ * from the evidence, from an edit, or from the engineer's own assessment -
+ * along with any reason given for overriding a warranty-measured
+ * Occurrence or disputing a registry Severity. That provenance is the
+ * audit trail a manual sheet does not have.
+ *
+ * Declined rows are not discarded silently: they are counted here and
+ * carried with their reasons, which is what Quality needs to see the
+ * difference between "considered and rejected" and "never looked at".
+ */
+function approvedSheet(states: ReviewState[]): SheetResult {
+  const items = states.map((state) => {
+    const included = state.rows.filter((r) => r.include);
+    return {
+      status: "success" as const,
+      part_number: state.partNumber,
+      item_interface: state.itemInterface,
+      part_type_name: state.partTypeName,
+      confirmed: true,
+      rows: included.map((r) => ({
+        ...r,
+        provenance: r.provenance,
+        occurrence_override_reason: r.occurrence_override_reason,
+        severity_dispute_note: r.severity_disputed ? r.severity_dispute_note : "",
+      })),
+      declined: state.rows
+        .filter((r) => !r.include)
+        .map((r) => ({
+          failure_mode: r.failure_mode,
+          action_priority: r.action_priority,
+          severity: r.severity,
+          reason: r.decline_reason,
+        })),
+    };
+  });
+  const all = items.flatMap((i) => i.rows);
+  return {
+    items,
+    total_rows: all.length,
+    high_rows: all.filter((r) => r.action_priority === "H").length,
+    safety_rows: all.filter((r) => r.severity >= 9).length,
+    rows_with_evidence: all.filter((r) => r.evidence_ids).length,
+    ap_table_verified: false,
+  };
+}
+
 export function PartIntake({
   partTypes,
   systemPackages,
@@ -71,6 +125,11 @@ export function PartIntake({
   const [rows, setRows] = useState<Row[]>([{ ...EXAMPLE, key: nextKey++ }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Three stages, not one: findings -> the engineer's review -> the
+  // report. The middle one is the point. Nothing reaches a DFMEA that an
+  // engineer has not passed judgement on.
+  const [review, setReview] = useState<ReviewState[] | null>(null);
+  const [found, setFound] = useState<SheetResult | null>(null);
   const [result, setResult] = useState<SheetResult | null>(null);
 
   const [existingPartId, setExistingPartId] = useState(parts[0]?.part_id ?? "");
@@ -87,6 +146,7 @@ export function PartIntake({
   function switchMode(next: Mode) {
     setMode(next);
     setResult(null);
+    setReview(null);
     setExisting(null);
     setError(null);
     if (next === "single") setRows((prev) => prev.slice(0, 1));
@@ -120,6 +180,7 @@ export function PartIntake({
     setLoading(true);
     setError(null);
     setResult(null);
+    setReview(null);
     try {
       const items: SheetItemInput[] = describable.map((r) => ({
         part_number: r.part_number,
@@ -129,7 +190,15 @@ export function PartIntake({
         system_package: systemPackage,
         part_type_id: r.part_type_id,
       }));
-      setResult(await api.dfmeaSheet(items));
+      const found = await api.dfmeaSheet(items);
+      const states = toReviewState(found);
+      if (states.length === 0) {
+        // Nothing identifiable - show the reasons rather than an empty review.
+        setResult(found);
+      } else {
+        setFound(found);
+        setReview(states);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the API.");
     } finally {
@@ -305,7 +374,17 @@ export function PartIntake({
 
       {loading ? <Spinner /> : null}
       {error ? <Callout tone="crit">{error}</Callout> : null}
-      {result ? <DfmeaSheet result={result} /> : null}
+      {review ? (
+        <DfmeaReview
+          initial={review}
+          onBack={() => setReview(null)}
+          onGenerate={(states) => {
+            setReview(null);
+            setResult(approvedSheet(states));
+          }}
+        />
+      ) : null}
+      {result ? <DfmeaSheet result={result} approved={!!found} /> : null}
       {existing ? <ExistingDfmeaView data={existing} /> : null}
     </div>
   );

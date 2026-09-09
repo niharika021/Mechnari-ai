@@ -181,6 +181,38 @@ def dfmea_sheet_existing(part_id: str) -> Dict[str, Any]:
         raise HTTPException(404, "Unknown part_id: %s" % part_id)
 
 
+class ScoreTriple(BaseModel):
+    severity: int
+    occurrence: int
+    detection: int
+
+
+class RescoreRequest(BaseModel):
+    rows: List[ScoreTriple]
+
+
+@app.post("/api/rescore")
+def rescore(req: RescoreRequest) -> List[Dict[str, Any]]:
+    """Action Priority, RPN and levers for edited S/O/D triples.
+
+    Exists so the review screen never computes a priority itself. An
+    engineer editing Detection changes the Action Priority, and that
+    recalculation has to stay in risk_engine - a frontend that did its own
+    band lookup would be a second, unversioned copy of the AP table.
+    """
+    if len(req.rows) > 500:
+        raise HTTPException(400, "At most 500 rows per rescore.")
+    out = []
+    for row in req.rows:
+        levers = risk_engine.find_ap_levers(row.severity, row.occurrence, row.detection)
+        out.append({
+            "action_priority": levers["current_ap"],
+            "rpn_legacy": risk_engine.rpn(row.severity, row.occurrence, row.detection),
+            "levers": levers["levers"],
+        })
+    return out
+
+
 class LeverRequest(BaseModel):
     severity: int
     occurrence: int
