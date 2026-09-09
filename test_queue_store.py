@@ -21,6 +21,16 @@ SAMPLE_ROWS = [
 
 
 def _use_scratch_store():
+    """Point the store at a throwaway file and force the file backend.
+
+    USE_FIRESTORE is switched off rather than trusted to be off: the
+    module prefers Firestore whenever GOOGLE_CLOUD_PROJECT is set, and
+    that variable is now in .env, so without this the suite would read and
+    write the real database.
+    """
+    qs.USE_FIRESTORE = False
+    qs._client = None
+    qs._client_failed = False
     handle, path = tempfile.mkstemp(suffix=".json")
     os.close(handle)
     os.remove(path)  # submit_draft/_save_all must create it fresh
@@ -116,6 +126,49 @@ def test_newest_submission_is_listed_first():
     ids = [d["draft_id"] for d in queue]
     assert set(ids) == {first, second}
     assert queue == sorted(queue, key=lambda d: d["submitted_at"], reverse=True)
+
+
+def test_backend_is_the_file_when_no_project_is_configured():
+    """The fallback is what keeps local development and this suite working
+    with no cloud access, so it has to be the behaviour when unconfigured -
+    not an accident of import order."""
+    _use_scratch_store()
+    qs.USE_FIRESTORE = True
+    qs._client = None
+    qs._client_failed = False
+    saved = {k: os.environ.pop(k, None) for k in ("GOOGLE_CLOUD_PROJECT", "FIRESTORE_PROJECT")}
+    try:
+        assert qs.backend() == "file"
+        draft_id = qs.submit_draft("A", "f", "m", "pkg", "type",
+                                   accepted_rows=SAMPLE_ROWS, declined_rows=[])
+        assert qs.get_draft(draft_id) is not None
+    finally:
+        for k, v in saved.items():
+            if v is not None:
+                os.environ[k] = v
+        qs.USE_FIRESTORE = False
+        qs._client = None
+        qs._client_failed = False
+
+
+def test_unreachable_firestore_degrades_to_the_file():
+    """A database outage must not take the DFMEA down with it. The queue is
+    a workflow convenience; the analysis is the product."""
+    _use_scratch_store()
+    qs.USE_FIRESTORE = True
+    qs._client = None
+    qs._client_failed = True  # as if the client had failed to construct
+    os.environ["GOOGLE_CLOUD_PROJECT"] = "not-a-real-project"
+    try:
+        assert qs.backend() == "file"
+        draft_id = qs.submit_draft("B", "f", "m", "pkg", "type",
+                                   accepted_rows=SAMPLE_ROWS, declined_rows=[])
+        assert qs.get_draft(draft_id)["part_name"] == "B"
+    finally:
+        os.environ.pop("GOOGLE_CLOUD_PROJECT", None)
+        qs.USE_FIRESTORE = False
+        qs._client = None
+        qs._client_failed = False
 
 
 def _main():

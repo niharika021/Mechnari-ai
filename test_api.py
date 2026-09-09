@@ -34,6 +34,18 @@ SAMPLE_PART = {
 
 
 def _use_scratch_store():
+    """Point the queue at a throwaway file and force the file backend.
+
+    USE_FIRESTORE must be switched off explicitly. queue_store prefers
+    Firestore whenever GOOGLE_CLOUD_PROJECT is set, and that is now in
+    .env for Vertex - so without this the suite reads and writes the real
+    review queue. It did, briefly, which is how this comment came to
+    exist: test_queue_round_trip failed because the live database already
+    held drafts.
+    """
+    queue_store.USE_FIRESTORE = False
+    queue_store._client = None
+    queue_store._client_failed = False
     handle, path = tempfile.mkstemp(suffix=".json")
     os.close(handle)
     os.remove(path)  # submit_draft must create it fresh
@@ -44,7 +56,11 @@ def _use_scratch_store():
 def test_health():
     response = client.get("/api/health")
     assert response.status_code == 200, response.text
-    assert response.json() == {"status": "ok"}
+    body = response.json()
+    assert body["status"] == "ok"
+    # Which store the queue actually landed on. Reported because a silent
+    # fall back to the per-instance file is the failure Firestore replaced.
+    assert body["queue_backend"] in {"firestore", "file"}
 
 
 def test_parts_are_json_safe_and_filterable():

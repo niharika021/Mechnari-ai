@@ -5,20 +5,34 @@ The record that makes the three role views a real workflow instead of three
 independent screens: when a design engineer sends a draft DFMEA for review,
 it has to still be there when the quality engineer's tab loads.
 
-This is deliberately a plain JSON file, not a database. It is demo-scale
-persistence for a single local instance, not a multi-user store - concurrent
-writers can race, and there is no auth. That is an explicit, stated limit,
-not an oversight: the target architecture's data layer (Postgres, per part
-of Mechnari's own roadmap) replaces this module wholesale, and nothing that
-calls it needs to change when that happens - the shape here (draft_id in,
-draft_id out, status in between) is the contract that carries over.
+Two backends, one interface.
+
+Firestore is used when a project is configured (GOOGLE_CLOUD_PROJECT, plus
+ADC locally or the service account on Cloud Run). That is not a nice-to-have:
+the JSON file below lives on the container's own disk, and Cloud Run's
+filesystem is per-instance and resets on scale-to-zero. On the deployed app
+that meant a draft could be submitted, the service could idle, and the
+Quality queue would come back empty - real data loss, not a theoretical
+limit. Firestore also makes the draft one record two roles read, rather than
+two stores with a copy between them.
+
+The JSON file remains as the fallback when no project is configured, so local
+development and the test suite work with no cloud access at all. Both paths
+are exercised by test_queue_store.py, which is what makes the swap
+verifiable rather than hopeful.
+
+What is still missing is auth. The queue is shared by design - every reviewer
+sees every draft - which is correct for this record and is why it could move
+to Firestore without first deciding what "mine" means. The design engineer's
+own working reports are a different question and deliberately stay in the
+browser until there is an identity to attach them to.
 
 A draft holds only what the review actually checks: the rows the design
-engineer accepted from the proposal, each with the same severity, occurrence,
-detection and evidence a Quality Engineer would find scored a part already
-in the system. Rejected rows are not silently dropped - they are kept as
-"declined" candidates so review can ask whether a high-severity mode was
-declined for a good reason.
+engineer accepted, each with the same severity, occurrence, detection and
+evidence a Quality Engineer would find scored a part already in the system,
+plus the provenance of the engineer's decisions. Rejected rows are not
+silently dropped - they are kept as "declined" candidates with the reason, so
+review can tell a considered rejection from an oversight.
 """
 
 import json
@@ -33,6 +47,51 @@ STORE_PATH = os.path.join(_HERE, ".mechnari_runtime", "draft_queue.json")
 STATUS_NEEDS_REVIEW = "needs_review"
 STATUS_RETURNED = "returned"
 STATUS_APPROVED = "approved"
+
+COLLECTION = "draft_queue"
+
+# Set to False to force the file backend even with a project configured -
+# what the tests use, so they never touch a real database.
+USE_FIRESTORE = True
+
+_client = None
+_client_failed = False
+
+
+def _project() -> Optional[str]:
+    return os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("FIRESTORE_PROJECT")
+
+
+def _firestore():
+    """The Firestore client, or None to fall back to the file.
+
+    A failure here is deliberately not fatal. The queue is a workflow
+    convenience; if the database is unreachable the app should degrade to
+    local storage rather than refuse to serve a DFMEA. The failure is
+    remembered so every call does not retry a broken connection.
+    """
+    global _client, _client_failed
+    if not USE_FIRESTORE or _client_failed:
+        return None
+    if _client is not None:
+        return _client
+    project = _project()
+    if not project:
+        return None
+    try:
+        from google.cloud import firestore
+
+        _client = firestore.Client(project=project)
+        return _client
+    except Exception:  # noqa: BLE001 - degrade, do not crash
+        _client_failed = True
+        return None
+
+
+def backend() -> str:
+    """Which store is actually in use - surfaced so the UI and the deploy
+    checks can state it rather than assume it."""
+    return "firestore" if _firestore() is not None else "file"
 
 
 def _ensure_store_dir() -> None:
@@ -97,6 +156,13 @@ def submit_draft(
         "review_comments": "",
         "reviewed_at": None,
     }
+    db = _firestore()
+    if db is not None:
+        # The draft_id is the document id, so get_draft is a direct read
+        # rather than a scan - and two submits cannot collide on it.
+        db.collection(COLLECTION).document(draft_id).set(draft)
+        return draft_id
+
     drafts = _load_all()
     drafts.append(draft)
     _save_all(drafts)
@@ -105,11 +171,23 @@ def submit_draft(
 
 def list_queue() -> List[Dict[str, Any]]:
     """Newest first - what a reviewer opens the queue expecting to see."""
-    drafts = _load_all()
-    return sorted(drafts, key=lambda d: d["submitted_at"], reverse=True)
+    db = _firestore()
+    if db is not None:
+        # Sorted in Python rather than with order_by: submitted_at is an
+        # ISO string, so lexical and chronological order agree, and this
+        # needs no composite index to deploy.
+        drafts = [doc.to_dict() for doc in db.collection(COLLECTION).stream()]
+    else:
+        drafts = _load_all()
+    return sorted(drafts, key=lambda d: d.get("submitted_at") or "", reverse=True)
 
 
 def get_draft(draft_id: str) -> Optional[Dict[str, Any]]:
+    db = _firestore()
+    if db is not None:
+        doc = db.collection(COLLECTION).document(draft_id).get()
+        return doc.to_dict() if doc.exists else None
+
     for draft in _load_all():
         if draft["draft_id"] == draft_id:
             return draft
@@ -122,13 +200,29 @@ def set_status(draft_id: str, status: str, comments: str = "") -> bool:
     if status not in (STATUS_NEEDS_REVIEW, STATUS_RETURNED, STATUS_APPROVED):
         raise ValueError("Unknown status: %s" % status)
 
+    reviewed_at = datetime.now(timezone.utc).isoformat()
+
+    db = _firestore()
+    if db is not None:
+        ref = db.collection(COLLECTION).document(draft_id)
+        if not ref.get().exists:
+            return False
+        # update, not set: this touches the review fields only and cannot
+        # clobber the rows a concurrent writer may have changed.
+        ref.update({
+            "status": status,
+            "review_comments": comments,
+            "reviewed_at": reviewed_at,
+        })
+        return True
+
     drafts = _load_all()
     found = False
     for draft in drafts:
         if draft["draft_id"] == draft_id:
             draft["status"] = status
             draft["review_comments"] = comments
-            draft["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+            draft["reviewed_at"] = reviewed_at
             found = True
             break
     if found:
@@ -138,4 +232,9 @@ def set_status(draft_id: str, status: str, comments: str = "") -> bool:
 
 def clear_all() -> None:
     """Used by tests and by a demo reset - never called from the app UI."""
+    db = _firestore()
+    if db is not None:
+        for doc in db.collection(COLLECTION).stream():
+            doc.reference.delete()
+        return
     _save_all([])

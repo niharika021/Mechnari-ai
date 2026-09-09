@@ -1,6 +1,7 @@
 google-adk>=2.7,<3
 google-genai  # pulled in by google-adk; used for types.Content
 google-cloud-bigquery
+google-cloud-firestore  # draft review queue (queue_store falls back to a JSON file)
 ag-ui-adk>=0.7,<1  # AG-UI protocol wrapper around the ADK agent (api.py mounts it)
 
 # api.py imports these directly. They also arrive transitively via

@@ -61,7 +61,11 @@ def _dataset_error(exc: data_layer.DatasetError) -> HTTPException:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok"}
+    # queue_backend is reported because a deployment that quietly fell back
+    # to the file store is the precise failure this is meant to prevent:
+    # on Cloud Run that file is per-instance and resets on scale-to-zero,
+    # so the queue would look fine until it emptied itself.
+    return {"status": "ok", "queue_backend": queue_store.backend()}
 
 
 @app.get("/api/parts")

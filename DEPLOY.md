@@ -189,14 +189,58 @@ devtools for CORS errors if a fetch silently fails — that means step 3 was
 skipped or the origin doesn't match exactly (scheme + host + no trailing
 slash).
 
-## What does *not* survive a redeploy
+## The review queue: Firestore
 
-`queue_store.py` writes the draft review queue to a JSON file in the
-container's own filesystem. Cloud Run's filesystem is per-instance and
-resets on scale-to-zero or a new revision — fine for a live demo, not a
-durable store. The real fix (swapping `queue_store` for Firestore or
-Cloud SQL) is future work; the module's write/read interface is small
-enough that nothing above it should need to change.
+The draft review queue is in Firestore, not on the container's disk. That
+matters because Cloud Run's filesystem is per-instance and resets on
+scale-to-zero — a draft could be submitted, the service could idle, and
+the Quality queue would come back empty. That was real data loss, not a
+theoretical limit.
+
+Enabled once per project:
+
+```bash
+gcloud services enable firestore.googleapis.com --project project-b284a92b-1eec-4e4c-add
+gcloud firestore databases create --location=nam5 --type=firestore-native \
+  --project project-b284a92b-1eec-4e4c-add
+```
+
+The runtime service account needs read/write:
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe project-b284a92b-1eec-4e4c-add --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding project-b284a92b-1eec-4e4c-add \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/datastore.user"
+```
+
+`GOOGLE_CLOUD_PROJECT` is already among the API's env vars (Vertex needs
+it too), so nothing else has to be set — `queue_store` picks Firestore up
+from it.
+
+**Check which store a deployment actually landed on.** `/api/health`
+reports it, because a silent fall back to the ephemeral file is precisely
+the failure this replaced:
+
+```bash
+curl https://mechnari-api-xxxxx-uc.a.run.app/api/health
+# {"status":"ok","queue_backend":"firestore"}   <- what you want
+# {"status":"ok","queue_backend":"file"}        <- the queue will empty itself
+```
+
+`queue_store` keeps the JSON file as a fallback when no project is
+configured, so local development and the test suite run with no cloud
+access. Switching backends does not migrate anything: drafts written to
+the file before the switch stay there and are simply not in the queue any
+more.
+
+## What still does *not* survive
+
+The design engineer's own in-progress reports are in the browser's
+localStorage, not Firestore. They are per-browser and not shared. Moving
+them needs an identity to attach them to, and this app has none — the
+three roles are tabs, not accounts. That is a product decision about
+identity rather than a migration, so it is deliberately still open.
 
 ## Local equivalents, for comparison
 
