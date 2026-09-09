@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   api,
   ApiError,
@@ -27,6 +27,17 @@ import {
   TextInput,
 } from "@/components/ui";
 import { DfmeaSheet } from "@/components/DfmeaSheet";
+import { ActionTracker } from "@/components/ActionTracker";
+import { MyReports } from "@/components/MyReports";
+import {
+  deleteReport,
+  getReport,
+  listReports,
+  saveNewReport,
+  storageAvailable,
+  updateReport,
+  type ReportSummary,
+} from "@/lib/reportStore";
 
 type Row = {
   key: number;
@@ -169,6 +180,48 @@ export function PartIntake({
 
   const [reanalysing, setReanalysing] = useState(false);
 
+  // The engineer's own reports, kept in this browser. A package DFMEA is a
+  // week of work, so assuming one browser session was wrong.
+  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [storageOk, setStorageOk] = useState(true);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [reportView, setReportView] = useState<"actions" | "sheet">("actions");
+
+  useEffect(() => {
+    setStorageOk(storageAvailable());
+    setReports(listReports());
+  }, []);
+
+  /** Action edits are written straight through - there is no save button,
+   *  because a save button is a way to lose work. */
+  function updateResult(next: SheetResult) {
+    setResult(next);
+    if (reportId) {
+      updateReport(reportId, { result: next });
+      setReports(listReports());
+    }
+  }
+
+  function openStored(id: string) {
+    const stored = getReport(id);
+    if (!stored) return;
+    setReview(null);
+    setFound(stored.result);
+    setResult(stored.result);
+    setReportId(id);
+    setReportView("actions");
+    setError(null);
+  }
+
+  function removeStored(id: string) {
+    deleteReport(id);
+    setReports(listReports());
+    if (reportId === id) {
+      setReportId(null);
+      setResult(null);
+    }
+  }
+
   /**
    * The engineer corrected the part type. Re-run that part with the type
    * confirmed, and splice the fresh findings in place.
@@ -249,6 +302,13 @@ export function PartIntake({
 
   return (
     <div className="mt-5 flex flex-col gap-6">
+      <MyReports
+        reports={reports}
+        storageOk={storageOk}
+        onOpen={openStored}
+        onDelete={removeStored}
+      />
+
       <Card className="px-5 pb-4 pt-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="flex gap-1 rounded-[9px] border border-border bg-bg-elevated p-1">
@@ -424,17 +484,71 @@ export function PartIntake({
           reanalysing={reanalysing}
           onBack={() => setReview(null)}
           onGenerate={(states) => {
+            const sheet = approvedSheet(states);
             setReview(null);
-            setResult(approvedSheet(states));
+            setResult(sheet);
+            const stored = saveNewReport(sheet, systemPackage);
+            setReportId(stored.id);
+            setReports(listReports());
+            setReportView("actions");
           }}
         />
       ) : null}
       {result ? (
-        <DfmeaSheet
-          result={result}
-          approved={!!found}
-          systemPackage={systemPackage}
-        />
+        <div className="flex flex-col gap-4">
+          <Card className="px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-[15px] font-semibold text-ink">
+                  Report generated
+                  {reportId ? (
+                    <span className="ml-2 font-mono text-[11px] font-normal text-ink-faint">
+                      {reportId}
+                    </span>
+                  ) : null}
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-faint">
+                  {reportId
+                    ? "Saved in this browser. Work the actions now or come back to it — nothing is lost on reload."
+                    : "Not saved — this browser is blocking local storage."}
+                </p>
+              </div>
+              <div className="flex gap-1 rounded-[9px] border border-border bg-bg-elevated p-1">
+                <ModeButton
+                  active={reportView === "actions"}
+                  onClick={() => setReportView("actions")}
+                >
+                  Actions
+                </ModeButton>
+                <ModeButton
+                  active={reportView === "sheet"}
+                  onClick={() => setReportView("sheet")}
+                >
+                  Full form sheet
+                </ModeButton>
+              </div>
+            </div>
+          </Card>
+
+          {reportView === "actions" ? (
+            <ActionTracker result={result} onChange={updateResult} />
+          ) : null}
+
+          <DfmeaSheet
+            result={result}
+            approved={!!found}
+            systemPackage={systemPackage}
+            collapsed={reportView === "actions"}
+            onSubmitted={(draftIds) => {
+              if (!reportId) return;
+              updateReport(reportId, {
+                submittedAt: new Date().toISOString(),
+                draftIds,
+              });
+              setReports(listReports());
+            }}
+          />
+        </div>
       ) : null}
       {existing ? <ExistingDfmeaView data={existing} /> : null}
     </div>

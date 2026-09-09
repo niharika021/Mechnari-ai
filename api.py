@@ -253,6 +253,14 @@ class DraftRow(BaseModel):
     test_reference: str = ""
     responsibility: str = ""
     target_completion_date: str = ""
+
+    # Action closure. These are the whole reason a reviewed report differs
+    # from a generated one: they say the work happened, and when. Pydantic
+    # drops fields it has not been told about, so leaving them off this
+    # model silently stripped the completion stamps at the handoff - the
+    # submit reported success and Quality received an unworked document.
+    action_taken: str = ""
+    completed_date: str = ""
     reassessed_severity: Optional[int] = None
     reassessed_occurrence: Optional[int] = None
     reassessed_detection: Optional[int] = None

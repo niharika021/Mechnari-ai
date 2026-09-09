@@ -75,6 +75,9 @@ export type CandidateRow = {
   occurrence_override_reason?: string;
   severity_dispute_note?: string;
   decline_reason?: string;
+  responsibility?: string;
+  action_taken?: string;
+  completed_date?: string;
 
   // Computed server-side by risk_engine.find_ap_levers and sent with the row.
   // Optional because drafts submitted before this field existed are still in

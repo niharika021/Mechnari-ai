@@ -374,6 +374,47 @@ def test_submit_carries_the_engineers_review_to_quality():
     assert draft["declined_rows"][0]["decline_reason"]
 
 
+def test_submit_carries_action_closure_to_quality():
+    """Action closure is the point of the review stage - it says the work
+    happened, and when. Pydantic silently drops fields the model does not
+    declare, and that is exactly how this broke once: the submit reported
+    success while stripping every completion stamp, so Quality received an
+    unworked document that looked complete."""
+    _use_scratch_store()
+    stamp = "2026-09-09T10:58:47.642Z"
+    draft_id = client.post("/api/queue/submit", json={
+        "part_name": "EPDM Fuel Return Line",
+        "function": "f", "material": "m",
+        "system_package": "Fuel Routings", "part_type_name": "Fuel Hose",
+        "accepted_rows": [{
+            "mode_id": "FM-A", "failure_mode": "Tube kink",
+            "severity": 10, "occurrence": 6, "detection": 5,
+            "action_priority": "H",
+            "responsibility": "N. Yadav",
+            "action_taken": "Moulded bend support added; radius verified.",
+            "completed_date": stamp,
+        }, {
+            "mode_id": "FM-B", "failure_mode": "Ferrule leak",
+            "severity": 9, "occurrence": 4, "detection": 4,
+            "action_priority": "H",
+        }],
+        "declined_rows": [],
+    }).json()["draft_id"]
+
+    rows = client.get("/api/queue/%s" % draft_id).json()["accepted_rows"]
+    closed = [r for r in rows if r.get("completed_date")]
+    assert len(closed) == 1, rows
+    assert closed[0]["completed_date"] == stamp
+    assert closed[0]["responsibility"] == "N. Yadav"
+    assert closed[0]["action_taken"]
+
+    # An untouched action must stay visibly open rather than defaulting to
+    # something that reads as done.
+    open_rows = [r for r in rows if not r.get("completed_date")]
+    assert len(open_rows) == 1
+    assert open_rows[0]["action_taken"] == ""
+
+
 def test_submit_still_accepts_a_draft_without_review_fields():
     """Drafts written before the review step existed must still submit -
     the new fields default rather than being required."""

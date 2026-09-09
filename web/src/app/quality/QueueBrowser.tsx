@@ -168,6 +168,7 @@ export function QueueBrowser({
                       <th className="px-3 py-2">O</th>
                       <th className="px-3 py-2">D</th>
                       <th className="px-3 py-2">AP</th>
+                      <th className="px-3 py-2">Action closed</th>
                       <th className="px-3 py-2">Source</th>
                     </tr>
                   </thead>
@@ -193,6 +194,32 @@ export function QueueBrowser({
                         <td className="px-3 py-2 font-mono">{r.occurrence}</td>
                         <td className="px-3 py-2 font-mono">{r.detection}</td>
                         <td className="px-3 py-2 font-mono">{r.action_priority}</td>
+                        {/* Whether the engineer actually did the work, and
+                            when. This is what changes Quality's question from
+                            "is the analysis plausible" to "has it happened". */}
+                        <td className="px-3 py-2">
+                          {r.completed_date ? (
+                            <span className="block font-mono text-[11px] text-ok">
+                              {new Date(r.completed_date).toLocaleString(undefined, {
+                                month: "short",
+                                day: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {r.action_taken ? (
+                                <span className="mt-0.5 block font-sans text-[11px] leading-snug text-ink-soft">
+                                  {r.action_taken}
+                                </span>
+                              ) : (
+                                <span className="mt-0.5 block font-sans text-[11px] text-warn">
+                                  no record of what changed
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-ink-faint">open</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2">
                           <RowSource provenance={r.provenance} />
                         </td>

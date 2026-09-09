@@ -397,17 +397,18 @@ export function DfmeaReview({
           </div>
         ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-ink-soft">
+          <p className="max-w-[70ch] text-[13px] text-ink-soft">
             {included.length} row{included.length === 1 ? "" : "s"} will go into the
-            DFMEA. Every one records whether it came from the evidence, from your
-            edit, or from your own assessment.
+            report, each recording whether it came from the evidence, from your
+            edit, or from your own assessment. You are not signing it off here -
+            next you work the actions, and Quality does the approving.
           </p>
           <Button
             variant="primary"
             disabled={blockers.length > 0}
             onClick={() => onGenerate(states)}
           >
-            ✅ Approve &amp; generate the DFMEA
+            Generate the DFMEA report
           </Button>
         </div>
       </Card>

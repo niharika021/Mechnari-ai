@@ -22,10 +22,15 @@ export function DfmeaSheet({
   result,
   approved = false,
   systemPackage = "",
+  collapsed = false,
+  onSubmitted,
 }: {
   result: SheetResult;
   approved?: boolean;
   systemPackage?: string;
+  /** Header and submit only - the full table is shown on its own tab. */
+  collapsed?: boolean;
+  onSubmitted?: (draftIds: string[]) => void;
 }) {
   const [showEvidence, setShowEvidence] = useState(true);
   const [submit, setSubmit] = useState<
@@ -55,13 +60,14 @@ export function DfmeaSheet({
           part_type_name: block.part_type_name ?? "",
           package_ref: packageRef,
           // Sent whole, not summarised: Quality should review the document
-          // the engineer approved, with the provenance intact.
+          // the engineer reviewed, with the provenance intact.
           accepted_rows: block.rows as unknown as Record<string, unknown>[],
           declined_rows: (block.declined ?? []) as unknown as Record<string, unknown>[],
         });
         ids.push(draft_id);
       }
       setSubmit({ status: "sent", draftIds: ids });
+      onSubmitted?.(ids);
     } catch (err) {
       setSubmit({
         status: "failed",
@@ -76,12 +82,12 @@ export function DfmeaSheet({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="font-display text-[15px] font-semibold text-ink">
-              {approved ? "DFMEA" : "Draft DFMEA"} — {result.total_rows} rows
+              {approved ? "DFMEA report" : "Draft DFMEA"} — {result.total_rows} rows
               across {result.items.length} part
               {result.items.length === 1 ? "" : "s"}
               {approved ? (
                 <span className="ml-2 rounded-full bg-ok-soft px-2 py-0.5 align-middle font-mono text-[9.5px] uppercase tracking-wide text-ok">
-                  engineer approved
+                  engineer reviewed
                 </span>
               ) : null}
             </h3>
@@ -94,9 +100,11 @@ export function DfmeaSheet({
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button onClick={() => setShowEvidence((v) => !v)}>
-              {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
-            </Button>
+            {collapsed ? null : (
+              <Button onClick={() => setShowEvidence((v) => !v)}>
+                {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
+              </Button>
+            )}
             <Button onClick={() => downloadCsv(result)}>⬇ Export CSV</Button>
             {approved && submit.status !== "sent" ? (
               <Button
@@ -138,14 +146,16 @@ export function DfmeaSheet({
         ) : null}
       </Card>
 
-      {result.items.map((block, i) => (
-        <ItemBlock
-          key={`${block.part_number}-${i}`}
-          block={block}
-          showEvidence={showEvidence}
-          approved={approved}
-        />
-      ))}
+      {collapsed
+        ? null
+        : result.items.map((block, i) => (
+            <ItemBlock
+              key={`${block.part_number}-${i}`}
+              block={block}
+              showEvidence={showEvidence}
+              approved={approved}
+            />
+          ))}
     </div>
   );
 }
