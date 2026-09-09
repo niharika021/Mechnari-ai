@@ -24,11 +24,18 @@ export function DfmeaSheet({
   systemPackage = "",
   onSubmitted,
   onRowChange,
+  readOnly = false,
 }: {
   result: SheetResult;
   approved?: boolean;
   systemPackage?: string;
   onSubmitted?: (draftIds: string[]) => void;
+  /**
+   * Reviewing somebody else's submitted report. Hides the submit control -
+   * a draft that has already arrived at Quality cannot be sent to Quality,
+   * and offering the button would be nonsense.
+   */
+  readOnly?: boolean;
   /**
    * Supplied when the report is being worked rather than just read. The
    * action columns become editable in place - which is where they belong,
@@ -135,7 +142,7 @@ export function DfmeaSheet({
               {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
             </Button>
             <Button onClick={() => downloadCsv(result)}>⬇ Export CSV</Button>
-            {approved && submit.status !== "sent" ? (
+            {approved && !readOnly && submit.status !== "sent" ? (
               <Button
                 variant="primary"
                 onClick={sendToQuality}

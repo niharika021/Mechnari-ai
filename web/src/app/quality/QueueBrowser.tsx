@@ -4,6 +4,41 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, type Draft } from "@/lib/api";
 import { Button, Callout, Card, Spinner, StatusPill, TextArea } from "@/components/ui";
+import { DfmeaSheet } from "@/components/DfmeaSheet";
+import type { SheetResult, SheetRow } from "@/lib/api";
+
+/**
+ * A stored draft, shaped as the sheet renderer expects.
+ *
+ * The rows arrive as the full form-sheet rows the engineer approved -
+ * api.py's DraftRow allows extra fields precisely so nothing is lost in
+ * transit - so this is a reshaping, not a reconstruction. Older drafts
+ * predate some columns and simply render blank, which is honest.
+ */
+function draftToSheet(draft: Draft): SheetResult {
+  const rows = draft.accepted_rows as unknown as SheetRow[];
+  return {
+    items: [{
+      status: "success",
+      part_number: (draft as unknown as { part_number?: string }).part_number ?? "",
+      item_interface: draft.part_name,
+      part_type_name: draft.part_type_name,
+      confirmed: true,
+      rows,
+      declined: (draft.declined_rows as unknown as SheetRow[]).map((r) => ({
+        failure_mode: r.failure_mode,
+        action_priority: r.action_priority,
+        severity: r.severity,
+        reason: (r as unknown as { decline_reason?: string }).decline_reason ?? "",
+      })),
+    }],
+    total_rows: rows.length,
+    high_rows: rows.filter((r) => r.action_priority === "H").length,
+    safety_rows: rows.filter((r) => r.severity >= 9).length,
+    rows_with_evidence: rows.filter((r) => r.evidence_ids).length,
+    ap_table_verified: false,
+  };
+}
 
 /** Where a row came from. A blank source means the draft predates the
  *  review step - not that nobody checked it. */
@@ -43,6 +78,10 @@ export function QueueBrowser({
   const [draft, setDraft] = useState<Draft | null>(null);
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [comments, setComments] = useState("");
+  // Quality gets the summary by default and the whole document on demand.
+  // The summary is for triage; sign-off needs the sheet the engineer
+  // actually approved, not a five-column digest of it.
+  const [view, setView] = useState<"summary" | "full">("summary");
 
   const activeId = searchParams.get("draft") ?? selectedDraftId;
 
@@ -57,6 +96,7 @@ export function QueueBrowser({
       .then((d) => {
         setDraft(d);
         setComments(d.review_comments ?? "");
+        setView("summary");
       })
       .catch(() => setDraft(null))
       .finally(() => setLoadingDraft(false));
@@ -156,9 +196,38 @@ export function QueueBrowser({
             )}
 
             <div>
-              <h5 className="mb-2 text-sm font-semibold text-ink">
-                Accepted rows ({draft.accepted_rows.length})
-              </h5>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h5 className="text-sm font-semibold text-ink">
+                  Accepted rows ({draft.accepted_rows.length})
+                </h5>
+                <div className="flex gap-1 rounded-[8px] border border-border bg-bg-elevated p-1">
+                  <button
+                    type="button"
+                    onClick={() => setView("summary")}
+                    className={`rounded-[6px] px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      view === "summary"
+                        ? "bg-accent-soft text-accent-strong"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    Summary
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("full")}
+                    className={`rounded-[6px] px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      view === "full"
+                        ? "bg-accent-soft text-accent-strong"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    Full DFMEA report
+                  </button>
+                </div>
+              </div>
+              {view === "full" ? (
+                <DfmeaSheet result={draftToSheet(draft)} approved readOnly />
+              ) : (
               <div className="overflow-x-auto rounded-[8px] border border-border">
                 <table className="w-full text-left text-[13px]">
                   <thead>
@@ -228,6 +297,7 @@ export function QueueBrowser({
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
 
             <TextArea

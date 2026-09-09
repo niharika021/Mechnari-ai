@@ -415,6 +415,46 @@ def test_submit_carries_action_closure_to_quality():
     assert open_rows[0]["action_taken"] == ""
 
 
+def test_submit_carries_the_whole_form_sheet_row():
+    """Quality reviews the document the engineer approved, so the full row
+    has to survive the handoff - not a subset of it.
+
+    This is the third time Pydantic's drop-what-you-did-not-declare
+    behaviour bit: first the action stamps, then seventeen more fields
+    including potential_effect, which meant Quality was reading a sheet
+    with an empty effect column. DraftRow now allows extra fields; this
+    test is what keeps that true.
+    """
+    _use_scratch_store()
+    row = {
+        "mode_id": "FM-A", "failure_mode": "Tube kink",
+        "severity": 10, "occurrence": 6, "detection": 5,
+        "action_priority": "H",
+        "part_number": "EXAMPLE-0001",
+        "item_interface": "EPDM Fuel Return Line",
+        "elementary_function": "Return diesel to the tank",
+        "potential_effect": "Degraded or lost braking function",
+        "system_level": "Machine",
+        "drawing_spec": "To be assigned (new part)",
+        "pes": "N",
+        "rpn_legacy": 300,
+        "scope_level": "TYPE",
+        "field_reports": 5, "field_claims": 98, "claims_per_1000": 6.45,
+        "reassessed_rpn": 150,
+        "reassessed_severity": 10, "reassessed_occurrence": 3,
+        "reassessed_detection": 5, "reassessed_action_priority": "M",
+    }
+    draft_id = client.post("/api/queue/submit", json={
+        "part_name": "EPDM Fuel Return Line", "function": "f", "material": "m",
+        "system_package": "Fuel Routings", "part_type_name": "Fuel Hose",
+        "accepted_rows": [row], "declined_rows": [],
+    }).json()["draft_id"]
+
+    stored = client.get("/api/queue/%s" % draft_id).json()["accepted_rows"][0]
+    for field, expected in row.items():
+        assert stored.get(field) == expected, (field, stored.get(field), expected)
+
+
 def test_submit_still_accepts_a_draft_without_review_fields():
     """Drafts written before the review step existed must still submit -
     the new fields default rather than being required."""

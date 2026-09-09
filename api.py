@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 import agui_endpoint
 import backtest
@@ -225,9 +225,28 @@ def ap_levers(req: LeverRequest) -> Dict[str, Any]:
 
 
 class DraftRow(BaseModel):
+    # extra="allow" on purpose. A DFMEA row is a document that keeps
+    # growing columns, and Pydantic drops whatever it has not been told
+    # about - silently, with the request still returning 200. That has now
+    # cost two rounds of quiet data loss: first the action-closure stamps,
+    # then seventeen more fields including the failure effect itself,
+    # because the sheet sends potential_effect while this model only
+    # declared effect_description. Quality was reviewing a document with
+    # an empty effect column and no way to tell.
+    #
+    # The fields below stay declared, so the ones the API actually depends
+    # on are still validated and still defaulted. Everything else is
+    # carried through untouched rather than thrown away. The store is a
+    # JSON blob and the frontend renders these as text, so passing extra
+    # keys costs nothing; losing them costs the review.
+    model_config = ConfigDict(extra="allow")
+
     mode_id: str
     failure_mode: str
     potential_cause: str = ""
+    # Both spellings: the form sheet says potential_effect, older drafts
+    # in the queue say effect_description.
+    potential_effect: str = ""
     effect_description: str = ""
     severity: int
     occurrence: int
