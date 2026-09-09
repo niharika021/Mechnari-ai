@@ -227,15 +227,37 @@ def ap_levers(req: LeverRequest) -> Dict[str, Any]:
 class DraftRow(BaseModel):
     mode_id: str
     failure_mode: str
-    potential_cause: str
-    effect_description: str
+    potential_cause: str = ""
+    effect_description: str = ""
     severity: int
     occurrence: int
     detection: int
     action_priority: str
-    learned_from: str
-    evidence_ids: str
-    recommended_action: str
+    learned_from: str = ""
+    evidence_ids: str = ""
+    recommended_action: str = ""
+
+    # The engineer's review, carried through to Quality. Without these the
+    # handoff loses the only thing that distinguishes a reviewed sheet from
+    # a generated one - who decided what, and on what basis.
+    provenance: str = "proposed"
+    occurrence_evidence: Optional[int] = None
+    occurrence_override_reason: str = ""
+    severity_dispute_note: str = ""
+    decline_reason: str = ""
+
+    # The rest of the form sheet, so Quality reviews the document the
+    # engineer actually approved rather than a summary of it.
+    design_control_prevention: str = ""
+    detection_control: str = ""
+    test_reference: str = ""
+    responsibility: str = ""
+    target_completion_date: str = ""
+    reassessed_severity: Optional[int] = None
+    reassessed_occurrence: Optional[int] = None
+    reassessed_detection: Optional[int] = None
+    reassessed_action_priority: str = ""
+    reassessment_basis: str = ""
 
 
 class SubmitDraftRequest(BaseModel):
@@ -247,6 +269,8 @@ class SubmitDraftRequest(BaseModel):
     accepted_rows: List[DraftRow]
     declined_rows: List[DraftRow]
     submitted_by: str = "Design Engineer"
+    part_number: str = ""
+    package_ref: str = ""
 
 
 @app.post("/api/queue/submit")
@@ -257,6 +281,7 @@ def submit_draft(req: SubmitDraftRequest) -> Dict[str, str]:
         accepted_rows=[r.model_dump() for r in req.accepted_rows],
         declined_rows=[r.model_dump() for r in req.declined_rows],
         submitted_by=req.submitted_by,
+        part_number=req.part_number, package_ref=req.package_ref,
     )
     return {"draft_id": draft_id}
 

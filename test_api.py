@@ -326,6 +326,74 @@ def test_existing_dfmea_of_an_unknown_part_is_404():
     assert client.get("/api/dfmea-sheet/TR-NOT-A-PART").status_code == 404
 
 
+def test_submit_carries_the_engineers_review_to_quality():
+    """The handoff has to move the review, not a summary of it. A draft
+    that arrives without provenance and reasons is indistinguishable from
+    one nobody looked at - which is exactly the distinction the review
+    step exists to create."""
+    _use_scratch_store()
+    submitted = client.post("/api/queue/submit", json={
+        "part_number": "EXAMPLE-0001",
+        "part_name": "EPDM Fuel Return Line",
+        "function": "Return diesel to the tank",
+        "material": "EPDM rubber",
+        "system_package": "Fuel Routings",
+        "part_type_name": "Fuel Hose / Flexible Fuel Line",
+        "package_ref": "PKG-TEST",
+        "accepted_rows": [{
+            "mode_id": "FM-X", "failure_mode": "Ferrule leak",
+            "severity": 9, "occurrence": 3, "detection": 4,
+            "action_priority": "H",
+            "provenance": "edited",
+            "occurrence_evidence": 4,
+            "occurrence_override_reason": "New crimp process removes the mechanism",
+            "design_control_prevention": "Crimp force monitoring",
+        }],
+        "declined_rows": [{
+            "mode_id": "FM-Y", "failure_mode": "Tube kink",
+            "severity": 10, "occurrence": 6, "detection": 5,
+            "action_priority": "H",
+            "decline_reason": "No bulkhead crossing on the new routing",
+        }],
+    })
+    assert submitted.status_code == 200, submitted.text
+    draft = client.get("/api/queue/%s" % submitted.json()["draft_id"]).json()
+
+    assert draft["part_number"] == "EXAMPLE-0001"
+    assert draft["package_ref"] == "PKG-TEST"
+
+    accepted = draft["accepted_rows"][0]
+    assert accepted["provenance"] == "edited"
+    assert accepted["occurrence"] == 3
+    assert accepted["occurrence_evidence"] == 4
+    assert accepted["occurrence_override_reason"]
+    assert accepted["design_control_prevention"] == "Crimp force monitoring"
+
+    # A declined High row without its reason would leave Quality unable to
+    # tell "considered and rejected" from "never looked at".
+    assert draft["declined_rows"][0]["decline_reason"]
+
+
+def test_submit_still_accepts_a_draft_without_review_fields():
+    """Drafts written before the review step existed must still submit -
+    the new fields default rather than being required."""
+    _use_scratch_store()
+    response = client.post("/api/queue/submit", json={
+        "part_name": "X", "function": "f", "material": "m",
+        "system_package": "Fuel Routings", "part_type_name": "T",
+        "accepted_rows": [{
+            "mode_id": "M1", "failure_mode": "Something",
+            "severity": 5, "occurrence": 5, "detection": 5,
+            "action_priority": "M",
+        }],
+        "declined_rows": [],
+    })
+    assert response.status_code == 200, response.text
+    draft = client.get("/api/queue/%s" % response.json()["draft_id"]).json()
+    assert draft["accepted_rows"][0]["provenance"] == "proposed"
+    assert draft["part_number"] == ""
+
+
 def test_rescore_keeps_the_ap_table_in_the_engine():
     """The review screen lets an engineer change Detection, which changes
     Action Priority. That recalculation must come back to risk_engine - a

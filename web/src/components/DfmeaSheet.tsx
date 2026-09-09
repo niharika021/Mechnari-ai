@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SheetItemBlock, SheetResult, SheetRow } from "@/lib/api";
+import { api, ApiError, type SheetItemBlock, type SheetResult, type SheetRow } from "@/lib/api";
 import { ApBadge, Button, Callout, Card } from "@/components/ui";
 
 /**
@@ -21,11 +21,54 @@ import { ApBadge, Button, Callout, Card } from "@/components/ui";
 export function DfmeaSheet({
   result,
   approved = false,
+  systemPackage = "",
 }: {
   result: SheetResult;
   approved?: boolean;
+  systemPackage?: string;
 }) {
   const [showEvidence, setShowEvidence] = useState(true);
+  const [submit, setSubmit] = useState<
+    | { status: "idle" }
+    | { status: "sending" }
+    | { status: "sent"; draftIds: string[] }
+    | { status: "failed"; message: string }
+  >({ status: "idle" });
+
+  // One draft per part, sharing a package reference. Quality reviews each
+  // part on its own merits, but can still see they arrived together.
+  async function sendToQuality() {
+    setSubmit({ status: "sending" });
+    const packageRef =
+      result.items.length > 1 ? `PKG-${Date.now().toString(36).toUpperCase()}` : "";
+    try {
+      const ids: string[] = [];
+      for (const block of result.items) {
+        if (block.status !== "success") continue;
+        const first = block.rows[0];
+        const { draft_id } = await api.submitDraft({
+          part_number: block.part_number,
+          part_name: block.item_interface ?? "",
+          function: first?.elementary_function ?? "",
+          material: first?.material ?? "",
+          system_package: first?.system_package || systemPackage,
+          part_type_name: block.part_type_name ?? "",
+          package_ref: packageRef,
+          // Sent whole, not summarised: Quality should review the document
+          // the engineer approved, with the provenance intact.
+          accepted_rows: block.rows as unknown as Record<string, unknown>[],
+          declined_rows: (block.declined ?? []) as unknown as Record<string, unknown>[],
+        });
+        ids.push(draft_id);
+      }
+      setSubmit({ status: "sent", draftIds: ids });
+    } catch (err) {
+      setSubmit({
+        status: "failed",
+        message: err instanceof ApiError ? err.message : "Could not reach the API.",
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -54,11 +97,36 @@ export function DfmeaSheet({
             <Button onClick={() => setShowEvidence((v) => !v)}>
               {showEvidence ? "Hide evidence columns" : "Show evidence columns"}
             </Button>
-            <Button variant="primary" onClick={() => downloadCsv(result)}>
-              ⬇ Export CSV
-            </Button>
+            <Button onClick={() => downloadCsv(result)}>⬇ Export CSV</Button>
+            {approved && submit.status !== "sent" ? (
+              <Button
+                variant="primary"
+                onClick={sendToQuality}
+                disabled={submit.status === "sending"}
+              >
+                {submit.status === "sending"
+                  ? "Sending…"
+                  : "\u{1F4E4} Send to Quality Review"}
+              </Button>
+            ) : null}
           </div>
         </div>
+
+        {submit.status === "sent" ? (
+          <div className="mt-3">
+            <Callout tone="ok">
+              Sent to Quality as{" "}
+              <strong>{submit.draftIds.join(", ")}</strong>. Open the Quality
+              Engineer tab to review it — the row sources, override reasons and
+              declined rows travel with it.
+            </Callout>
+          </div>
+        ) : null}
+        {submit.status === "failed" ? (
+          <div className="mt-3">
+            <Callout tone="crit">{submit.message}</Callout>
+          </div>
+        ) : null}
         {!result.ap_table_verified ? (
           <div className="mt-3">
             <Callout tone="warn">

@@ -384,7 +384,13 @@ export function PartIntake({
           }}
         />
       ) : null}
-      {result ? <DfmeaSheet result={result} approved={!!found} /> : null}
+      {result ? (
+        <DfmeaSheet
+          result={result}
+          approved={!!found}
+          systemPackage={systemPackage}
+        />
+      ) : null}
       {existing ? <ExistingDfmeaView data={existing} /> : null}
     </div>
   );

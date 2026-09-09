@@ -67,6 +67,15 @@ export type CandidateRow = {
   learned_from: string;
   evidence_ids: string;
   recommended_action: string;
+
+  // The engineer's review, carried through the handoff to Quality. All
+  // optional because drafts submitted before the review step existed are
+  // still in the queue file without them.
+  provenance?: "proposed" | "edited" | "engineer_added";
+  occurrence_override_reason?: string;
+  severity_dispute_note?: string;
+  decline_reason?: string;
+
   // Computed server-side by risk_engine.find_ap_levers and sent with the row.
   // Optional because drafts submitted before this field existed are still in
   // the queue file without it.
@@ -421,9 +430,11 @@ export const api = {
     material: string;
     system_package: string;
     part_type_name: string;
-    accepted_rows: CandidateRow[];
-    declined_rows: CandidateRow[];
+    accepted_rows: Record<string, unknown>[];
+    declined_rows: Record<string, unknown>[];
     submitted_by?: string;
+    part_number?: string;
+    package_ref?: string;
   }) =>
     request<{ draft_id: string }>("/api/queue/submit", {
       method: "POST",

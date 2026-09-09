@@ -5,6 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api, type Draft } from "@/lib/api";
 import { Button, Callout, Card, Spinner, StatusPill, TextArea } from "@/components/ui";
 
+/** Where a row came from. A blank source means the draft predates the
+ *  review step - not that nobody checked it. */
+function RowSource({ provenance }: { provenance?: string }) {
+  if (!provenance) return <span className="text-[11px] text-ink-faint">-</span>;
+  const label =
+    provenance === "engineer_added"
+      ? "Engineer's own"
+      : provenance === "edited"
+        ? "Edited"
+        : "Accepted";
+  const tone =
+    provenance === "engineer_added"
+      ? "bg-accent-soft text-accent-strong"
+      : provenance === "edited"
+        ? "bg-warn-soft text-warn"
+        : "bg-ok-soft text-ok";
+  return (
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-wide ${tone}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function QueueBrowser({
   initialQueue,
   selectedDraftId,
@@ -143,16 +168,34 @@ export function QueueBrowser({
                       <th className="px-3 py-2">O</th>
                       <th className="px-3 py-2">D</th>
                       <th className="px-3 py-2">AP</th>
+                      <th className="px-3 py-2">Source</th>
                     </tr>
                   </thead>
                   <tbody>
                     {draft.accepted_rows.map((r) => (
-                      <tr key={r.mode_id} className="border-b border-border last:border-none">
-                        <td className="px-3 py-2">{r.failure_mode}</td>
+                      <tr key={r.mode_id} className="border-b border-border align-top last:border-none">
+                        <td className="px-3 py-2">
+                          {r.failure_mode}
+                          {/* The reasons the engineer gave, carried through the
+                              handoff precisely so a reviewer sees them. */}
+                          {r.occurrence_override_reason ? (
+                            <span className="mt-1 block text-[11px] leading-snug text-warn">
+                              Occ override: {r.occurrence_override_reason}
+                            </span>
+                          ) : null}
+                          {r.severity_dispute_note ? (
+                            <span className="mt-1 block text-[11px] leading-snug text-warn">
+                              Sev disputed: {r.severity_dispute_note}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-3 py-2 font-mono">{r.severity}</td>
                         <td className="px-3 py-2 font-mono">{r.occurrence}</td>
                         <td className="px-3 py-2 font-mono">{r.detection}</td>
                         <td className="px-3 py-2 font-mono">{r.action_priority}</td>
+                        <td className="px-3 py-2">
+                          <RowSource provenance={r.provenance} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>

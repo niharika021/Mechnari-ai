@@ -68,11 +68,22 @@ def submit_draft(
     accepted_rows: List[Dict[str, Any]],
     declined_rows: List[Dict[str, Any]],
     submitted_by: str = "Design Engineer",
+    part_number: str = "",
+    package_ref: str = "",
 ) -> str:
-    """Record a new draft and return its id."""
+    """
+    Record a new draft and return its id.
+
+    part_number and package_ref default to empty so drafts written before
+    they existed still load. package_ref groups the drafts that came from
+    one package submission - each part is reviewed on its own merits, but
+    Quality can still see they arrived together.
+    """
     draft_id = "DR-" + uuid.uuid4().hex[:8].upper()
     draft = {
         "draft_id": draft_id,
+        "part_number": part_number,
+        "package_ref": package_ref,
         "part_name": part_name,
         "function": function,
         "material": material,
