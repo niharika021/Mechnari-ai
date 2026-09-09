@@ -7,11 +7,12 @@ import type { SheetResult, SheetRow } from "@/lib/api";
 import { Button, Callout, Card } from "@/components/ui";
 import { DfmeaSheet } from "@/components/DfmeaSheet";
 import {
-  getReport,
-  listReports,
-  updateReport,
+  loadReport,
+  persistResult,
+  persistSubmission,
   type StoredReport,
 } from "@/lib/reportStore";
+import { useAuth } from "@/lib/auth";
 
 /**
  * One report, on its own URL.
@@ -28,15 +29,26 @@ export default function ReportPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
 
+  const { user, loading: authLoading } = useAuth();
   const [report, setReport] = useState<StoredReport | null>(null);
+  const [remote, setRemote] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [otherCount, setOtherCount] = useState(0);
 
   useEffect(() => {
-    setReport(getReport(id));
-    setOtherCount(listReports().length);
-    setLoaded(true);
-  }, [id]);
+    // Wait for auth to settle: asking the server for a report before the
+    // token exists would 404 a report the engineer does own.
+    if (authLoading) return;
+    let cancelled = false;
+    loadReport(id, Boolean(user)).then((found) => {
+      if (cancelled) return;
+      setReport(found?.report ?? null);
+      setRemote(Boolean(found?.remote));
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, authLoading]);
 
   /**
    * Edits are written straight through - there is no save button, because
@@ -58,12 +70,12 @@ export default function ReportPage() {
               },
         ),
       };
-      updateReport(prev.id, { result: next });
+      void persistResult(prev.id, remote, next);
       return { ...prev, result: next };
     });
   }
 
-  if (!loaded) {
+  if (!loaded || authLoading) {
     return <p className="text-[13px] text-ink-faint">Loading…</p>;
   }
 
@@ -73,9 +85,9 @@ export default function ReportPage() {
         <Callout tone="warn">
           No report with id <span className="font-mono">{id}</span> in this
           browser.
-          {otherCount > 0
-            ? " It may have been deleted."
-            : " Reports are stored per browser, so one generated elsewhere will not appear here."}
+          {user
+            ? " It may have been deleted, or it belongs to another account."
+            : " Reports made while signed in follow your account - sign in to see them here."}
         </Callout>
         <Link href="/design">
           <Button>← Back to part intake</Button>
@@ -146,9 +158,12 @@ export default function ReportPage() {
         systemPackage={report.systemPackage}
         onRowChange={patchRow}
         onSubmitted={(draftIds) => {
-          const submittedAt = new Date().toISOString();
-          updateReport(report.id, { submittedAt, draftIds });
-          setReport((prev) => (prev ? { ...prev, submittedAt, draftIds } : prev));
+          void persistSubmission(report.id, remote, draftIds);
+          setReport((prev) =>
+            prev
+              ? { ...prev, submittedAt: new Date().toISOString(), draftIds }
+              : prev,
+          );
         }}
       />
     </div>

@@ -3,6 +3,7 @@ import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "@copilotkit/react-ui/styles.css";
 import "./globals.css";
 import { RoleNav } from "@/components/RoleNav";
+import { AuthProvider } from "@/lib/auth";
 import { CopilotProvider } from "@/components/CopilotProvider";
 import { MechnariCopilot } from "@/components/MechnariCopilot";
 
@@ -42,6 +43,7 @@ export default function RootLayout({
         {/* Client wrapper around CopilotKit's provider: it relays to the
             AG-UI endpoint on the FastAPI service, and surfaces stream
             errors, which the popup itself renders silently. */}
+        <AuthProvider>
         <CopilotProvider>
           <div className="mx-auto max-w-[1240px] px-6 pb-16 pt-6">
             <RoleNav />
@@ -49,6 +51,7 @@ export default function RootLayout({
           </div>
           <MechnariCopilot />
         </CopilotProvider>
+        </AuthProvider>
       </body>
     </html>
   );

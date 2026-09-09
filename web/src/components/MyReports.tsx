@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Callout, Card, StatusPill } from "@/components/ui";
-import type { ReportSummary } from "@/lib/reportStore";
+import type { AnyReportSummary } from "@/lib/reportStore";
 
 /**
  * The engineer's own generated reports.
@@ -17,7 +17,7 @@ export function MyReports({
   onOpen,
   onDelete,
 }: {
-  reports: ReportSummary[];
+  reports: AnyReportSummary[];
   storageOk: boolean;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
@@ -40,8 +40,13 @@ export function MyReports({
         My reports — {reports.length}
       </h3>
       <p className="mt-1 max-w-[80ch] text-xs leading-relaxed text-ink-faint">
-        Kept in this browser, on this machine. Reopen one to keep working its
-        actions. Sending to Quality does not remove it — you keep your copy.
+        Reopen one to keep working its actions. Sending to Quality does not
+        remove it — you keep your copy. Reports marked{" "}
+        <span className="font-mono text-[10px] uppercase text-ink-faint">
+          this browser
+        </span>{" "}
+        were made signed out and stay on this machine; signing in keeps new
+        ones with your account instead.
       </p>
 
       <div className="mt-3 overflow-hidden rounded-[8px] border border-border">
@@ -66,6 +71,11 @@ export function MyReports({
                   <span className="mt-0.5 block text-[11px] text-ink-faint">
                     {r.systemPackage}
                     {r.partCount > 1 ? ` · ${r.partCount} parts` : ""}
+                    {!r.remote ? (
+                      <span className="ml-1.5 rounded-full bg-surface-hover px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide">
+                        this browser
+                      </span>
+                    ) : null}
                   </span>
                 </td>
                 <td className="px-3 py-2 font-mono">{r.rowCount}</td>

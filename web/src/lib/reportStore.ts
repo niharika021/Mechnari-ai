@@ -18,7 +18,7 @@
  * report list is not worth taking the page down for.
  */
 
-import type { SheetResult } from "@/lib/api";
+import { api, ApiError, type SheetResult } from "@/lib/api";
 
 const KEY = "mechnari.reports.v1";
 
@@ -79,18 +79,21 @@ export function getReport(id: string): StoredReport | null {
   return readAll().find((r) => r.id === id) ?? null;
 }
 
+export function titleFor(result: SheetResult, systemPackage: string): string {
+  const first = result.items[0];
+  return result.items.length > 1
+    ? `${result.items.length} parts — ${systemPackage}`
+    : `${first?.part_number ? first.part_number + " · " : ""}${
+        first?.item_interface || "Untitled part"
+      }`;
+}
+
 export function saveNewReport(
   result: SheetResult,
   systemPackage: string,
 ): StoredReport {
   const now = new Date().toISOString();
-  const first = result.items[0];
-  const title =
-    result.items.length > 1
-      ? `${result.items.length} parts — ${systemPackage}`
-      : `${first?.part_number ? first.part_number + " · " : ""}${
-          first?.item_interface || "Untitled part"
-        }`;
+  const title = titleFor(result, systemPackage);
   const report: StoredReport = {
     id: newId(),
     createdAt: now,
@@ -139,4 +142,157 @@ export function storageAvailable(): boolean {
   } catch {
     return false;
   }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Signed in: the server. Signed out: this browser.
+ *
+ * Two stores, one interface, and the caller is told which it got rather
+ * than left to guess. Signed in, reports live in Firestore with an owner
+ * and follow the engineer between machines. Signed out there is no answer
+ * to "whose report is this", so they stay in localStorage - writing
+ * owner-less rows into a shared database would make them nobody's and
+ * everybody's at once.
+ *
+ * If the server is unreachable while signed in, these fall back to local
+ * storage rather than failing. Losing a week of DFMEA work to a network
+ * blip is worse than a report that is temporarily only on one machine.
+ * ------------------------------------------------------------------ */
+
+export type AnyReportSummary = ReportSummary & { remote: boolean; ownerName?: string };
+
+function fromServer(r: {
+  id: string;
+  title: string;
+  system_package: string;
+  part_count: number;
+  row_count: number;
+  created_at: string;
+  updated_at: string;
+  submitted_at: string | null;
+  draft_ids: string[];
+  owner_name?: string;
+}): AnyReportSummary {
+  return {
+    id: r.id,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    title: r.title,
+    systemPackage: r.system_package,
+    partCount: r.part_count,
+    rowCount: r.row_count,
+    submittedAt: r.submitted_at,
+    draftIds: r.draft_ids ?? [],
+    remote: true,
+    ownerName: r.owner_name,
+  };
+}
+
+export async function listAll(signedIn: boolean): Promise<AnyReportSummary[]> {
+  const local = listReports().map((r) => ({ ...r, remote: false }));
+  if (!signedIn) return local;
+  try {
+    const remote = (await api.listReports()).map(fromServer);
+    // Local ones are still shown when signed in - they were made before
+    // signing in and hiding them would look like data loss.
+    return [...remote, ...local].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    );
+  } catch {
+    return local;
+  }
+}
+
+export async function loadReport(
+  id: string,
+  signedIn: boolean,
+): Promise<{ report: StoredReport; remote: boolean } | null> {
+  const local = getReport(id);
+  if (local) return { report: local, remote: false };
+  if (!signedIn) return null;
+  try {
+    const r = await api.getReport(id);
+    return {
+      report: { ...fromServer(r), result: r.result } as StoredReport,
+      remote: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function createReport(
+  result: SheetResult,
+  systemPackage: string,
+  signedIn: boolean,
+): Promise<{ id: string; remote: boolean }> {
+  if (signedIn) {
+    try {
+      const created = await api.createReport({
+        title: titleFor(result, systemPackage),
+        system_package: systemPackage,
+        result,
+      });
+      return { id: created.id, remote: true };
+    } catch (err) {
+      // A 401 means the token was rejected; anything else is a network or
+      // server problem. Either way the work is kept locally.
+      if (!(err instanceof ApiError)) {
+        /* fall through */
+      }
+    }
+  }
+  return { id: saveNewReport(result, systemPackage).id, remote: false };
+}
+
+export async function persistResult(
+  id: string,
+  remote: boolean,
+  result: SheetResult,
+): Promise<void> {
+  if (remote) {
+    try {
+      await api.updateReport(id, { result });
+      return;
+    } catch {
+      // Keep a local copy so the edit is not simply lost.
+      updateReport(id, { result });
+      return;
+    }
+  }
+  updateReport(id, { result });
+}
+
+export async function persistSubmission(
+  id: string,
+  remote: boolean,
+  draftIds: string[],
+): Promise<void> {
+  const submittedAt = new Date().toISOString();
+  if (remote) {
+    try {
+      await api.updateReport(id, { submitted_at: submittedAt, draft_ids: draftIds });
+      return;
+    } catch {
+      updateReport(id, { submittedAt, draftIds });
+      return;
+    }
+  }
+  updateReport(id, { submittedAt, draftIds });
+}
+
+export async function removeReport(
+  id: string,
+  remote: boolean,
+): Promise<void> {
+  if (remote) {
+    try {
+      await api.deleteReport(id);
+      return;
+    } catch {
+      /* fall through to the local delete */
+    }
+  }
+  deleteReport(id);
 }

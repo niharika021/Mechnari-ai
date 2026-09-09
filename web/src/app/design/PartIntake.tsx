@@ -30,12 +30,13 @@ import {
 import { DfmeaSheet } from "@/components/DfmeaSheet";
 import { MyReports } from "@/components/MyReports";
 import {
-  deleteReport,
-  listReports,
-  saveNewReport,
+  createReport,
+  listAll,
+  removeReport,
   storageAvailable,
-  type ReportSummary,
+  type AnyReportSummary,
 } from "@/lib/reportStore";
+import { useAuth } from "@/lib/auth";
 
 type Row = {
   key: number;
@@ -181,26 +182,31 @@ export function PartIntake({
 
   // The engineer's own reports, kept in this browser. A package DFMEA is a
   // week of work, so assuming one browser session was wrong.
-  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const { user } = useAuth();
+  const [reports, setReports] = useState<AnyReportSummary[]>([]);
   const [storageOk, setStorageOk] = useState(true);
   const [reportId, setReportId] = useState<string | null>(null);
 
   useEffect(() => {
     setStorageOk(storageAvailable());
-    setReports(listReports());
-  }, []);
+    let cancelled = false;
+    listAll(Boolean(user)).then((list) => {
+      if (!cancelled) setReports(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-listed on sign-in/out: the server's reports appear or disappear.
+  }, [user]);
 
   function openStored(id: string) {
     router.push(`/design/report/${id}`);
   }
 
-  function removeStored(id: string) {
-    deleteReport(id);
-    setReports(listReports());
-    if (reportId === id) {
-      setReportId(null);
-      setResult(null);
-    }
+  async function removeStored(id: string) {
+    const summary = reports.find((r) => r.id === id);
+    await removeReport(id, Boolean(summary?.remote));
+    setReports(await listAll(Boolean(user)));
   }
 
   /**
@@ -464,12 +470,16 @@ export function PartIntake({
           onReanalyse={reanalyse}
           reanalysing={reanalysing}
           onBack={() => setReview(null)}
-          onGenerate={(states) => {
-            const stored = saveNewReport(approvedSheet(states), systemPackage);
+          onGenerate={async (states) => {
+            const { id } = await createReport(
+              approvedSheet(states),
+              systemPackage,
+              Boolean(user),
+            );
             setReview(null);
             // The report has its own address now; the intake form's job is
             // done once it exists.
-            router.push(`/design/report/${stored.id}`);
+            router.push(`/design/report/${id}`);
           }}
         />
       ) : null}

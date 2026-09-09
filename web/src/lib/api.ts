@@ -20,9 +20,31 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Attach the Google ID token when there is one. Signed out simply sends
+  // no header, which the API allows for everything except owning a report -
+  // sign-in adds capability here, it does not gate access.
+  //
+  // Imported lazily so that importing this module on the server (the
+  // Company and Quality pages fetch during render) does not pull in the
+  // Firebase client SDK, which only makes sense in a browser.
+  let authHeader: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const { currentIdToken } = await import("@/lib/auth");
+      const token = await currentIdToken();
+      if (token) authHeader = { Authorization: `Bearer ${token}` };
+    } catch {
+      // No auth configured, or the SDK failed to load. Carry on signed out.
+    }
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader,
+      ...(init?.headers ?? {}),
+    },
     cache: "no-store",
   });
   if (!res.ok) {
@@ -327,6 +349,22 @@ export type ExistingDfmea = {
   ap_table_verified: boolean;
 };
 
+export type ServerReportSummary = {
+  id: string;
+  owner_uid: string;
+  owner_name: string;
+  title: string;
+  system_package: string;
+  part_count: number;
+  row_count: number;
+  created_at: string;
+  updated_at: string;
+  submitted_at: string | null;
+  draft_ids: string[];
+};
+
+export type ServerReport = ServerReportSummary & { result: SheetResult };
+
 export type IssueSummaryRow = {
   part_id: string;
   item_reference: string;
@@ -480,6 +518,30 @@ export const api = {
     request<SheetResult>("/api/dfmea-sheet", {
       method: "POST",
       body: JSON.stringify({ items }),
+    }),
+  me: () =>
+    request<{ signed_in: boolean; user: { uid: string; name: string; email: string } | null }>(
+      "/api/me",
+    ),
+  listReports: () => request<ServerReportSummary[]>("/api/reports"),
+  getReport: (id: string) =>
+    request<ServerReport>(`/api/reports/${encodeURIComponent(id)}`),
+  createReport: (body: { title: string; system_package: string; result: SheetResult }) =>
+    request<ServerReport>("/api/reports", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateReport: (
+    id: string,
+    body: { result?: SheetResult; submitted_at?: string; draft_ids?: string[] },
+  ) =>
+    request<ServerReport>(`/api/reports/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteReport: (id: string) =>
+    request<{ ok: true }>(`/api/reports/${encodeURIComponent(id)}`, {
+      method: "DELETE",
     }),
   copilotHealth: () =>
     request<{

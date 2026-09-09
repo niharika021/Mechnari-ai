@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignIn } from "@/components/SignIn";
 
 const ROLES = [
   { href: "/design", icon: "\u{1F6E0}\u{FE0F}", label: "Design Engineer" },
@@ -28,7 +29,8 @@ export function RoleNav() {
         </p>
       </div>
 
-      <nav className="mb-6 flex w-fit gap-1 rounded-[10px] border border-border bg-surface p-1">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <nav className="flex w-fit gap-1 rounded-[10px] border border-border bg-surface p-1">
         {ROLES.map((role) => {
           const active = pathname?.startsWith(role.href);
           return (
@@ -47,6 +49,8 @@ export function RoleNav() {
           );
         })}
       </nav>
+        <SignIn />
+      </div>
     </>
   );
 }

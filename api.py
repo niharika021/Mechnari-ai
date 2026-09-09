@@ -15,16 +15,18 @@ import os
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
 
 import agui_endpoint
+import auth
 import backtest
 import data_layer
 import dfmea_sheet
 import gap_detection
 import queue_store
+import report_store
 import retrieval
 import risk_engine
 from mechnari_agent import agent as mechnari_agent
@@ -65,7 +67,14 @@ def health() -> dict:
     # to the file store is the precise failure this is meant to prevent:
     # on Cloud Run that file is per-instance and resets on scale-to-zero,
     # so the queue would look fine until it emptied itself.
-    return {"status": "ok", "queue_backend": queue_store.backend()}
+    return {
+        "status": "ok",
+        "queue_backend": queue_store.backend(),
+        "report_backend": report_store.backend(),
+        # So the frontend can hide the sign-in button rather than offer one
+        # that cannot work.
+        "auth_available": auth.auth_available(),
+    }
 
 
 @app.get("/api/parts")
@@ -483,6 +492,84 @@ def copilot_health() -> Dict[str, Any]:
             "api_key_works": check["ok"],
             "reason": check["reason"],
             "agui_path": agui_endpoint.AGUI_PATH}
+
+
+class ReportCreate(BaseModel):
+    title: str = ""
+    system_package: str = ""
+    result: Dict[str, Any]
+
+
+class ReportUpdate(BaseModel):
+    result: Optional[Dict[str, Any]] = None
+    submitted_at: Optional[str] = None
+    draft_ids: Optional[List[str]] = None
+
+
+@app.get("/api/reports")
+def list_reports(user=Depends(auth.current_user)) -> List[Dict[str, Any]]:
+    """Summaries of the caller's own reports. Signed out returns an empty
+    list rather than 401: browsing is allowed, and the frontend falls back
+    to whatever is in this browser's local storage."""
+    if user is None:
+        return []
+    return report_store.list_for_owner(user["uid"])
+
+
+@app.post("/api/reports")
+def create_report(req: ReportCreate, user=Depends(auth.require_user)) -> Dict[str, Any]:
+    return report_store.create(
+        owner_uid=user["uid"], owner_name=user["name"],
+        title=req.title, system_package=req.system_package, result=req.result,
+    )
+
+
+@app.get("/api/reports/{report_id}")
+def get_report(report_id: str, user=Depends(auth.current_user)) -> Dict[str, Any]:
+    report = report_store.get(report_id)
+    if report is None:
+        raise HTTPException(404, "Unknown report: %s" % report_id)
+    # A report is the author's working copy, not a shared document. Reading
+    # somebody else's is 404 rather than 403 on purpose - a stranger should
+    # not learn that an id exists.
+    if user is None or report.get("owner_uid") != user["uid"]:
+        raise HTTPException(404, "Unknown report: %s" % report_id)
+    return report
+
+
+@app.patch("/api/reports/{report_id}")
+def update_report(
+    report_id: str, req: ReportUpdate, user=Depends(auth.require_user)
+) -> Dict[str, Any]:
+    try:
+        updated = report_store.update(
+            report_id, user["uid"], result=req.result,
+            submitted_at=req.submitted_at, draft_ids=req.draft_ids,
+        )
+    except PermissionError:
+        raise HTTPException(403, "That report belongs to somebody else.")
+    if updated is None:
+        raise HTTPException(404, "Unknown report: %s" % report_id)
+    return updated
+
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(report_id: str, user=Depends(auth.require_user)) -> Dict[str, bool]:
+    try:
+        deleted = report_store.delete(report_id, user["uid"])
+    except PermissionError:
+        raise HTTPException(403, "That report belongs to somebody else.")
+    if not deleted:
+        raise HTTPException(404, "Unknown report: %s" % report_id)
+    return {"ok": True}
+
+
+@app.get("/api/me")
+def whoami(user=Depends(auth.current_user)) -> Dict[str, Any]:
+    """Who the backend thinks is calling. The frontend shows the name it got
+    from Google, but this is the one the server verified - if they ever
+    disagree, the server's answer is the real one."""
+    return {"signed_in": user is not None, "user": user}
 
 
 # Mounted last, and deliberately at the end of this file: the AG-UI
