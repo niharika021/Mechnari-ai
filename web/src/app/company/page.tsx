@@ -27,9 +27,19 @@ export default async function CompanyPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/*
+        "Program Health" was doing no work. Health of what, measured how?
+        It could sit on any dashboard in any product. This page answers
+        one specific question - how much of the program has been analysed,
+        and what risk is still open - so the title says that.
+
+        "Risk Coverage" rather than "Program Risk Coverage" because the
+        nav tab already says Program; repeating it in the heading is the
+        kind of redundancy that reads as filler.
+      */}
       <PageHeader
-        title="Program Health"
-        purpose="Rollup across the program, with the backtest behind it."
+        title="Risk Coverage"
+        purpose="Coverage across the program, open safety gaps, and the backtest behind them."
       />
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">

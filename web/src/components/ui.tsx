@@ -218,6 +218,25 @@ export function Callout({
   );
 }
 
+/**
+ * A placeholder shaped like the thing that is loading.
+ *
+ * Deliberately not a spinner. These pages fetch five endpoints in
+ * parallel and wait on the slowest - measured at ~1.6s against the
+ * deployed API - so the wait is long enough to need filling but short
+ * enough that a centred spinner just flashes. A skeleton that matches
+ * the real layout fills it without moving anything when the data lands:
+ * same tile grid, same panel heights, no reflow.
+ *
+ * The pulse is CSS animation, so the prefers-reduced-motion guard in
+ * globals.css already stops it for anyone who asked for that.
+ */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded bg-sunken ${className}`} aria-hidden />
+  );
+}
+
 export function Spinner() {
   return (
     <div className="flex items-center gap-2 text-sm text-ink-soft">
