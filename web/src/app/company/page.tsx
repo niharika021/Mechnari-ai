@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/RoleNav";
 import { Card, MetricTile } from "@/components/ui";
 import { BacktestChart } from "@/components/BacktestChart";
 import { IssueHistory } from "@/components/IssueHistory";
+import { CopilotFacts } from "@/components/CopilotScreenContext";
 
 export default async function CompanyPage() {
   const [gapMetrics, backtest, sweep, gaps, issueSummary] = await Promise.all([
@@ -27,6 +28,30 @@ export default async function CompanyPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/*
+        The same figures the tiles show, handed to the agent so it quotes
+        the screen rather than re-deriving them. It cannot compute here -
+        there is no arithmetic on this page - so anything it says about
+        coverage has to come from this object or from a backend tool.
+      */}
+      <CopilotFacts
+        description={
+          "The program-level figures currently displayed on the Risk " +
+          "Coverage screen. Quote these rather than recomputing them."
+        }
+        value={{
+          parts_analysed: gapMetrics.parts_analysed,
+          mean_dfmea_coverage_pct: Math.round(gapMetrics.mean_coverage_pct),
+          open_safety_gaps_sev_9_plus: gapMetrics.safety_gaps,
+          backtest: {
+            manual_dfmea_recall_pct: Math.round(summary.dfmea_recall * 100),
+            mechnari_recall_pct: Math.round(summary.mechnari_recall * 100),
+            lift_points: liftPts,
+            claims_behind_newly_caught: summary.newly_caught_claims,
+          },
+          safety_gaps_by_system_package: Object.fromEntries(packageRows),
+        }}
+      />
       {/*
         "Program Health" was doing no work. Health of what, measured how?
         It could sit on any dashboard in any product. This page answers

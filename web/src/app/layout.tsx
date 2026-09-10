@@ -6,6 +6,7 @@ import { RoleNav } from "@/components/RoleNav";
 import { AuthProvider } from "@/lib/auth";
 import { CopilotProvider } from "@/components/CopilotProvider";
 import { MechnariCopilot } from "@/components/MechnariCopilot";
+import { CopilotScreenContext } from "@/components/CopilotScreenContext";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -85,6 +86,10 @@ export default function RootLayout({
               so its bottom border runs edge to edge while its contents stay
               aligned with the content column below. A sticky element inside
               the padded column would have stuck to the column instead. */}
+          {/* Mounted here rather than in a page so the agent knows which
+              view is open on all three of them, and can move between
+              them from any of them. Renders nothing. */}
+          <CopilotScreenContext />
           <RoleNav />
           <main className="mx-auto max-w-[1240px] px-6 pb-20 pt-6">
             {children}

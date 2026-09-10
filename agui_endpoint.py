@@ -17,11 +17,18 @@ every number. AG-UI streams what the agent says; it does not give the agent
 any tool it did not already have.
 """
 
+import json
 import os
 import time
 from typing import Any, Dict
 
-from ag_ui_adk import ADKAgent, AGUIToolset, add_adk_fastapi_endpoint
+from ag_ui_adk import (
+    ADKAgent,
+    AGUIToolset,
+    CONTEXT_STATE_KEY,
+    add_adk_fastapi_endpoint,
+)
+from google.adk.agents.readonly_context import ReadonlyContext
 
 from mechnari_agent import agent as mechnari_agent
 
@@ -45,6 +52,67 @@ mechnari_agent.root_agent.tools = [
     *mechnari_agent.root_agent.tools,
     AGUIToolset(),
 ]
+
+# Screen context does not reach the model on its own either.
+#
+# The browser sends it - `useAgentContext` puts it on RunAgentInput.context,
+# and it is on the wire, verified by reading the outgoing request body. What
+# ag-ui-adk does with it is store it in session state under
+# `_ag_ui_context`, where it is "accessible to instruction providers". That
+# is the whole of the integration: nothing puts it in front of the model.
+# So the agent, holding a full description of the screen in its own session
+# state, answered "I cannot see which screen you are currently on" - which
+# is the most confusing possible failure, because the frontend is provably
+# correct and the wiring looks complete from both ends.
+#
+# Wrapping the instruction here rather than in mechnari_agent/agent.py keeps
+# ag_ui_adk out of the CLI agent: `adk run` and /api/copilot/ask have no
+# screen and want the plain string. Same reasoning as the toolset above -
+# this module adds the web-only half.
+
+_BASE_INSTRUCTION = mechnari_agent.root_agent.instruction
+
+# Enough for the screen state the views actually register; a runaway page
+# should lose its tail rather than crowd out the engineer's question.
+_MAX_CONTEXT_CHARS = 4000
+
+
+def _screen_context_block(state: Any) -> str:
+    """Render whatever the browser sent this turn, or "" if it sent nothing."""
+    try:
+        entries = state.get(CONTEXT_STATE_KEY) or []
+    except Exception:  # noqa: BLE001 - a missing state is simply no context
+        return ""
+    if not entries:
+        return ""
+
+    lines = []
+    for entry in entries:
+        description = str(entry.get("description", "")).strip()
+        value = entry.get("value")
+        if not isinstance(value, str):
+            # CopilotKit stringifies before sending; a dict here means some
+            # other client, and json is still the readable form.
+            value = json.dumps(value, ensure_ascii=False)
+        lines.append("%s\n%s" % (description, value[:_MAX_CONTEXT_CHARS]))
+
+    return (
+        "\n\n--- What the engineer has on screen right now ---\n"
+        "Sent by the browser with this message, so it is current. Use it to "
+        "resolve 'this', 'here' and 'the one I have open', and answer from it "
+        "directly rather than saying you cannot see the screen. It describes "
+        "the view, not the engineering record: any number you quote still "
+        "comes from a tool.\n\n"
+        + "\n\n".join(lines)
+    )
+
+
+def _instruction_with_screen_context(ctx: ReadonlyContext) -> str:
+    return _BASE_INSTRUCTION + _screen_context_block(ctx.state)
+
+
+mechnari_agent.root_agent.instruction = _instruction_with_screen_context
+
 
 # There is no per-user auth in this build - the three role views are tabs,
 # not accounts - so every AG-UI conversation runs as one service user, the

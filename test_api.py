@@ -563,6 +563,53 @@ def test_the_root_agent_carries_the_frontend_tool_placeholder():
     assert agui_endpoint.AGUI_PATH == "/api/ag-ui"
 
 
+def test_screen_context_reaches_the_model_and_not_only_session_state():
+    """The second half of the same lesson as the test above.
+
+    The browser sends what is on screen (useAgentContext -> the `context`
+    field of RunAgentInput; verified on the wire). ag-ui-adk receives it and
+    files it in session state under `_ag_ui_context`, where it is
+    "accessible to instruction providers" - and stops. Nothing puts it in
+    front of the model.
+
+    So the agent held a full description of the open draft in its own
+    session and answered "I cannot see which screen you are currently on".
+    Both ends look correct in isolation, which is why this is asserted
+    rather than assumed: the instruction the model actually receives has to
+    contain the context, not merely be able to reach it.
+    """
+    import agui_endpoint
+    from ag_ui_adk import CONTEXT_STATE_KEY
+    from mechnari_agent import agent as mechnari_agent
+
+    class _Ctx:
+        def __init__(self, state):
+            self.state = state
+
+    instruction = mechnari_agent.root_agent.instruction
+    assert callable(instruction), (
+        "root_agent.instruction is a plain string, so nothing can splice the "
+        "screen context into it and the agent will deny being able to see it")
+
+    rendered = instruction(_Ctx({CONTEXT_STATE_KEY: [
+        {"description": "Which Mechnari screen the user is on.",
+         "value": '{"path":"/quality","view":"Quality Engineer - Review Queue"}'},
+        {"description": "The Quality review queue.",
+         "value": {"drafts_in_queue": 6, "open_draft": {"draft_id": "DR-42E51F5A"}}},
+    ]}))
+    assert "/quality" in rendered and "DR-42E51F5A" in rendered
+    # A dict value is a different client, not a broken one - render it too.
+    assert "drafts_in_queue" in rendered
+    # And the rules the copilot rests on must survive the splice.
+    assert "The tools are the only source of numbers" in rendered
+
+    # No context is the CLI and /api/copilot/ask case: the plain instruction,
+    # with no dangling "what is on screen" header describing nothing.
+    bare = instruction(_Ctx({}))
+    assert bare == agui_endpoint._BASE_INSTRUCTION
+    assert "on screen right now" not in bare
+
+
 def test_copilot_health_reports_whether_the_key_actually_works():
     body = client.get("/api/copilot/health").json()
     # Presence and validity are different questions, and the second is the

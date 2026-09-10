@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api, type Draft } from "@/lib/api";
 import { Button, Callout, Card, Spinner, StatusPill, TextArea } from "@/components/ui";
 import { DfmeaSheet } from "@/components/DfmeaSheet";
+import { CopilotFacts } from "@/components/CopilotScreenContext";
 import type { SheetResult, SheetRow } from "@/lib/api";
 
 /**
@@ -120,7 +121,46 @@ export function QueueBrowser({
     await refreshQueue();
   }
 
+  // What a reviewer would say if you asked them what they were looking
+  // at. Derived rather than stored: keeping a second copy in state is how
+  // the agent ends up describing the previous draft.
+  //
+  // Row-level detail is deliberately left out. Thirty rows of scores in
+  // every request would crowd the actual question, and the agent has
+  // backend tools that can read the draft properly when it needs to.
+  const openActions = draft
+    ? draft.accepted_rows.filter((r) => !r.completed_date).length
+    : 0;
+
   return (
+    <>
+      <CopilotFacts
+        description={
+          "The Quality review queue as it currently stands, and the draft " +
+          "the reviewer has open. Use this for 'this draft' and 'this queue'."
+        }
+        value={{
+          drafts_in_queue: queue.length,
+          awaiting_review: queue.filter((d) => d.status === "needs_review").length,
+          approved: queue.filter((d) => d.status === "approved").length,
+          returned: queue.filter((d) => d.status === "returned").length,
+          open_draft: draft
+            ? {
+                draft_id: draft.draft_id,
+                part_name: draft.part_name,
+                part_type: draft.part_type_name,
+                status: draft.status,
+                submitted_by: draft.submitted_by,
+                accepted_rows: draft.accepted_rows.length,
+                actions_still_open: openActions,
+                high_rows_declined: draft.declined_rows.filter(
+                  (r) => r.action_priority === "H",
+                ).length,
+                showing: view === "full" ? "the full DFMEA sheet" : "the summary table",
+              }
+            : null,
+        }}
+      />
     <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
       <Card className="max-h-[520px] overflow-y-auto">
         {queue.length === 0 ? (
@@ -319,5 +359,6 @@ export function QueueBrowser({
         )}
       </Card>
     </div>
+    </>
   );
 }

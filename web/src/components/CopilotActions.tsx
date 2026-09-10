@@ -6,7 +6,6 @@ import {
   useFrontendTool,
   useHumanInTheLoop,
 } from "@copilotkit/react-core/v2";
-import { useRouter } from "next/navigation";
 import { z } from "zod";
 
 /**
@@ -38,6 +37,23 @@ import { z } from "zod";
  * migration for exactly one reason: the handler's `args` are now typed
  * from the schema, so a field renamed here and not there is a compile
  * error instead of an undefined that quietly writes a blank into a form.
+ *
+ * --- Why every tool sets followUp ---
+ * `followUp` defaults to FALSE in v2: "execute tool, add messages to
+ * history, done". The tool runs and the agent never speaks again that
+ * turn. Observed as the intake form filling in correctly while the chat
+ * showed the engineer's own message and nothing after it - the run
+ * ended at TOOL_CALL_END with no TEXT_MESSAGE at all.
+ *
+ * That is bad for the data-entry tools, which should confirm what they
+ * changed, and much worse for explainWhyICannotChangeScores, whose
+ * entire purpose is to say why a request was refused. Silently doing
+ * nothing is the one response a refusal must never give.
+ *
+ * The v1 API re-ran the agent after a tool by default, so this
+ * regressed on migration rather than never having worked. It was not
+ * caught then because the tools were verified by watching the UI
+ * change, which is exactly the half that still works.
  */
 
 export type IntakeFields = {
@@ -67,7 +83,6 @@ export type ActionHandlers = {
 };
 
 export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
-  const router = useRouter();
 
   // Telling the agent what is currently on screen means it can answer
   // "why is this row High" about the row in front of the engineer rather
@@ -81,6 +96,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
 
   useFrontendTool({
     name: "fillPartIntake",
+    followUp: true,
     description:
       "Fill in the new-part intake form. Use this when the engineer " +
       "describes a part in conversation instead of typing it into the " +
@@ -114,6 +130,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
 
   useFrontendTool({
     name: "buildDfmea",
+    followUp: true,
     description:
       "Run the analysis on whatever is currently in the intake form and " +
       "show the findings for review. Does not generate a report - the " +
@@ -127,6 +144,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
 
   useFrontendTool({
     name: "reanalyseAsPartType",
+    followUp: true,
     description:
       "Re-run the analysis treating the part as a different part type, " +
       "when the engineer says the identified type is wrong. This changes " +
@@ -148,6 +166,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
 
   useFrontendTool({
     name: "openExistingPartDfmea",
+    followUp: true,
     description:
       "Open the DFMEA already on file for a part that exists in the BOM, " +
       "by part id (e.g. TR-FL-001) or by name. Shows what was filed, what " +
@@ -163,23 +182,11 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
     },
   });
 
-  useFrontendTool({
-    name: "goToView",
-    description:
-      "Switch between the three role views: design (draft a DFMEA), " +
-      "quality (review queue and part audits), company (program rollup).",
-    parameters: z.object({
-      view: z.string().describe("One of: design, quality, company."),
-    }),
-    handler: async ({ view }) => {
-      const target = String(view).toLowerCase().trim();
-      if (!["design", "quality", "company"].includes(target)) {
-        return `"${view}" is not a view. The views are design, quality and company.`;
-      }
-      router.push(`/${target}`);
-      return `Opened the ${target} view.`;
-    },
-  });
+  // goToView deliberately lives in CopilotScreenContext, not here.
+  // Registered from this component it only existed on /design, so the
+  // agent could not navigate away from the other two views - the one
+  // place navigation is most useful. Registering it in both would mean
+  // two tools with the same name whenever this component is mounted.
 
   // Declining a row is a judgement, not a chore. The agent proposes; the
   // engineer decides, in the chat, before anything changes.
@@ -191,6 +198,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
   // engineer was asked.
   useHumanInTheLoop({
     name: "proposeDeclineRow",
+    followUp: true,
     description:
       "Propose leaving a proposed failure mode out of the DFMEA. Use when " +
       "the engineer explains why a mode does not apply to this design. " +
@@ -270,6 +278,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
   // making to anyone evaluating the tool.
   useFrontendTool({
     name: "explainWhyICannotChangeScores",
+    followUp: true,
     description:
       "Call this when asked to change a Severity, Occurrence or Detection " +
       "score, to mark an action complete, or to assign a person to an " +
