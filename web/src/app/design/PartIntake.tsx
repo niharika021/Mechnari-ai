@@ -9,6 +9,7 @@ import {
   type ExistingDfmea,
   type Part,
   type PartType,
+  type OwnFailureRecord,
   type SheetItemInput,
   type SheetResult,
 } from "@/lib/api";
@@ -39,6 +40,7 @@ import {
 } from "@/lib/reportStore";
 import { useAuth } from "@/lib/auth";
 import { CopilotActions, type IntakeFields } from "@/components/CopilotActions";
+import { OwnRecords } from "@/components/OwnRecords";
 
 type Row = {
   key: number;
@@ -182,6 +184,9 @@ export function PartIntake({
 
   const [reanalysing, setReanalysing] = useState(false);
 
+  // Failure records the engineer supplies themselves - see OwnRecords.tsx.
+  const [ownRecords, setOwnRecords] = useState<OwnFailureRecord[]>([]);
+
   // The engineer's own reports, kept in this browser. A package DFMEA is a
   // week of work, so assuming one browser session was wrong.
   const { user } = useAuth();
@@ -265,13 +270,21 @@ export function PartIntake({
     setResult(null);
     setReview(null);
     try {
-      const items: SheetItemInput[] = describable.map((r) => ({
+      // Supplied records ride on the first described part. In package
+      // mode they would otherwise be duplicated onto every item, which
+      // would put the same failure on ten sheets - a single observation
+      // about one part, counted ten times.
+      const complete = ownRecords.filter(
+        (r) => r.failure_mode.trim() && r.effect_id && r.detection_stage,
+      );
+      const items: SheetItemInput[] = describable.map((r, index) => ({
         part_number: r.part_number,
         description: r.description,
         function: r.function,
         material: r.material,
         system_package: systemPackage,
         part_type_id: r.part_type_id,
+        own_records: index === 0 ? complete : [],
       }));
       const found = await api.dfmeaSheet(items);
       const states = toReviewState(found);
@@ -551,6 +564,13 @@ export function PartIntake({
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Between the part fields and the Build button, because it is
+              part of describing the part - not an afterthought applied to
+              the findings. Collapsed by default; most drafts skip it. */}
+          <div className="mb-4">
+            <OwnRecords records={ownRecords} onChange={setOwnRecords} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

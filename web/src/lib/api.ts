@@ -283,6 +283,41 @@ export type SheetResult = {
   ap_table_verified: boolean;
 };
 
+/**
+ * A failure the engineer knows about that the warranty record does not.
+ *
+ * There is deliberately no severity field. The engineer picks an effect
+ * from the organisation's registry and the backend looks the severity up,
+ * because Severity being a property of the effect - not of whoever filled
+ * in the sheet - is the claim the whole product rests on. Occurrence is
+ * derived from claim_count / units_in_service when both are given, and
+ * Detection from the escape stage. See own_records.py.
+ */
+export type OwnFailureRecord = {
+  failure_mode: string;
+  potential_cause?: string;
+  effect_id: string;
+  detection_stage: string;
+  claim_count?: number | null;
+  units_in_service?: number | null;
+  control?: string;
+  recommended_action?: string;
+  reference?: string;
+};
+
+export type FailureEffect = {
+  effect_id: string;
+  effect_description: string;
+  system_level: string;
+  standard_severity: number;
+};
+
+export type DetectionStage = {
+  stage: string;
+  label: string;
+  detection_floor: number;
+};
+
 export type SheetItemInput = {
   part_number?: string;
   description?: string;
@@ -291,6 +326,7 @@ export type SheetItemInput = {
   system_package?: string;
   part_type_id?: string;
   existing_part_id?: string;
+  own_records?: OwnFailureRecord[];
 };
 
 // A row of the DFMEA already on file. Carries both readings: the numbers
@@ -450,6 +486,8 @@ export const api = {
     ),
   systemPackages: () => request<string[]>("/api/system-packages"),
   partTypes: () => request<PartType[]>("/api/part-types"),
+  failureEffects: () => request<FailureEffect[]>("/api/failure-effects"),
+  detectionStages: () => request<DetectionStage[]>("/api/detection-stages"),
   proposeDfmea: (body: {
     part_name: string;
     function: string;

@@ -30,8 +30,10 @@ import pandas as pd
 
 import data_layer
 import gap_detection
+import own_records
 import retrieval
 import risk_engine
+import standards
 
 # Part types that are a Programmable Electronic System, for the PES?
 # column. Anything solenoid- or sensor-driven answers yes; plain
@@ -182,15 +184,59 @@ def build_for_item(item: Dict[str, Any]) -> Dict[str, Any]:
             "rows": [],
         }
 
+    # Records the engineer supplied themselves. Scored before anything
+    # else so they survive the no-match path below - the case where the
+    # knowledge base has nothing to say is exactly when a colleague's own
+    # observation is the only evidence there is.
+    supplied = own_records.build_rows(item.get("own_records") or [])
+
     proposal = retrieval.propose_dfmea(
         query, part_type_id=item.get("part_type_id") or None
     )
+
     if proposal["status"] != "success":
+        # Nothing in the company's history resembles this part. Rather
+        # than hand back an empty sheet, fall back to the standards floor
+        # and whatever the engineer supplied. Both are visibly marked as
+        # resting on something other than this company's warranty record.
+        fallback = standards.candidate_standard_modes(query)
+        rows = [
+            _sheet_row(fallback.iloc[i], item, "")
+            for i in range(len(fallback))
+        ]
+        rows.extend(
+            _sheet_row(supplied.iloc[i], item, "")
+            for i in range(len(supplied))
+        )
+        if not rows:
+            return {
+                "status": proposal["status"],
+                "reason": proposal["reason"],
+                "part_number": item.get("part_number") or "",
+                "rows": [],
+            }
         return {
-            "status": proposal["status"],
-            "reason": proposal["reason"],
+            "status": "standards_fallback",
+            "reason": (
+                "%s Proposed from generic engineering practice instead - "
+                "no company history stands behind these rows, and Occurrence "
+                "is at the floor because there is no measured rate."
+                % proposal["reason"]
+            ),
             "part_number": item.get("part_number") or "",
-            "rows": [],
+            "item_interface": item.get("description") or "",
+            "part_type_id": "",
+            "part_type_name": "",
+            "family_name": "",
+            "confidence": 0.0,
+            "confirmed": False,
+            "confident": False,
+            "type_reason": proposal["reason"],
+            "standards_reviewed": standards.STANDARDS_REVIEWED,
+            "safety_rows": int((pd.DataFrame(rows)["severity"] >= 9).sum()),
+            "similar_parts": [],
+            "own_history": [],
+            "rows": rows,
         }
 
     part_type_id = proposal["part_type_id"]
@@ -199,6 +245,50 @@ def build_for_item(item: Dict[str, Any]) -> Dict[str, Any]:
         _sheet_row(candidates.iloc[i], item, part_type_id)
         for i in range(len(candidates))
     ]
+
+    # The standards floor goes underneath whatever was retrieved when the
+    # corpus does not really contain anything like this part.
+    #
+    # Keyed on similarity, and that matters twice over.
+    #
+    # `no_match` alone would have made this unreachable: TF-IDF finds
+    # some weak similarity for nearly any text, so an out-of-domain part
+    # comes back `success` with a low score rather than "I have nothing".
+    # Measured, an operator seat cushion retrieves Hose Clamp modes at
+    # 0.13 and a battery hold-down strap retrieves them at 0.22.
+    #
+    # Retrieval's own `confident` flag would have been worse than
+    # nothing - see the note on STANDARDS_SIMILARITY_FLOOR. It measures
+    # whether neighbours agree on a type, not whether any of them
+    # resemble the part, so it fires on the wrong parts in both
+    # directions.
+    #
+    # Supplemented rather than substituted: a weak match can still be
+    # right (cab door glass retrieving Static Seal modes is not absurd),
+    # and the engineer declines what does not apply in review. What they
+    # should never get is a sheet whose only rows are a guess, with
+    # nothing generic underneath it.
+    best_similarity = float(
+        proposal.get("inference", {}).get("best_similarity") or 0.0
+    )
+    standards_added = 0
+    if best_similarity < standards.STANDARDS_SIMILARITY_FLOOR:
+        floor = standards.candidate_standard_modes(query)
+        existing_modes = {r["failure_mode"].lower() for r in rows}
+        for i in range(len(floor)):
+            candidate = floor.iloc[i]
+            if candidate["failure_mode"].lower() in existing_modes:
+                continue
+            rows.append(_sheet_row(candidate, item, part_type_id))
+            standards_added += 1
+
+    # Appended after the retrieved rows rather than merged into them: the
+    # engineer's own records are a different kind of evidence and the
+    # sheet says which is which.
+    rows.extend(
+        _sheet_row(supplied.iloc[i], item, part_type_id)
+        for i in range(len(supplied))
+    )
 
     # If this is a part already on file, its own warranty history is the
     # most direct evidence there is - more so than a sibling's.
@@ -221,7 +311,13 @@ def build_for_item(item: Dict[str, Any]) -> Dict[str, Any]:
         "confirmed": proposal["confirmed"],
         "confident": proposal["confident"],
         "type_reason": proposal["reason"],
-        "safety_rows": int(proposal["safety_candidates"]),
+        "standards_rows": standards_added,
+        "standards_reviewed": standards.STANDARDS_REVIEWED,
+        "engineer_rows": int(len(supplied)),
+        # Counted off the rows actually on the sheet, not off
+        # proposal["safety_candidates"], which knows nothing about the
+        # engineer's supplied records or the standards floor.
+        "safety_rows": int(sum(1 for r in rows if r["severity"] >= 9)),
         "similar_parts": neighbours.astype(object).where(
             pd.notnull(neighbours), None
         ).to_dict("records")[:5],

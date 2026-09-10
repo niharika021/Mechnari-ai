@@ -26,6 +26,7 @@ import bq_source
 import data_layer
 import dfmea_sheet
 import gap_detection
+import own_records
 import queue_store
 import report_store
 import retrieval
@@ -175,6 +176,27 @@ def propose_dfmea(req: ProposeRequest) -> Dict[str, Any]:
     }
 
 
+class OwnFailureRecord(BaseModel):
+    """A failure the engineer knows about that the warranty record does not.
+
+    Note what is absent: there is no severity field. Severity is looked up
+    from `effect_id` against the organisation's registry, because the
+    product's central claim is that Severity is a property of the effect
+    rather than of whoever filled in the sheet. Occurrence and Detection
+    are derived too - see own_records.py.
+    """
+    failure_mode: str
+    potential_cause: str = ""
+    effect_id: str = ""
+    detection_stage: str = ""
+    # Both needed for a rate; either alone leaves Occurrence at the floor.
+    claim_count: Optional[int] = None
+    units_in_service: Optional[int] = None
+    control: str = ""
+    recommended_action: str = ""
+    reference: str = ""
+
+
 class SheetItem(BaseModel):
     part_number: str = ""
     description: str = ""
@@ -183,6 +205,7 @@ class SheetItem(BaseModel):
     system_package: str = ""
     part_type_id: str = ""
     existing_part_id: str = ""
+    own_records: List[OwnFailureRecord] = []
 
 
 class SheetRequest(BaseModel):
@@ -190,6 +213,31 @@ class SheetRequest(BaseModel):
     # shape is the same either way so the frontend does not need two
     # request paths for what is one operation repeated.
     items: List[SheetItem]
+
+
+@app.get("/api/failure-effects")
+def get_failure_effects() -> List[Dict[str, Any]]:
+    """The organisation's effect registry, with the standard severity.
+
+    Exposed so the intake form can offer it as a list when an engineer
+    supplies their own failure record. They pick an effect; they never
+    type a severity. That is the same rule the rest of the product
+    obeys, made available to the UI rather than only enforced behind it.
+    """
+    try:
+        return _records(data_layer.failure_effects())
+    except data_layer.DatasetError as exc:
+        raise _dataset_error(exc)
+
+
+@app.get("/api/detection-stages")
+def get_detection_stages() -> List[Dict[str, Any]]:
+    """Where a failure can escape to, and the Detection floor each implies."""
+    return [
+        {"stage": stage, "label": label,
+         "detection_floor": risk_engine.detection_floor(stage)}
+        for stage, label in own_records.DETECTION_STAGES
+    ]
 
 
 @app.post("/api/dfmea-sheet")
@@ -200,6 +248,11 @@ def dfmea_sheet_route(req: SheetRequest) -> Dict[str, Any]:
         raise HTTPException(400, "At most 25 parts per package in one request.")
     try:
         return dfmea_sheet.build([item.model_dump() for item in req.items])
+    except own_records.OwnRecordError as exc:
+        # The engineer supplied something that cannot be scored - an
+        # effect outside the registry, or a stage with no Detection floor.
+        # That is a 400 with the reason, not a 500.
+        raise HTTPException(400, str(exc))
     except data_layer.DatasetError as exc:
         raise _dataset_error(exc)
     except KeyError:
