@@ -453,11 +453,11 @@ Stated here rather than discovered in review.
   reports with the account; it does not retroactively adopt the old ones, because
   claiming them would mean guessing that whoever is holding the browser is
   whoever just authenticated.
-- **Saving a report against an account has not been exercised end to end.**
-  Google sign-in is confirmed working against the live domain, and the ownership
-  rules are covered by `test_report_store.py`, but no report has yet been written
-  to Firestore under a real `owner_uid`. Treat that path as untested rather than
-  as working.
+- ~~**Saving a report against an account has not been exercised end to end.**~~
+  **Verified 2026-09-10.** A signed-in engineer generated a report on the live
+  domain and it persisted to Firestore as `RPT-0EA2C8C77F`, 22 rows, carrying
+  the `owner_uid` of the Identity Platform account that created it. Sign-in,
+  ownership and persistence are now proven together rather than separately.
 
 ## 🗺️ Roadmap
 

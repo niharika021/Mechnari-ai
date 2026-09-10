@@ -172,7 +172,16 @@ Stated here rather than discovered in review.
   around rather than hidden — the system proposes and an engineer confirms —
   but it means the shortlist is wider than a confident system's would be.
 - **Signed-out reports live in one browser.** They move to Firestore only when
-  the user signs in.
+  the user signs in, and signing in does not retroactively adopt reports made
+  before it — claiming them would mean assuming whoever holds the browser is
+  whoever just authenticated.
+
+Verified end to end on 2026-09-10, having previously been listed here as
+untested: a signed-in engineer generated a report on the live domain and it
+persisted to Firestore under the `owner_uid` of the account that created it
+(`RPT-0EA2C8C77F`, 22 rows). Google sign-in, report ownership and Firestore
+persistence had each been covered separately before; this is the first run
+that exercised the three together.
 
 ## Roadmap
 
