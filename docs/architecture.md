@@ -25,6 +25,17 @@ graph TD
     ADK -->|prose only, never scores| GEM[Gemini via Vertex AI]
 ```
 
+The same picture, laid out for a reader rather than a graph engine, is
+`architecture-diagram.png` in the repository root — the one the write-ups
+embed. Its source is `docs/architecture-diagram.html`; regenerate it with
+
+```
+chrome --headless --disable-gpu --hide-scrollbars   --force-device-scale-factor=2 --window-size=1000,740   --screenshot=architecture-diagram.png docs/architecture-diagram.html
+```
+
+Edit the HTML, never the PNG. The connectors are drawn from the boxes'
+measured positions, so moving a box moves its arrows with it.
+
 ## Layers
 
 | Layer | Files | Rule it obeys |

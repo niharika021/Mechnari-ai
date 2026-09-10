@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --ink: #1b2430;
+    --soft: #5c6672;
+    --line: #8d959d;
+    --border: #b9c0c7;
+    --det-fill: #dcece9;
+    --det-border: #7fa9a2;
+    --mod-fill: #fbf0dc;
+    --mod-border: #d9a441;
+    --panel: #fbfbfa;
+  }
+  html, body { margin: 0; padding: 0; background: #f7f7f5; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    width: 1000px; height: 740px;
+    padding: 24px 20px 14px;
+    box-sizing: border-box;
+  }
+  h1 { font-size: 20px; margin: 0 0 3px; letter-spacing: -0.01em; }
+  .sub { font-size: 12px; color: var(--soft); margin: 0 0 14px; }
+
+  #stage { position: relative; }
+  svg#wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .box, .actor, .panel { position: absolute; box-sizing: border-box; }
+
+  .box, .actor {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 7px 10px;
+  }
+  .actor { border-radius: 18px; font-size: 12.5px; }
+  .box b { font-size: 12.5px; font-weight: 600; }
+  .box .s { font-size: 10.5px; color: var(--soft); margin-top: 2px; line-height: 1.35; }
+  .det { background: var(--det-fill); border-color: var(--det-border); }
+  .model { background: var(--mod-fill); border-color: var(--mod-border); border-width: 1.4px; }
+  .store { border-radius: 6px; }
+
+  .panel {
+    border: 1px solid #c9d0d6; border-radius: 7px; background: var(--panel);
+  }
+  .panel .cap {
+    position: absolute; top: 8px; left: 12px;
+    font-size: 11.5px; font-weight: 600; color: #2c6b60;
+  }
+
+  .legend { position: absolute; font-size: 10.5px; color: var(--soft); line-height: 1.9; }
+  .legend div { display: flex; align-items: center; gap: 7px; }
+  .sw { width: 13px; height: 11px; border-radius: 2px; display: inline-block; }
+  .sw.det { background: var(--det-fill); border: 1px solid var(--det-border); }
+  .sw.mod { background: var(--mod-fill); border: 1px solid var(--mod-border); }
+  .sw.ro { border-top: 2px dashed var(--mod-border); height: 0; border-radius: 0; }
+  .wlabel { font-size: 10px; fill: #8a6a1f; }
+</style>
+</head>
+<body>
+  <h1>Mechnari.ai — system architecture</h1>
+  <p class="sub">Deterministic engines own every number · agents read findings and write English</p>
+
+  <div id="stage" style="height: 660px;">
+    <svg id="wires"></svg>
+
+    <div class="actor" id="de" style="left:0;   top:0; width:280px; height:44px;">Design Engineer</div>
+    <div class="actor" id="qe" style="left:320px; top:0; width:280px; height:44px;">Quality Engineer</div>
+    <div class="actor" id="co" style="left:640px; top:0; width:280px; height:44px;">Company / Leadership</div>
+
+    <div class="box det" id="web" style="left:0; top:104px; width:620px; height:62px;">
+      <b>Next.js — three role views</b>
+      <span class="s">/design · /quality · /company + Copilot chat (CopilotKit)</span>
+    </div>
+
+    <div class="box" id="api" style="left:0; top:212px; width:620px; height:58px;">
+      <b>FastAPI — api.py</b>
+      <span class="s">thin service layer · shapes JSON · computes nothing</span>
+    </div>
+
+    <div class="panel" id="eng" style="left:0; top:318px; width:620px; height:132px;">
+      <span class="cap">Deterministic engines — own every number</span>
+    </div>
+    <div class="box det" id="e1" style="left:12px;  top:352px; width:114px; height:86px;">
+      <b>retrieval.py</b><span class="s">TF-IDF cosine</span>
+    </div>
+    <div class="box det" id="e2" style="left:134px; top:352px; width:114px; height:86px;">
+      <b>gap_<br>detection.py</b><span class="s">set difference</span>
+    </div>
+    <div class="box det" id="e3" style="left:256px; top:352px; width:114px; height:86px;">
+      <b>risk_<br>engine.py</b><span class="s">S/O/D, AP</span>
+    </div>
+    <div class="box det" id="e4" style="left:378px; top:352px; width:114px; height:86px;">
+      <b>dfmea_<br>sheet.py</b><span class="s">form assembly</span>
+    </div>
+    <div class="box det" id="e5" style="left:500px; top:352px; width:108px; height:86px;">
+      <b>backtest.py</b><span class="s">temporal holdout</span>
+    </div>
+
+    <div class="box" id="dl" style="left:0; top:496px; width:620px; height:48px;">
+      <b>data_layer.py — normalised tables, one read path</b>
+    </div>
+
+    <div class="box det store" id="bq" style="left:0; top:592px; width:290px; height:58px;">
+      <b>BigQuery</b><span class="s">mechnari_engineering — source of record</span>
+    </div>
+    <div class="box store" id="csv" style="left:330px; top:592px; width:290px; height:58px;">
+      <b>CSV fallback</b><span class="s">data/*.csv — what tests run on</span>
+    </div>
+
+    <div class="box model" id="agent" style="left:660px; top:200px; width:280px; height:82px;">
+      <b>mechnari_agent</b>
+      <span class="s">Google ADK 2.x · read-only tools<br>no tool can write a score</span>
+    </div>
+    <div class="box" id="gem" style="left:660px; top:334px; width:280px; height:66px;">
+      <b>Gemini via Vertex AI</b>
+      <span class="s">writes English only — never a score</span>
+    </div>
+
+    <div class="legend" style="left:660px; top:452px;">
+      <div><span class="sw det"></span> Deterministic — produces numbers</div>
+      <div><span class="sw mod"></span> Model layer — prose only, no scores</div>
+      <div><span class="sw ro"></span> Read-only path</div>
+    </div>
+  </div>
+
+<script>
+  // Connectors are drawn from measured boxes rather than hand-placed
+  // coordinates, so moving a box cannot leave an arrow pointing at nothing.
+  const stage = document.getElementById("stage");
+  const svg = document.getElementById("wires");
+  const NS = "http://www.w3.org/2000/svg";
+  const base = stage.getBoundingClientRect();
+
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML =
+    '<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+      '<path d="M0,0 L10,5 L0,10 z" fill="#8d959d"/></marker>' +
+    '<marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+      '<path d="M0,0 L10,5 L0,10 z" fill="#d9a441"/></marker>';
+  svg.appendChild(defs);
+
+  function rect(id) {
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
+  }
+  function anchor(id, side, frac) {
+    const r = rect(id), f = frac === undefined ? 0.5 : frac;
+    if (side === "t") return [r.x + r.w * f, r.y];
+    if (side === "b") return [r.x + r.w * f, r.y + r.h];
+    if (side === "l") return [r.x, r.y + r.h * f];
+    return [r.x + r.w, r.y + r.h * f];
+  }
+  function draw(d, opts) {
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", opts.dashed ? "#d9a441" : "#8d959d");
+    p.setAttribute("stroke-width", opts.dashed ? 1.5 : 1.4);
+    if (opts.dashed) p.setAttribute("stroke-dasharray", "5 4");
+    p.setAttribute("marker-end", "url(#" + (opts.dashed ? "ao" : "a") + ")");
+    if (opts.both) p.setAttribute("marker-start", "url(#" + (opts.dashed ? "ao" : "a") + ")");
+    svg.appendChild(p);
+  }
+  // Vertical connector with an optional horizontal jog at the midpoint.
+  function vlink(fromId, toId, o) {
+    o = o || {};
+    const [x1, y1] = anchor(fromId, "b", o.f1);
+    const [x2, y2] = anchor(toId, "t", o.f2);
+    const my = o.my !== undefined ? o.my : (y1 + y2) / 2;
+    const d = x1 === x2
+      ? "M" + x1 + "," + y1 + " L" + x2 + "," + y2
+      : "M" + x1 + "," + y1 + " L" + x1 + "," + my + " L" + x2 + "," + my + " L" + x2 + "," + y2;
+    draw(d, o);
+  }
+  function hlink(fromId, fromSide, toId, toSide, o) {
+    o = o || {};
+    const [x1, y1] = anchor(fromId, fromSide, o.f1);
+    const [x2, y2] = anchor(toId, toSide, o.f2);
+    const mx = o.mx !== undefined ? o.mx : (x1 + x2) / 2;
+    const d = y1 === y2
+      ? "M" + x1 + "," + y1 + " L" + x2 + "," + y2
+      : "M" + x1 + "," + y1 + " L" + mx + "," + y1 + " L" + mx + "," + y2 + " L" + x2 + "," + y2;
+    draw(d, o);
+    if (o.label) {
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("class", "wlabel");
+      if (o.labelAnchor) t.setAttribute("text-anchor", o.labelAnchor);
+      t.setAttribute("x", (o.labelX !== undefined ? o.labelX : mx + 6));
+      t.setAttribute("y", (o.labelY !== undefined ? o.labelY : y1 - 6));
+      o.label.split("|").forEach((line, i) => {
+        const ts = document.createElementNS(NS, "tspan");
+        ts.setAttribute("x", t.getAttribute("x"));
+        ts.setAttribute("dy", i === 0 ? 0 : 12);
+        ts.textContent = line;
+        t.appendChild(ts);
+      });
+      svg.appendChild(t);
+    }
+  }
+
+  vlink("de", "web", { f2: 0.22 });
+  vlink("qe", "web", { f2: 0.5 });
+  vlink("co", "web", { f2: 0.78 });
+  vlink("web", "api", { both: true });
+  vlink("api", "eng", {});
+  vlink("eng", "dl", {});
+  vlink("dl", "bq", { f1: 0.28, f2: 0.5 });
+  vlink("dl", "csv", { f1: 0.72, f2: 0.5 });
+  hlink("api", "r", "agent", "l", { mx: 640 });
+  hlink("eng", "r", "agent", "b", {
+    mx: 640, f1: 0.28,
+    dashed: true, label: "reads findings|(read-only)",
+    labelX: 632, labelY: 292, labelAnchor: "end"
+  });
+  vlink("agent", "gem", {});
+</script>
+</body>
+</html>
