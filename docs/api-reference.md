@@ -34,6 +34,7 @@ py -m uvicorn api:app --port 8000 --reload
   "status": "ok",
   "queue_backend": "firestore",
   "report_backend": "firestore",
+  "data_source": "bigquery",
   "auth_available": true
 }
 ```
@@ -43,6 +44,32 @@ file store is the failure this is meant to catch — on Cloud Run that file is
 per-instance and resets on scale-to-zero, so the queue looks fine until it
 empties itself. `firestore` is what you want; `file` means the queue will not
 survive.
+
+`data_source` is the same idea applied to the knowledge base: `bigquery`,
+`csv`, or `mixed` when only some tables fell back — **what actually served
+the tables**, not what `MECHNARI_DATA_SOURCE` asked for. A cold process that
+had read nothing would otherwise report the configured intent, which is
+exactly the reassuring-but-unearned answer this field exists to rule out.
+
+### `GET /api/health/data`
+
+```json
+{
+  "source": "bigquery",
+  "dataset": "your-project.mechnari_engineering",
+  "configured_for_bigquery": true,
+  "tables": {
+    "part_types": "bigquery",
+    "failure_effects": "bigquery",
+    "field_issues": "csv (bigquery unavailable: could not read ...)"
+  }
+}
+```
+
+Per-table detail behind the single `data_source` field above — which source
+served each of the seven knowledge-base tables, and the BigQuery error text
+when one fell back. Separate route because it is diagnostic detail, not a
+liveness check: useful when something is wrong, noise when nothing is.
 
 ### `GET /api/me`
 
@@ -260,4 +287,6 @@ nothing rather than 401; writes require a verified token.
 
 ### `POST /api/reload`
 
-Re-reads the CSVs and clears the retrieval cache. `{ "ok": true }`.
+Re-reads the knowledge base — BigQuery or the CSVs, whichever
+`MECHNARI_DATA_SOURCE` selects — and clears the retrieval cache.
+`{ "ok": true }`.

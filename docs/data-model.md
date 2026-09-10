@@ -1,9 +1,13 @@
 # Data model
 
-Eight normalised tables under `data/`, loaded and joined by
-[`data_layer.py`](../data_layer.py). Seven of them are the runtime knowledge
-base; `historical_field_issues.csv` is a legacy denormalised extract kept for
-reference.
+Eight normalised tables. **BigQuery is the source of record; the CSVs under
+`data/` are the fallback**, and what every test suite runs against. Seven of
+the tables are the runtime knowledge base; `historical_field_issues.csv` is
+a legacy denormalised extract kept for reference and is not in BigQuery.
+
+[`data_layer.py`](../data_layer.py) loads and joins them, reading from
+BigQuery when `MECHNARI_DATA_SOURCE=bigquery` and falling back to CSV on any
+failure — see [Architecture § Knowledge base source](architecture.md#knowledge-base-source).
 
 Authoring happens in [`taxonomy.py`](../taxonomy.py) — part types, failure
 effects and the cross-program mode catalogue — which
@@ -130,14 +134,32 @@ two.
 
 The tables are `organization_id`-ready: the shape assumes a tenant column and
 nothing in the joins would need restructuring to add one.
-[`schema.sql`](../schema.sql) holds the BigQuery DDL for the same model.
+[`schema.sql`](../schema.sql) holds the BigQuery DDL — generated from the
+CSVs by [`bq_load.py`](../bq_load.py) rather than hand-maintained, so the
+declared types cannot drift from what the engines actually receive the way a
+hand-written DDL did once (it named two tables that matched no CSV and was
+missing six others).
 
-The CSV layer is a deliberate first step, not the destination — migrating to
-Postgres with real multi-tenant auth is item 4 on the
-[roadmap](evidence-and-limits.md#roadmap).
+The shape is ready; real per-tenant access control on top of it is not
+implemented — `organization_id`-ready describes the schema, not an auth
+system.
 
-## Reloading
+## Loading and reloading
 
-`POST /api/reload` re-reads the CSVs and clears the retrieval vectoriser
-cache (`data_layer.reload()` + `retrieval.reload()`), so a regenerated dataset
-takes effect without a restart.
+```bash
+py bq_load.py            # create the dataset, load data/*.csv, verify it
+py bq_load.py --verify   # only compare BigQuery against the CSVs
+```
+
+Loads are idempotent (`WRITE_TRUNCATE`), so running it twice leaves the same
+rows rather than doubling them. `--verify` is the check that matters — it
+reads every table back through the same code path the app uses and compares
+row counts and column names against the CSV, which is how a schema mistake
+(autodetect once loaded an all-string table as `string_field_0..5`, silently
+losing every column name) gets caught here instead of surfacing as a wrong
+number on a DFMEA row.
+
+`POST /api/reload` re-reads whichever source is configured — BigQuery or
+CSV — and clears the retrieval vectoriser cache (`data_layer.reload()` +
+`retrieval.reload()`), so a regenerated dataset takes effect without a
+restart.

@@ -42,6 +42,9 @@ Then set `GOOGLE_CLOUD_PROJECT` in `.env`.
 | `MECHNARI_MODEL` | Publisher model id. Defaults to `gemini-2.5-flash` on Vertex, `gemini-flash-latest` on AI Studio. |
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Only for the legacy AI Studio `AIza` key path |
 | `ALLOWED_ORIGINS` | Comma-separated extra CORS origins for the deployed frontend |
+| `MECHNARI_DATA_SOURCE` | `bigquery` to read the knowledge base from BigQuery. Unset (or anything else) reads `data/*.csv` — what every test suite runs against. |
+| `MECHNARI_BQ_PROJECT` | Project holding the dataset. Defaults to `GOOGLE_CLOUD_PROJECT`. |
+| `MECHNARI_BQ_DATASET` | Defaults to `mechnari_engineering`. |
 
 > **Use Vertex, not an AI Studio key.** As of September 2026 the keys AI Studio
 > issues (the `AQ.` format that replaced `AIza`) return
@@ -96,9 +99,21 @@ py generate_csv_data.py
 Seeded, so every figure in these docs reproduces exactly. `POST /api/reload`
 picks up the new CSVs without a restart.
 
+If BigQuery is the configured source, load the regenerated CSVs into it too:
+
+```bash
+py bq_load.py            # create the dataset if needed, load, verify
+py bq_load.py --verify   # just compare what is loaded against the CSVs
+```
+
+Both steps are idempotent (`WRITE_TRUNCATE`) and read the schema from the
+CSV rather than autodetecting it — autodetect once loaded an all-string
+table with no way to tell its header from a data row, and silently produced
+`string_field_0..5` instead of real column names.
+
 ## Tests
 
-**137 tests across 8 suites, all passing** (verified 2026-09-09). Each file
+**147 tests across 9 suites, all passing** (verified 2026-09-10). Each file
 runs standalone — no pytest required:
 
 ```bash
@@ -115,6 +130,7 @@ for f in test_*.py; do py "$f"; done
 | `test_gap_detection.py` | 12 | Type ∪ family applicability, severity consistency |
 | `test_queue_store.py` | 11 | Draft queue atomicity, corruption recovery, Firestore degradation |
 | `test_report_store.py` | 10 | Report ownership and update semantics |
+| `test_data_source.py` | 10 | BigQuery vs CSV selection, and that an unreachable warehouse degrades to the CSVs rather than failing |
 
 Two of these are load-bearing beyond coverage:
 
@@ -166,9 +182,15 @@ needs `roles/datastore.user`. `GOOGLE_CLOUD_PROJECT` is all the code reads.
 
 ```bash
 curl https://YOUR-API/api/health
-# {"status":"ok","queue_backend":"firestore"}   <- what you want
-# {"status":"ok","queue_backend":"file"}        <- the queue will empty itself
+# {"status":"ok","queue_backend":"firestore","data_source":"bigquery"}  <- what you want
+# {"status":"ok","queue_backend":"file","data_source":"csv"}            <- degraded, but working
 ```
+
+`data_source` is the equivalent check for the knowledge base — see
+[Architecture § Knowledge base source](architecture.md#knowledge-base-source)
+for what it reports and why it reads a table before answering rather than
+reporting the configured intent. `GET /api/health/data` gives the per-table
+breakdown.
 
 On Cloud Run the file store is per-instance and resets on scale-to-zero, so a
 silent fallback looks fine until the queue empties itself. That was real data

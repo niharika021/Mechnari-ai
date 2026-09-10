@@ -239,6 +239,67 @@ access. Switching backends does not migrate anything: drafts written to
 the file before the switch stay there and are simply not in the queue any
 more.
 
+## The knowledge base: BigQuery, CSV fallback
+
+BigQuery is the source of record for the seven knowledge-base tables — parts,
+failure modes, warranty history and the rest — when `MECHNARI_DATA_SOURCE=bigquery`
+is set on the API service. Unset, or on any BigQuery failure, `data_layer`
+reads `data/*.csv` instead, so this is safe to add after the fact, which is
+how it was actually done here: deployed first without it, added with a
+`services update` exactly like the CORS step below.
+
+Enabled once per project:
+
+```bash
+gcloud services enable bigquery.googleapis.com --project project-b284a92b-1eec-4e4c-add
+```
+
+Load the dataset — creates it, loads `data/*.csv`, and verifies row-for-row
+against the CSVs it just read:
+
+```bash
+py bq_load.py
+```
+
+**Grant the runtime service account READER on the dataset, not
+`roles/bigquery.dataViewer` project-wide.** There is no `bq` CLI on every
+machine, so this used the Python client directly rather than a `bq
+add-iam-policy-binding` this repo could not verify works everywhere:
+
+```python
+from google.cloud import bigquery
+client = bigquery.Client(project="project-b284a92b-1eec-4e4c-add")
+ds = client.get_dataset("project-b284a92b-1eec-4e4c-add.mechnari_engineering")
+entries = list(ds.access_entries) + [bigquery.AccessEntry(
+    role="READER", entity_type="userByEmail",
+    entity_id="909720820441-compute@developer.gserviceaccount.com")]
+ds.access_entries = entries
+client.update_dataset(ds, ["access_entries"])
+```
+
+Then point the API at it:
+
+```bash
+gcloud run services update mechnari-api --region us-central1 \
+  --update-env-vars MECHNARI_DATA_SOURCE=bigquery,MECHNARI_BQ_DATASET=mechnari_engineering
+```
+
+`--update-env-vars` rather than `--set-env-vars`, same reason as the CORS
+step below: the latter *replaces* the whole set, and silently dropped
+`ALLOWED_ORIGINS` here once already.
+
+**Verify what actually served the request**, not what was configured:
+
+```bash
+curl https://mechnari-api-xxxxx-uc.a.run.app/api/health
+# {"status":"ok", ..., "data_source":"bigquery"}  <- what you want
+# {"status":"ok", ..., "data_source":"csv"}        <- fell back; check /api/health/data for why
+```
+
+A cold process answering `bigquery` before it had read a single table was a
+real bug here — `data_source` now reads one small table before answering,
+specifically so this check means what it says.
+
 ## What still does *not* survive
 
 The design engineer's own in-progress reports are in the browser's

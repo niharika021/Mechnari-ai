@@ -31,9 +31,11 @@ Also in the repository:
 ## Status of the figures in these pages
 
 Every number quoted here was reproduced against the committed code on
-2026-09-09: `137 tests across 8 suites, all passing`, and the engine
+2026-09-10: `147 tests across 9 suites, all passing`, and the engine
 headlines regenerated from `gap_detection.headline_metrics()`,
-`risk_engine.headline_metrics()` and `backtest.headline()`. Where a figure
+`risk_engine.headline_metrics()` and `backtest.headline()` — identically
+whether they run against BigQuery or the CSV fallback (`bq_load.py --verify`
+confirms it, and `test_data_source.py` covers the switch). Where a figure
 is provisional or unverified, the page says so at the point it is used —
 most importantly the [Action Priority table](evidence-and-limits.md#the-action-priority-table-is-provisional),
 which is not yet checked cell by cell against the published handbook.

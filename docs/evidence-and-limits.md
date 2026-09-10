@@ -178,10 +178,17 @@ Stated here rather than discovered in review.
 
 1. Verify the Action Priority cells against the AIAG-VDA handbook and lift the
    provisional label.
-2. Export to the AIAG-VDA form sheet, so output lands in the format engineers
-   already use.
-3. Replace synthetic data with a pilot company's anonymised warranty set and
+2. Replace synthetic data with a pilot company's anonymised warranty set and
    re-run the backtest unchanged.
-4. Migrate the CSV layer to Postgres with real multi-tenant auth.
-5. Close the loop: when a new claim arrives, flag which shipped DFMEAs
+3. Push aggregation down into BigQuery once the data is large enough to earn
+   it — millions of claims rather than hundreds is the point where reading
+   the tables whole into memory stops being the faster choice.
+4. Close the loop: when a new claim arrives, flag which shipped DFMEAs
    predicted low risk for that mode.
+5. Migrate reports made while signed out into an account on first sign-in.
+
+Shipped since the first version of this page: the AIAG-VDA form sheet as the
+actual output (`dfmea_sheet.py`), the human-in-the-loop review between
+findings and report, the Quality action-closure handoff, Firestore
+persistence, optional Google sign-in, and BigQuery as the source of record —
+see [Architecture § Knowledge base source](architecture.md#knowledge-base-source).

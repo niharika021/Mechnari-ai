@@ -20,7 +20,8 @@ graph TD
     end
 
     ENG --> DL[data_layer.py - normalised tables]
-    DL --> CSV[(8 CSV tables, organization_id-ready)]
+    DL -->|source of record| BQ[(BigQuery - mechnari_engineering)]
+    DL -->|fallback, and what tests run on| CSV[(7 CSV tables, organization_id-ready)]
     ENG --> ADK[mechnari_agent - Google ADK 2.x]
     ADK -->|prose only, never scores| GEM[Gemini via Vertex AI]
 ```
@@ -29,7 +30,7 @@ graph TD
 
 | Layer | Files | Rule it obeys |
 | --- | --- | --- |
-| **Data** | `data/*.csv`, `data_layer.py`, `schema.sql` | Normalised tables, loaded and joined in one place. `organization_id`-ready for multi-tenancy. |
+| **Data** | `data_layer.py`, `bq_source.py`, `bq_load.py`, `data/*.csv`, `schema.sql` | BigQuery is the source of record; CSV is the fallback. Normalised tables, loaded and joined in one place. `organization_id`-ready for multi-tenancy. |
 | **Engines** | `retrieval.py`, `gap_detection.py`, `risk_engine.py`, `dfmea_sheet.py`, `backtest.py` | Every number in the product originates here. No model calls, no network. |
 | **Stores** | `queue_store.py`, `report_store.py` | Runtime state — the review queue and saved reports. Firestore when available, JSON file otherwise. |
 | **Service** | `api.py`, `auth.py`, `agui_endpoint.py` | Thin. Calls a tested module, shapes JSON. Computes nothing. |
@@ -151,6 +152,33 @@ Model names do **not** carry over between the two paths: Vertex serves
 versioned publisher models and 404s on AI Studio's floating aliases
 (`gemini-flash-latest`). Availability is regional — `gemini-3.5-flash-lite`
 serves from `global` but not from `us-central1`.
+
+## Knowledge base source
+
+BigQuery when `MECHNARI_DATA_SOURCE=bigquery` and a project resolves;
+`data/*.csv` otherwise, and on any BigQuery failure. `data_layer._read` is the
+only function that ever touches a file or a table, so the swap is a change
+inside that one module — every engine downstream is unchanged and reads the
+same DataFrame shape either way.
+
+Tables are read whole, once per process (`list_rows`, not `SELECT *`, so a
+read is a storage read and is not billed as a query), not queried per
+request. The engines are not SQL workloads — retrieval is TF-IDF cosine,
+gap detection is a set difference, the backtest re-runs retrieval across
+several cutoffs — so BigQuery supplies the data and `data_layer` caches it
+exactly as it cached the CSV.
+
+`GET /api/health` reports `data_source` as **what actually served the
+tables** (`bigquery` / `csv` / `mixed`), not what was configured. That
+distinction caught a real bug: a freshly started process answered
+`bigquery` before it had read a single table, which is the reassuring-but-
+unearned answer this field exists to prevent — it now reads one small
+table before answering. `GET /api/health/data` breaks the same thing down
+per table, with the reason for any fallback.
+
+Fallback is one-directional. Nothing writes back to BigQuery, because the
+knowledge base is loaded, not edited. Tests run on CSV, so no suite needs
+cloud credentials.
 
 ## Storage
 
