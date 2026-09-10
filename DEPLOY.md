@@ -7,7 +7,7 @@ its URL baked in at build time.
 
 | Service | URL |
 | --- | --- |
-| Frontend | <https://mechnari-web-1041795730182.us-central1.run.app> |
+| Frontend | <https://mechnari-web-1041795730182.us-central1.run.app> — mapped to <https://app.mechnari.in> |
 | API | <https://mechnari-api-1041795730182.us-central1.run.app> |
 
 Every step below was run against project `project-b5c60fe1-dbb8-4eb8-84b`
@@ -181,9 +181,22 @@ the deployed frontend's real origin. This is an env-var change, so use
 `services update` rather than redeploying — no rebuild needed:
 
 ```bash
+# Every origin the app is served from, comma-separated. The "^|^" prefix
+# changes gcloud's delimiter to "|" so the commas survive as part of the
+# value rather than being read as separate variables.
 gcloud run services update mechnari-api --region us-central1 \
-  --update-env-vars ALLOWED_ORIGINS=https://mechnari-web-xxxxx-uc.a.run.app
+  --update-env-vars "^|^ALLOWED_ORIGINS=https://app.mechnari.in,https://mechnari-web-xxxxx-uc.a.run.app"
 ```
+
+**A custom domain is a separate origin, and it is the one that gets
+forgotten.** Mapping `app.mechnari.in` to the service makes the page load
+from it immediately — and then every browser-side API call fails CORS while
+the page itself looks perfectly fine. Add the domain here the moment you map
+it, not after someone reports that the numbers are missing.
+
+`--update-env-vars`, never `--set-env-vars`: the latter replaces the entire
+set, and it has already silently dropped `ALLOWED_ORIGINS` on this service
+once.
 
 ## 4. Verify
 

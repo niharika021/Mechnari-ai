@@ -136,7 +136,7 @@ Two of these are load-bearing beyond coverage:
 
 ## Deployment
 
-The build is live at <https://mechnari-web-1041795730182.us-central1.run.app>. Full runbook: [`../DEPLOY.md`](../DEPLOY.md). The shape:
+The build is live at <https://app.mechnari.in>. Full runbook: [`../DEPLOY.md`](../DEPLOY.md). The shape:
 
 1. **Deploy the API first** — the frontend needs its URL baked in at build
    time.

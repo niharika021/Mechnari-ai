@@ -4,7 +4,7 @@ Mechnari.ai turns a manufacturer's own warranty history into the primary
 knowledge source for analysing a new part, and tells engineers what the
 Design FMEA they just signed never checked.
 
-Live: <https://mechnari-web-1041795730182.us-central1.run.app>
+Live: <https://app.mechnari.in>
 
 These pages are the complete reference. Start wherever your question is.
 

@@ -6,7 +6,7 @@
 [![Standard](https://img.shields.io/badge/Standard-AIAG--VDA%20Action%20Priority-0F6B63.svg)](https://www.aiag.org/)
 [![Data](https://img.shields.io/badge/data-BigQuery-669DF6.svg)](#-where-the-data-comes-from)
 [![Tests](https://img.shields.io/badge/tests-167%20passing-2F6B3C.svg)](#-tests)
-[![Live](https://img.shields.io/badge/live-Cloud%20Run-1a73e8.svg)](https://mechnari-web-1041795730182.us-central1.run.app)
+[![Live](https://img.shields.io/badge/live-app.mechnari.in-1a73e8.svg)](https://app.mechnari.in)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Mechnari.ai treats a manufacturer's own warranty history as the primary knowledge
@@ -30,7 +30,7 @@ consistent with each other or with what the last program already learned.
 > failure, and this DFMEA did not check for it.* That is checkable against an 8D
 > number and it survives an audit.
 
-**Live: <https://mechnari-web-1041795730182.us-central1.run.app>** — three role views, signed out by default.
+**Live: <https://app.mechnari.in>** — three role views, signed out by default.
 Sign in with Google only to keep reports against your account; nothing else is
 gated. Deployed on Cloud Run (see [DEPLOY.md](DEPLOY.md)).
 
