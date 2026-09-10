@@ -12,7 +12,6 @@ ag-ui-adk>=0.7,<1  # AG-UI protocol wrapper around the ADK agent (api.py mounts 
 fastapi
 uvicorn
 
-streamlit
 python-dotenv
 pandas
 scikit-learn

@@ -313,7 +313,6 @@ identity rather than a migration, so it is deliberately still open.
 ```bash
 py -m uvicorn api:app --port 8000 --reload      # API
 npm --prefix web run dev                         # frontend
-streamlit run app.py                              # Streamlit fallback
 ```
 
 Also runnable via `.claude/launch.json`.

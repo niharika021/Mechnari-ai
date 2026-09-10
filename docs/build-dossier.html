@@ -660,7 +660,7 @@
           The engines are Python modules with their own test suites, and they are reached two
           ways. <code>api.py</code> is a FastAPI wrapper that is deliberately thin: every route
           calls one of those modules and shapes its return value as JSON, and computes nothing
-          itself. The Next.js frontend talks only to that boundary; Streamlit keeps calling the
+          itself. The Next.js frontend talks only to that boundary, calling the
           same modules in-process, unchanged. Neither frontend can produce a number the engines
           did not produce, because neither frontend contains the arithmetic.
         </p>
@@ -994,7 +994,7 @@
               </tr>
               <tr>
                 <td class="rowlabel">Frontend</td>
-                <td>Next.js App Router, three role views; Streamlit retained as a fallback on the same engines</td>
+                <td>Next.js App Router, three role views over the same engines</td>
                 <td><span class="pill built">Built</span></td>
               </tr>
               <tr>

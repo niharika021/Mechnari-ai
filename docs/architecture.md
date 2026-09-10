@@ -8,7 +8,6 @@ graph TD
     QE([Quality Engineer]) --> WEB
     CO([Company / Leadership]) --> WEB
     WEB <--> API[FastAPI - api.py, no arithmetic of its own]
-    ST([Streamlit fallback]) --> ENG
     API --> ENG
 
     subgraph ENG[Deterministic engines]
@@ -35,7 +34,7 @@ graph TD
 | **Stores** | `queue_store.py`, `report_store.py` | Runtime state — the review queue and saved reports. Firestore when available, JSON file otherwise. |
 | **Service** | `api.py`, `auth.py`, `agui_endpoint.py` | Thin. Calls a tested module, shapes JSON. Computes nothing. |
 | **Agent** | `mechnari_agent/agent.py`, `mechnari_tools.py` | Reads findings, writes English, drives the UI. Holds no tool that writes a score. |
-| **Frontend** | `web/` (Next.js), `app.py` (Streamlit) | Renders. Contains no arithmetic, so it cannot produce a number the engines did not. |
+| **Frontend** | `web/` (Next.js) | Renders. Contains no arithmetic, so it cannot produce a number the engines did not. |
 
 ## The service boundary
 
@@ -44,14 +43,11 @@ its own test suite and shapes the return value as JSON.
 
 Two consequences worth stating:
 
-- **Neither frontend can produce a number the engines did not produce**,
-  because neither frontend contains the arithmetic. When an engineer edits
-  Detection on a review row, the new Action Priority comes back from
-  `POST /api/rescore` — a frontend that did its own band lookup would be a
-  second, unversioned copy of the AP table.
-- **Streamlit is not a second implementation.** `app.py` calls the same
-  modules in-process. It exists so the whole product runs in one Python
-  process with no Node required.
+- **The frontend cannot produce a number the engines did not produce**,
+  because it contains no arithmetic. When an engineer edits Detection on a
+  review row, the new Action Priority comes back from `POST /api/rescore` —
+  a frontend that did its own band lookup would be a second, unversioned
+  copy of the AP table.
 
 ### CORS
 

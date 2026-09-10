@@ -2,7 +2,6 @@ web/
 docs/
 .git/
 .claude/
-.streamlit/
 .mechnari_runtime/
 __pycache__/
 *.pyc

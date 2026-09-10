@@ -5,7 +5,6 @@ Two frontends over the same engines.
 | | Stack | Purpose |
 | --- | --- | --- |
 | **`web/`** | Next.js 16, React 19, Tailwind 4, CopilotKit v2 | The product — three role views and the copilot |
-| **`app.py`** | Streamlit | The fallback — one process, no Node, same modules in-process |
 
 Neither contains arithmetic, so neither can produce a number the engines did
 not produce.
@@ -158,15 +157,4 @@ button that could not work rather than offering one that fails.
 
 ---
 
-## The Streamlit fallback
 
-`app.py` is the same product in one process: no Node, no build step, no API
-boundary. It calls `data_layer`, `gap_detection`, `risk_engine`, `retrieval`
-and `backtest` directly.
-
-```bash
-streamlit run app.py   # http://localhost:8501
-```
-
-It is a fallback, not a second implementation — which is why a change to an
-engine shows up in both without being ported.

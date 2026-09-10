@@ -3,8 +3,6 @@
 /*
   Mechnari.ai design tokens.
 
-  Same values feed the Streamlit app's injected CSS (see ../../app.py) so
-  the two frontends stay one committed look, not a palette per surface.
 
   --- Why the accent is blue ------------------------------------------
   The accent was a warm gold, and gold sits ~30 degrees from the amber

@@ -106,7 +106,6 @@ graph TD
     CO([Company / Leadership]) --> WEB
     WEB <--> API[FastAPI - api.py, no arithmetic of its own]
     WEB <-->|AG-UI over CopilotKit v2| AGUI[agui_endpoint.py]
-    ST([Streamlit fallback]) --> ENG
     API --> ENG
     API --> STORE
     AGUI --> ADK
@@ -137,9 +136,8 @@ graph TD
 
 `api.py` is deliberately thin: every route calls a module that already has its own
 test suite and shapes the return value as JSON. It computes nothing. The Next.js
-frontend talks only to that boundary; Streamlit keeps calling the same modules
-in-process, unchanged. **Neither frontend can produce a number the engines did not
-produce, because neither frontend contains the arithmetic.**
+frontend talks only to that boundary. **The frontend cannot produce a number the
+engines did not produce, because it contains no arithmetic.**
 
 The copilot reaches the browser over the **AG-UI** protocol and can act on the
 interface, not only describe it — fill the intake form from a spoken part
@@ -315,16 +313,6 @@ cd web && cp .env.example .env.local && npm install && npm run dev
 
 Open <http://localhost:3000>.
 
-### Run it — Streamlit fallback
-
-The same engines, one process, no Node required:
-
-```bash
-streamlit run app.py
-```
-
-Open <http://localhost:8501>.
-
 ### Regenerate the dataset
 
 ```bash
@@ -379,7 +367,6 @@ Mechnari-ai/
 ├── mechnari_agent/agent.py  # Google ADK 2.x root agent, sub_agents, Workflow
 ├── mechnari_tools.py        # Plain-function tools handed to the agents
 ├── api.py                   # FastAPI wrapper - thin, computes nothing
-├── app.py                   # Streamlit fallback UI
 ├── web/                     # Next.js frontend (three role views, CopilotKit v2)
 ├── DEPLOY.md                # Cloud Run deployment, and the traps in it
 ├── test_*.py                # 9 suites, 147 tests

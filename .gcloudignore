@@ -21,7 +21,6 @@ web/
 !.env.example
 .mechnari_runtime/
 .claude/
-.streamlit/
 
 # Python build/cache artifacts
 __pycache__/
@@ -34,3 +33,20 @@ test_*.py
 docs/
 *.md
 !requirements.txt
+
+# Working documents that live alongside the code but are not part of it.
+#
+# Excluded for correctness, and also because a file open in Word or
+# Acrobat is LOCKED on Windows: gcloud reads every file it uploads, and
+# one it cannot read kills the whole deploy with
+# `PermissionError: [Errno 13] Permission denied`. That is what happened
+# with "Patchamomma 2026 Touchpoint 3 FINAL Form.docx" - the deploy
+# failed because a document was open in another window, which is a
+# miserable thing to debug from the error alone.
+*.docx
+*.pdf
+*.pptx
+*.xlsx
+*.png
+*.jpg
+*.jpeg

@@ -17,7 +17,7 @@ cp .env.example .env
 ```
 
 Dependencies: `google-adk`, `google-genai`, `ag-ui-adk`, `google-cloud-firestore`,
-`firebase-admin`, `google-cloud-bigquery`, `fastapi`, `uvicorn`, `streamlit`,
+`firebase-admin`, `google-cloud-bigquery`, `fastapi`, `uvicorn`,
 `pandas`, `scikit-learn`, `python-dotenv`.
 
 `fastapi` and `uvicorn` are listed explicitly even though they arrive
@@ -67,7 +67,7 @@ Then set `GOOGLE_CLOUD_PROJECT` in `.env`.
 
 ## Run
 
-### Next.js frontend — two processes
+### Two processes
 
 ```bash
 py -m uvicorn api:app --port 8000 --reload
@@ -79,16 +79,8 @@ cd web && cp .env.example .env.local && npm install && npm run dev
 
 Open <http://localhost:3000>. API docs at <http://localhost:8000/docs>.
 
-### Streamlit fallback — one process, no Node
-
-```bash
-streamlit run app.py
-```
-
-Open <http://localhost:8501>.
-
 Both are also defined in [`.claude/launch.json`](../.claude/launch.json) as
-`api`, `web` and `streamlit`.
+`api` and `web`.
 
 ## Regenerate the dataset
 

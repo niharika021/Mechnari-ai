@@ -2,8 +2,7 @@
 #
 # This container is the whole Python side: the deterministic engines
 # (data_layer, gap_detection, risk_engine, retrieval, backtest, queue_store)
-# and the ADK agent, reached through api.py. Streamlit (app.py) is not
-# built here - it stays a local/dev-only entry point into the same engines.
+# and the ADK agent, reached through api.py.
 FROM python:3.11-slim
 
 WORKDIR /app

@@ -236,7 +236,7 @@ dfmea_review_workflow = Workflow(
 )
 
 
-# --- Programmatic entry point for the Streamlit dashboard ----------------
+# --- Programmatic entry point (api.py /api/copilot/ask) -----------------
 
 def _api_key_present() -> bool:
     """Whether *some* credential path is configured. Under Vertex the

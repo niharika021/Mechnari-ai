@@ -1,12 +1,11 @@
 """
 Mechnari.ai - HTTP API
 =======================
-A thin FastAPI wrapper around the same deterministic engines the Streamlit
-app calls directly - data_layer, gap_detection, risk_engine, retrieval,
-backtest, queue_store, and the ADK agent. Nothing in this file computes
-anything: every route is a call into an already-tested module and a JSON
-shaping of its return value. This is what the Next.js frontend talks to;
-Streamlit keeps working unchanged, calling the same modules in-process.
+A thin FastAPI wrapper around the deterministic engines - data_layer,
+gap_detection, risk_engine, retrieval, backtest, queue_store, and the ADK
+agent. Nothing in this file computes anything: every route is a call into
+an already-tested module and a JSON shaping of its return value. This is
+what the Next.js frontend talks to.
 
 Run with:  uvicorn api:app --reload --port 8000
 """
