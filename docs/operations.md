@@ -105,7 +105,7 @@ table with no way to tell its header from a data row, and silently produced
 
 ## Tests
 
-**147 tests across 9 suites, all passing** (verified 2026-09-10). Each file
+**167 tests across 10 suites, all passing** (verified 2026-09-10). Each file
 runs standalone — no pytest required:
 
 ```bash
@@ -123,6 +123,7 @@ for f in test_*.py; do py "$f"; done
 | `test_queue_store.py` | 11 | Draft queue atomicity, corruption recovery, Firestore degradation |
 | `test_report_store.py` | 10 | Report ownership and update semantics |
 | `test_data_source.py` | 10 | BigQuery vs CSV selection, and that an unreachable warehouse degrades to the CSVs rather than failing |
+| `test_standards_and_own_records.py` | 20 | The standards floor, engineer-supplied records, and the separation between them |
 
 Two of these are load-bearing beyond coverage:
 
@@ -135,7 +136,7 @@ Two of these are load-bearing beyond coverage:
 
 ## Deployment
 
-The build is live at <https://app.mechnari.in>. Full runbook: [`../DEPLOY.md`](../DEPLOY.md). The shape:
+The build is live at <https://mechnari-web-1041795730182.us-central1.run.app>. Full runbook: [`../DEPLOY.md`](../DEPLOY.md). The shape:
 
 1. **Deploy the API first** — the frontend needs its URL baked in at build
    time.

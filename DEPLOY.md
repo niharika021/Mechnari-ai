@@ -7,10 +7,10 @@ its URL baked in at build time.
 
 | Service | URL |
 | --- | --- |
-| Frontend | <https://mechnari-web-909720820441.us-central1.run.app> |
-| API | <https://mechnari-api-909720820441.us-central1.run.app> |
+| Frontend | <https://mechnari-web-1041795730182.us-central1.run.app> |
+| API | <https://mechnari-api-1041795730182.us-central1.run.app> |
 
-Every step below was run against project `project-b284a92b-1eec-4e4c-add`
+Every step below was run against project `project-b5c60fe1-dbb8-4eb8-84b`
 and verified live: all three role views return 200, the metrics match the
 local figures exactly (50/50 parts, 57% coverage, 15 safety gaps, +27 pts),
 and the copilot answers citing real 8D records with no API key anywhere —
@@ -33,7 +33,7 @@ Vertex authenticates as the Cloud Run service account.
   object`:
 
   ```bash
-  PROJECT_ID=project-b284a92b-1eec-4e4c-add
+  PROJECT_ID=project-b5c60fe1-dbb8-4eb8-84b
   PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
   SA=${PROJECT_NUMBER}-compute@developer.gserviceaccount.com
   for ROLE in roles/cloudbuild.builds.builder roles/storage.objectViewer \
@@ -65,15 +65,15 @@ latest SDK with both `x-goog-api-key` and bearer auth. Vertex avoids that
 path entirely.
 
 ```bash
-gcloud services enable aiplatform.googleapis.com --project project-b284a92b-1eec-4e4c-add
+gcloud services enable aiplatform.googleapis.com --project project-b5c60fe1-dbb8-4eb8-84b
 ```
 
 Grant the runtime service account model access (the default compute
 service account, unless you deploy with `--service-account`):
 
 ```bash
-PROJECT_NUMBER=$(gcloud projects describe project-b284a92b-1eec-4e4c-add --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding project-b284a92b-1eec-4e4c-add \
+PROJECT_NUMBER=$(gcloud projects describe project-b5c60fe1-dbb8-4eb8-84b --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding project-b5c60fe1-dbb8-4eb8-84b \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/aiplatform.user"
 ```
@@ -111,13 +111,13 @@ From the repository root — `gcloud run deploy --source .` builds the
 container in the cloud via Cloud Build, so no local Docker is required:
 
 ```bash
-gcloud config set project project-b284a92b-1eec-4e4c-add
+gcloud config set project project-b5c60fe1-dbb8-4eb8-84b
 
 gcloud run deploy mechnari-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b284a92b-1eec-4e4c-add,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.7-flash \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=project-b5c60fe1-dbb8-4eb8-84b,GOOGLE_CLOUD_LOCATION=global,MECHNARI_MODEL=gemini-3.7-flash \
   --memory 1Gi
 ```
 
@@ -152,7 +152,7 @@ exists for this), then deploy that image. From the repository root:
 
 ```bash
 API_URL=https://mechnari-api-xxxxx-uc.a.run.app
-IMAGE=us-central1-docker.pkg.dev/project-b284a92b-1eec-4e4c-add/cloud-run-source-deploy/mechnari-web:latest
+IMAGE=us-central1-docker.pkg.dev/project-b5c60fe1-dbb8-4eb8-84b/cloud-run-source-deploy/mechnari-web:latest
 
 # The four Firebase values are NEXT_PUBLIC_*, so they are compiled in at
 # build time exactly like the API base - passing them at run time does
@@ -205,16 +205,16 @@ theoretical limit.
 Enabled once per project:
 
 ```bash
-gcloud services enable firestore.googleapis.com --project project-b284a92b-1eec-4e4c-add
+gcloud services enable firestore.googleapis.com --project project-b5c60fe1-dbb8-4eb8-84b
 gcloud firestore databases create --location=nam5 --type=firestore-native \
-  --project project-b284a92b-1eec-4e4c-add
+  --project project-b5c60fe1-dbb8-4eb8-84b
 ```
 
 The runtime service account needs read/write:
 
 ```bash
-PROJECT_NUMBER=$(gcloud projects describe project-b284a92b-1eec-4e4c-add --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding project-b284a92b-1eec-4e4c-add \
+PROJECT_NUMBER=$(gcloud projects describe project-b5c60fe1-dbb8-4eb8-84b --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding project-b5c60fe1-dbb8-4eb8-84b \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/datastore.user"
 ```
@@ -251,7 +251,7 @@ how it was actually done here: deployed first without it, added with a
 Enabled once per project:
 
 ```bash
-gcloud services enable bigquery.googleapis.com --project project-b284a92b-1eec-4e4c-add
+gcloud services enable bigquery.googleapis.com --project project-b5c60fe1-dbb8-4eb8-84b
 ```
 
 Load the dataset — creates it, loads `data/*.csv`, and verifies row-for-row
@@ -268,11 +268,11 @@ add-iam-policy-binding` this repo could not verify works everywhere:
 
 ```python
 from google.cloud import bigquery
-client = bigquery.Client(project="project-b284a92b-1eec-4e4c-add")
-ds = client.get_dataset("project-b284a92b-1eec-4e4c-add.mechnari_engineering")
+client = bigquery.Client(project="project-b5c60fe1-dbb8-4eb8-84b")
+ds = client.get_dataset("project-b5c60fe1-dbb8-4eb8-84b.mechnari_engineering")
 entries = list(ds.access_entries) + [bigquery.AccessEntry(
     role="READER", entity_type="userByEmail",
-    entity_id="909720820441-compute@developer.gserviceaccount.com")]
+    entity_id="1041795730182-compute@developer.gserviceaccount.com")]
 ds.access_entries = entries
 client.update_dataset(ds, ["access_entries"])
 ```

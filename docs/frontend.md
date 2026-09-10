@@ -1,13 +1,10 @@
 # Frontend
 
-Two frontends over the same engines.
+Next.js 16, React 19, Tailwind 4, CopilotKit v2 — three role views and the
+copilot, over the same engines.
 
-| | Stack | Purpose |
-| --- | --- | --- |
-| **`web/`** | Next.js 16, React 19, Tailwind 4, CopilotKit v2 | The product — three role views and the copilot |
-
-Neither contains arithmetic, so neither can produce a number the engines did
-not produce.
+It contains no arithmetic, so it cannot produce a number the engines did not
+produce.
 
 ---
 
@@ -154,6 +151,13 @@ button that could not work rather than offering one that fails.
 ## Theme
 
 `ThemeToggle.tsx` — light and dark, with the choice persisted.
+
+`OwnRecords.tsx` — a collapsed form on the intake page for a failure the
+engineer already knows about. It has no Severity box on purpose: they pick
+the *effect* from the organisation's registry and the backend looks the
+severity up. Claims and fleet size are optional — supply both and Occurrence
+is derived by the same function the warranty path uses; leave them blank and
+it stays at the floor, marked as having no rate.
 
 ---
 

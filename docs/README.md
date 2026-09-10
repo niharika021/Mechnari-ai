@@ -4,7 +4,7 @@ Mechnari.ai turns a manufacturer's own warranty history into the primary
 knowledge source for analysing a new part, and tells engineers what the
 Design FMEA they just signed never checked.
 
-Live: <https://app.mechnari.in>
+Live: <https://mechnari-web-1041795730182.us-central1.run.app>
 
 These pages are the complete reference. Start wherever your question is.
 
@@ -31,7 +31,7 @@ Also in the repository:
 ## Status of the figures in these pages
 
 Every number quoted here was reproduced against the committed code on
-2026-09-10: `147 tests across 9 suites, all passing`, and the engine
+2026-09-10: `167 tests across 10 suites, all passing`, and the engine
 headlines regenerated from `gap_detection.headline_metrics()`,
 `risk_engine.headline_metrics()` and `backtest.headline()` — identically
 whether they run against BigQuery or the CSV fallback (`bq_load.py --verify`

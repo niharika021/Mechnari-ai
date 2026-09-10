@@ -30,7 +30,7 @@ graph TD
 | Layer | Files | Rule it obeys |
 | --- | --- | --- |
 | **Data** | `data_layer.py`, `bq_source.py`, `bq_load.py`, `data/*.csv`, `schema.sql` | BigQuery is the source of record; CSV is the fallback. Normalised tables, loaded and joined in one place. `organization_id`-ready for multi-tenancy. |
-| **Engines** | `retrieval.py`, `gap_detection.py`, `risk_engine.py`, `dfmea_sheet.py`, `backtest.py` | Every number in the product originates here. No model calls, no network. |
+| **Engines** | `retrieval.py`, `gap_detection.py`, `risk_engine.py`, `dfmea_sheet.py`, `backtest.py`, `standards.py`, `own_records.py` | Every number in the product originates here. No model calls, no network. |
 | **Stores** | `queue_store.py`, `report_store.py` | Runtime state — the review queue and saved reports. Firestore when available, JSON file otherwise. |
 | **Service** | `api.py`, `auth.py`, `agui_endpoint.py` | Thin. Calls a tested module, shapes JSON. Computes nothing. |
 | **Agent** | `mechnari_agent/agent.py`, `mechnari_tools.py` | Reads findings, writes English, drives the UI. Holds no tool that writes a score. |
@@ -148,6 +148,27 @@ Model names do **not** carry over between the two paths: Vertex serves
 versioned publisher models and 404s on AI Studio's floating aliases
 (`gemini-flash-latest`). Availability is regional — `gemini-3.5-flash-lite`
 serves from `global` but not from `us-central1`.
+
+## When retrieval has nothing
+
+`standards.py` holds generic engineering failure modes, proposed underneath
+whatever retrieval found when the corpus contains nothing genuinely similar
+(measured similarity below 0.25 — *not* retrieval's `confident` flag, which
+measures whether neighbours agree on a type rather than whether any resemble
+the part). `own_records.py` turns a failure the engineer supplies into rows.
+
+Both obey the same rule as everything else: Severity from the effect
+registry, Occurrence from `risk_engine`'s scale, Detection from the
+escape-stage floor. Neither introduces a number a human typed.
+
+**Neither reaches `gap_detection`.** A mode in `failure_mode_catalog` is
+institutional memory, so an unanalysed one is a gap; generic practice is not,
+and an engineer's own note is not either. Putting them in that table would
+have moved 127 gaps, 57.3% coverage and the backtest — there is a test
+asserting it did not.
+
+Rows are marked `scope_level` `STANDARD` or `ENGINEER` so a reviewer can see
+which rest on evidence and which do not.
 
 ## Knowledge base source
 

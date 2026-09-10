@@ -5,8 +5,8 @@
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js%20%2B%20FastAPI-000000.svg)](https://nextjs.org/)
 [![Standard](https://img.shields.io/badge/Standard-AIAG--VDA%20Action%20Priority-0F6B63.svg)](https://www.aiag.org/)
 [![Data](https://img.shields.io/badge/data-BigQuery-669DF6.svg)](#-where-the-data-comes-from)
-[![Tests](https://img.shields.io/badge/tests-147%20passing-2F6B3C.svg)](#-tests)
-[![Live](https://img.shields.io/badge/live-app.mechnari.in-1a73e8.svg)](https://app.mechnari.in)
+[![Tests](https://img.shields.io/badge/tests-167%20passing-2F6B3C.svg)](#-tests)
+[![Live](https://img.shields.io/badge/live-Cloud%20Run-1a73e8.svg)](https://mechnari-web-1041795730182.us-central1.run.app)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Mechnari.ai treats a manufacturer's own warranty history as the primary knowledge
@@ -30,7 +30,7 @@ consistent with each other or with what the last program already learned.
 > failure, and this DFMEA did not check for it.* That is checkable against an 8D
 > number and it survives an audit.
 
-**Live: <https://app.mechnari.in>** — three role views, signed out by default.
+**Live: <https://mechnari-web-1041795730182.us-central1.run.app>** — three role views, signed out by default.
 Sign in with Google only to keep reports against your account; nothing else is
 gated. Deployed on Cloud Run (see [DEPLOY.md](DEPLOY.md)).
 
@@ -180,6 +180,56 @@ Inheritance has to be narrow enough to stay true.
 
 ---
 
+## 🧯 When the history has nothing to say
+
+Two paths exist for the case the product is otherwise silent on: a part
+unlike anything the company has built, or a failure the engineer knows about
+and the warranty record does not.
+
+**The standards floor.** When retrieval finds nothing genuinely similar,
+generic engineering modes are proposed *underneath* whatever it did find —
+fatigue, corrosion, chafe-through, fastener loosening, and a keyword-gated
+set for fluid, electrical, sealing and structural parts. Severity still comes
+from the organisation's effect registry, so a standards row cannot introduce
+a severity nobody standardised. Occurrence sits at the floor and the row
+reads `no field record - standards baseline` rather than looking measured.
+
+The trigger is a measured similarity, not retrieval's own confidence flag.
+Paraphrased in-domain parts score 0.313–0.489; genuinely out-of-domain parts
+score 0.100–0.161; the threshold sits at 0.25 in the gap. Confidence was the
+wrong signal — it measures whether neighbours *agree on a type*, not whether
+any of them resemble the part, so a rear view mirror arm comes back
+`confident=True` while a correctly-identified hydraulic steering line comes
+back `confident=False`.
+
+**These modes are deliberately not in `failure_mode_catalog`.** Gap detection
+reads that table and calls an unanalysed mode a *gap* — "you already knew and
+did not check". Generic practice carries no such claim, and putting it in the
+catalog would silently move 127 gaps, 57.3% coverage and the whole backtest.
+A test asserts those three figures have not moved.
+
+**Records the engineer supplies.** A prototype failure, an equivalent part at
+a previous employer, a test that never became an 8D — entered at intake,
+before the analysis runs, so it survives the case where nothing is proposed.
+It is treated as evidence, not as a score:
+
+| Field | Where the number comes from |
+| --- | --- |
+| Severity | The effect registry — the engineer picks the *effect*; there is no severity field |
+| Occurrence | `risk_engine.occurrence_from_claims` from claims ÷ fleet size, the same function the warranty path uses. Without both, the floor, marked `no rate given` |
+| Detection | The escape-stage floor — a failure that reached a customer cannot be scored well-detected |
+
+Rows carry `scope_level: ENGINEER` so Quality can tell a colleague's
+recollection from the warranty record. Both are legitimate; conflating them
+is not.
+
+> Both tiers are labelled. `standards.STANDARDS_REVIEWED` is `False` — the
+> generic modes were authored as a starting point, not taken from a published
+> standard, and the platform says so wherever it uses them, the same
+> convention as the Action Priority table.
+
+---
+
 ## 🗄️ Where the data comes from
 
 **BigQuery is the source of record; the CSVs are the fallback.** Set
@@ -325,7 +375,7 @@ The generator is seeded, so the figures in this README reproduce exactly.
 
 ## 🧪 Tests
 
-**147 tests across 9 suites, all passing.** Each file runs standalone or under
+**167 tests across 10 suites, all passing.** Each file runs standalone or under
 pytest:
 
 ```bash
@@ -343,6 +393,7 @@ for f in test_*.py; do py "$f"; done
 | `test_queue_store.py` | 11 | Draft queue atomicity, corruption recovery, Firestore fallback |
 | `test_report_store.py` | 10 | Report ownership — missing returns None, not-yours raises |
 | `test_data_source.py` | 10 | BigQuery vs CSV selection, and that an unreachable warehouse degrades to the CSVs rather than failing |
+| `test_standards_and_own_records.py` | 20 | The standards floor and engineer-supplied records — including that standards modes never become "gaps" and never move the headline figures |
 
 ---
 
@@ -362,6 +413,8 @@ Mechnari-ai/
 ├── queue_store.py           # Draft review queue (Firestore, JSON file fallback)
 ├── report_store.py          # Generated reports, owned by verified account
 ├── dfmea_sheet.py           # AIAG-VDA form-sheet assembly
+├── standards.py             # Generic modes, proposed when history has nothing
+├── own_records.py           # Failure records the engineer supplies, scored by the engines
 ├── auth.py                  # Firebase token verification; signed out is valid
 ├── agui_endpoint.py         # AG-UI endpoint over the same root agent
 ├── mechnari_agent/agent.py  # Google ADK 2.x root agent, sub_agents, Workflow
@@ -369,7 +422,7 @@ Mechnari-ai/
 ├── api.py                   # FastAPI wrapper - thin, computes nothing
 ├── web/                     # Next.js frontend (three role views, CopilotKit v2)
 ├── DEPLOY.md                # Cloud Run deployment, and the traps in it
-├── test_*.py                # 9 suites, 147 tests
+├── test_*.py                # 10 suites, 167 tests
 ├── docs/                    # Full documentation - start at docs/README.md
 ├── docs/build-dossier.html  # Concept and build report
 ├── intro.md                 # Plain-language introduction

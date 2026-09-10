@@ -81,6 +81,20 @@ verified. If they disagree, the server's answer is the real one.
 
 ## Reference data
 
+### `GET /api/failure-effects`
+
+The organisation's effect registry — `effect_id`, description, system level
+and `standard_severity`. Exposed so the intake form can offer it as a list
+when an engineer supplies their own failure record: they pick an effect, and
+never type a severity.
+
+### `GET /api/detection-stages`
+
+Where a failure can escape to, and the Detection floor each implies —
+`VALIDATION_TEST` 2, `END_OF_LINE_TEST` 3, `DEALER_SERVICE` 5,
+`FIELD_CUSTOMER` 7. A failure that reached a customer cannot honestly be
+scored well-detected, and this is what enforces that.
+
 | Route | Returns |
 | --- | --- |
 | `GET /api/parts` | Every part in the BOM, joined with material master. Optional `?system_package=` filter. |
@@ -133,9 +147,25 @@ Assembles proposed modes into AIAG-VDA form-sheet rows.
 { "items": [
     { "part_number": "", "description": "Fuel Return Line Clamp",
       "function": "...", "material": "...", "system_package": "Fuel Routings",
-      "part_type_id": "", "existing_part_id": "" }
+      "part_type_id": "", "existing_part_id": "",
+      // Optional: failures the engineer knows about that the warranty
+      // record does not. Note there is no severity field - the effect
+      // is chosen and the registry supplies the severity.
+      "own_records": [
+        { "failure_mode": "Collar cracks after cold-soak cycling",
+          "potential_cause": "", "effect_id": "EF-01",
+          "detection_stage": "FIELD_CUSTOMER",
+          "claim_count": 34, "units_in_service": 1200,
+          "reference": "prototype fleet, winter 2025" }
+      ] }
   ] }
 ```
+
+An `effect_id` outside the registry, or a `detection_stage` with no Detection
+floor, is a `400` with the reason — not a new effect and not a silent default.
+Supplying `claim_count` and `units_in_service` derives Occurrence through the
+same function the warranty path uses; omitting them leaves it at the floor,
+marked `no rate given`.
 
 One entry for a single part, several for a package — the shape is the same
 either way, so the frontend does not need two request paths for one operation

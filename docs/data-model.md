@@ -130,6 +130,19 @@ to check a wire conduit for park-brake binding. **Inheritance has to be narrow
 enough to stay true**, and one level cannot be both — which is why there are
 two.
 
+## What is deliberately not in these tables
+
+`standards.py` holds generic engineering failure modes and `own_records.py`
+scores failures the engineer supplies. Neither is loaded by `data_layer`, and
+neither appears in `failure_mode_catalog` — on purpose.
+
+A mode in that catalog is a claim: *this company built a part like this and
+this is how it failed*, which is what lets `gap_detection` call an unanalysed
+one a **gap**. Generic practice supports no such claim, and nor does a
+colleague's recollection. Beyond correctness, putting them in the table would
+silently move every headline figure in the product, because gaps, coverage
+and the backtest are all computed from `applicable_modes()` over it.
+
 ## Multi-tenancy
 
 The tables are `organization_id`-ready: the shape assumes a tenant column and
