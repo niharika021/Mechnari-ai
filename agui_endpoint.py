@@ -17,10 +17,12 @@ every number. AG-UI streams what the agent says; it does not give the agent
 any tool it did not already have.
 """
 
+import contextvars
 import json
+import logging
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Set
 
 from ag_ui_adk import (
     ADKAgent,
@@ -29,8 +31,12 @@ from ag_ui_adk import (
     add_adk_fastapi_endpoint,
 )
 from google.adk.agents.readonly_context import ReadonlyContext
+from google.adk.models.llm_response import LlmResponse
+from google.genai import types
 
 from mechnari_agent import agent as mechnari_agent
+
+logger = logging.getLogger(__name__)
 
 # Frontend tools do not arrive on their own. ag-ui-adk walks the agent tree
 # looking for an AGUIToolset placeholder and swaps in a per-run
@@ -112,6 +118,96 @@ def _instruction_with_screen_context(ctx: ReadonlyContext) -> str:
 
 
 mechnari_agent.root_agent.instruction = _instruction_with_screen_context
+
+
+# --- One client-side tool call per turn ----------------------------------
+#
+# Asked "let's draft a DFMEA for a bracket, steel, supports lines", the model
+# does the sensible thing and emits BOTH calls at once: fillPartIntake and
+# buildDfmea, in a single turn. Gemini is entitled to; parallel function
+# calling is a documented feature.
+#
+# ag-ui-adk surfaces only the first one. The browser therefore returns one
+# result, the session records one function_response against a turn holding
+# two function_calls, and the next request dies at Vertex with:
+#
+#   "Please ensure that the number of function response parts is equal to
+#    the number of function call parts of the function call turn."
+#
+# To the engineer that is a chat that answers once and then never speaks
+# again - which is exactly how it was reported. Nothing in the UI says a
+# request failed, because the failure is in the *following* run.
+#
+# Measured rather than guessed: with fillPartIntake alone the follow-up
+# succeeds; adding goToView, reanalyseAsPartType or openExistingPartDfmea
+# keeps succeeding; adding buildDfmea fails every time, because buildDfmea
+# is the one the model wants to chain onto the fill. Dumping the ADK session
+# showed the turn holding CALL:fillPartIntake and CALL:buildDfmea with a
+# single response against it.
+#
+# So keep one, drop the rest. The dropped call is not lost work: followUp is
+# true on every frontend tool, so the model gets another turn the moment the
+# result lands and can call buildDfmea then - which is also the order the
+# engineer wants, since the form should be right before the analysis runs.
+#
+# Enforced here rather than only asked for in the instruction. A prompt that
+# says "one at a time" is a preference the model may decline; this is the
+# invariant the protocol actually requires.
+
+_CLIENT_TOOL_NAMES: contextvars.ContextVar[Set[str]] = contextvars.ContextVar(
+    "mechnari_client_tool_names", default=frozenset()
+)
+
+
+def _note_client_tools(callback_context, llm_request) -> None:
+    """Record which of this run's tools live in the browser.
+
+    Read off the request rather than hardcoded, because the frontend owns
+    that list: a tool added in CopilotActions.tsx and not here would
+    otherwise be exactly the one that slips through.
+    """
+    tools = getattr(llm_request, "tools_dict", None) or {}
+    _CLIENT_TOOL_NAMES.set(
+        frozenset(
+            name for name, tool in tools.items()
+            if getattr(tool, "is_long_running", False)
+        )
+    )
+    return None
+
+
+def _one_client_tool_per_turn(callback_context, llm_response) -> Optional[LlmResponse]:
+    """Drop every client-side call after the first in the same turn."""
+    content = getattr(llm_response, "content", None)
+    parts = list(content.parts) if content and content.parts else []
+    calls = [p for p in parts if getattr(p, "function_call", None)]
+    if len(calls) < 2:
+        return None
+
+    client_names = _CLIENT_TOOL_NAMES.get()
+    first_client = next(
+        (p for p in calls if p.function_call.name in client_names), None
+    )
+    if first_client is None:
+        # All server-side: they resolve inside this turn, so the counts
+        # match and there is nothing to fix.
+        return None
+
+    kept = [p for p in parts
+            if not getattr(p, "function_call", None) or p is first_client]
+    dropped = [p.function_call.name for p in calls if p is not first_client]
+    logger.info(
+        "Deferred %s to a later turn; %s is client-side and only one such "
+        "call can be answered per turn.",
+        ", ".join(dropped), first_client.function_call.name,
+    )
+    return llm_response.model_copy(
+        update={"content": types.Content(role=content.role, parts=kept)}
+    )
+
+
+mechnari_agent.root_agent.before_model_callback = _note_client_tools
+mechnari_agent.root_agent.after_model_callback = _one_client_tool_per_turn
 
 
 # There is no per-user auth in this build - the three role views are tabs,

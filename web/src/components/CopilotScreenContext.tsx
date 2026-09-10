@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   type JsonSerializable,
@@ -60,6 +61,13 @@ export function CopilotScreenContext() {
   const pathname = usePathname() || "";
   const router = useRouter();
 
+  // Same stale-closure hazard as CopilotActions: goToView is registered
+  // once and would otherwise keep comparing against whichever path was
+  // current then, so "already on the quality view" could be said about a
+  // view the engineer left several turns ago.
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
+
   const key = Object.keys(VIEWS).find((k) => pathname.startsWith(k));
   const view = key ? VIEWS[key] : null;
   const onReportPage = /^\/design\/report\//.test(pathname);
@@ -97,7 +105,7 @@ export function CopilotScreenContext() {
       if (!["design", "quality", "company"].includes(next)) {
         return `"${target}" is not a view. The views are design, quality and company.`;
       }
-      if (pathname.startsWith(`/${next}`)) {
+      if (pathRef.current.startsWith(`/${next}`)) {
         // Saying so beats a silent no-op that reads as a broken tool.
         return `Already on the ${next} view.`;
       }

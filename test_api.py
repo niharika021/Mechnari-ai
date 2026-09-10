@@ -610,6 +610,98 @@ def test_screen_context_reaches_the_model_and_not_only_session_state():
     assert "on screen right now" not in bare
 
 
+def test_only_one_browser_tool_call_survives_a_turn():
+    """The bug that made the chat answer once and then go silent.
+
+    Asked to draft a DFMEA for a part described in the message, the model
+    emits fillPartIntake and buildDfmea together - parallel function
+    calling, which Gemini is entitled to do. ag-ui-adk surfaces only the
+    first, so the browser answers one call while the session records a turn
+    holding two, and the NEXT request dies at Vertex with "the number of
+    function response parts is equal to the number of function call parts
+    of the function call turn". Nothing fails visibly at the time; the chat
+    simply never speaks again.
+
+    Bisected against the deployed API: fillPartIntake alone is fine, and so
+    is adding goToView, reanalyseAsPartType or openExistingPartDfmea. Adding
+    buildDfmea fails every time - it is the one the model chains onto a
+    fill.
+
+    The dropped call is deferred, not lost: followUp gives the model another
+    turn the moment the result arrives, and building after the form is
+    filled is the order the engineer wants anyway.
+    """
+    from google.adk.models.llm_response import LlmResponse
+    from google.genai import types
+
+    import agui_endpoint
+
+    class _Tool:
+        def __init__(self, is_long_running):
+            self.is_long_running = is_long_running
+
+    class _Req:
+        tools_dict = {
+            "fillPartIntake": _Tool(True),   # browser
+            "buildDfmea": _Tool(True),       # browser
+            "list_parts": _Tool(False),      # server
+            "get_part_profile": _Tool(False),
+        }
+
+    def _call(name):
+        return types.Part(function_call=types.FunctionCall(id=name, name=name, args={}))
+
+    def _response(*parts):
+        return LlmResponse(content=types.Content(role="model", parts=list(parts)))
+
+    agui_endpoint._note_client_tools(None, _Req())
+
+    fixed = agui_endpoint._one_client_tool_per_turn(
+        None, _response(_call("fillPartIntake"), _call("buildDfmea")))
+    assert fixed is not None, "two browser calls in one turn were left alone"
+    names = [p.function_call.name for p in fixed.content.parts]
+    assert names == ["fillPartIntake"], names
+
+    # One browser call is the normal case and must pass through untouched -
+    # returning a rewritten response for every turn would be a good way to
+    # lose a thought signature or a text part.
+    assert agui_endpoint._one_client_tool_per_turn(
+        None, _response(_call("fillPartIntake"))) is None
+
+    # Parallel *server* tools resolve inside the same turn, so their counts
+    # already match and rewriting them would only remove real work.
+    assert agui_endpoint._one_client_tool_per_turn(
+        None, _response(_call("list_parts"), _call("get_part_profile"))) is None
+
+    # A browser call alongside server calls: still only one answer comes
+    # back from the browser, so the same rule applies.
+    mixed = agui_endpoint._one_client_tool_per_turn(
+        None, _response(_call("list_parts"), _call("fillPartIntake")))
+    assert [p.function_call.name for p in mixed.content.parts] == ["fillPartIntake"]
+
+    # Text alongside the surviving call is kept - it is what the engineer
+    # reads while the tool runs.
+    with_text = agui_endpoint._one_client_tool_per_turn(
+        None, _response(types.Part(text="Filling that in."),
+                        _call("fillPartIntake"), _call("buildDfmea")))
+    kinds = [(p.text or "")[:7] if p.text else p.function_call.name
+             for p in with_text.content.parts]
+    assert kinds == ["Filling", "fillPartIntake"], kinds
+
+
+def test_the_agent_is_told_to_use_browser_tools_one_at_a_time():
+    """The instruction half of the fix above.
+
+    The callback is what makes it true; this is what makes the model do the
+    sensible thing on its own, so the deferred call is rare rather than
+    routine."""
+    from mechnari_agent import agent as mechnari_agent
+
+    rule = mechnari_agent._UI_ACTIONS_RULE
+    assert "one of these client tools at a time" in rule
+    assert "another turn" in rule
+
+
 def test_copilot_health_reports_whether_the_key_actually_works():
     body = client.get("/api/copilot/health").json()
     # Presence and validity are different questions, and the second is the

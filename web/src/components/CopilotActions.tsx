@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   type JsonSerializable,
   useAgentContext,
@@ -83,6 +84,22 @@ export type ActionHandlers = {
 };
 
 export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
+  // Every tool below calls through this ref rather than closing over
+  // `handlers` directly.
+  //
+  // The handlers close over React state - the intake rows, the review, the
+  // part list - and a tool registered on one render keeps the closure it
+  // was registered with. Asked to draft a DFMEA for a steel bracket, the
+  // agent filled the form and then built on the next turn, and the analysis
+  // came back for "EPDM Fuel Return Line, EXAMPLE-0001": the example row the
+  // page starts with, because that was the state when buildDfmea was first
+  // registered. The form on screen said Bracket. Nothing errored.
+  //
+  // It only became visible once a fill and a build could happen seconds
+  // apart, which is the sequencing the parallel-call fix introduced.
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
+
 
   // Telling the agent what is currently on screen means it can answer
   // "why is this row High" about the row in front of the engineer rather
@@ -118,7 +135,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
       material: z.string().optional().describe("Material or compound."),
     }),
     handler: async ({ part_number, description, function: fn, material }) => {
-      handlers.fillIntake({
+      handlersRef.current.fillIntake({
         part_number: part_number || undefined,
         description: description || undefined,
         function: fn || undefined,
@@ -137,7 +154,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
       "engineer reviews the findings first.",
     parameters: z.object({}),
     handler: async () => {
-      handlers.build();
+      handlersRef.current.build();
       return "Running the analysis. The findings will appear for review.";
     },
   });
@@ -157,7 +174,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
         ),
     }),
     handler: async ({ part_type_name }) => {
-      const ok = handlers.reanalyseAs(part_type_name);
+      const ok = handlersRef.current.reanalyseAs(part_type_name);
       return ok
         ? `Re-analysing as ${part_type_name}. The proposed failure modes will change.`
         : `I could not match "${part_type_name}" to a known part type. Ask the engineer to pick it from the dropdown.`;
@@ -175,7 +192,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
       part: z.string().describe("Part id such as TR-FL-001, or part name."),
     }),
     handler: async ({ part }) => {
-      const ok = handlers.openExisting(part);
+      const ok = handlersRef.current.openExisting(part);
       return ok
         ? `Opened the DFMEA on file for ${part}.`
         : `I could not find a part matching "${part}" in the BOM.`;
@@ -240,7 +257,7 @@ export function CopilotActions({ handlers }: { handlers: ActionHandlers }) {
               onClick={() => {
                 // The change happens here, on approval - not in a handler
                 // that would have run before the engineer was asked.
-                const ok = handlers.declineRow(
+                const ok = handlersRef.current.declineRow(
                   String(args.mode_id ?? ""),
                   String(args.reason ?? ""),
                 );
